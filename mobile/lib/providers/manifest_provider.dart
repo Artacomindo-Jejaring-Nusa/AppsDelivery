@@ -21,7 +21,7 @@ class ManifestProvider extends ChangeNotifier {
 
   ManifestProvider({required this.apiClient, required this.dbHelper});
 
-  Future<void> fetchActiveManifest(String driverId, bool isOnline) async {
+  Future<void> fetchActiveManifest(String? driverId, bool isOnline) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -50,10 +50,22 @@ class ManifestProvider extends ChangeNotifier {
         // 2. Filter manifests for this driver with status in_transit or dispatched
         String? targetManifestId;
         for (final item in list) {
-          if (item['driver_id'] == driverId &&
-              (item['status'] == 'in_transit' || item['status'] == 'dispatched')) {
+          final mStatus = item['status'];
+          final isStatusActive = mStatus == 'in_transit' || mStatus == 'dispatched';
+          if (isStatusActive && (driverId == null || item['driver_id'] == driverId)) {
             targetManifestId = item['id'];
             break;
+          }
+        }
+
+        // Fallback: If not found with exact driverId, pick first active in_transit manifest
+        if (targetManifestId == null) {
+          for (final item in list) {
+            final mStatus = item['status'];
+            if (mStatus == 'in_transit' || mStatus == 'dispatched') {
+              targetManifestId = item['id'];
+              break;
+            }
           }
         }
 

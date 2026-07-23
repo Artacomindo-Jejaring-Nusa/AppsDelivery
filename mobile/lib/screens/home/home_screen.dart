@@ -37,9 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Ping location to resolve driver ID
     final driverId = await locProv.pingLocation();
-    if (driverId != null) {
-      await manifestProv.fetchActiveManifest(driverId, syncProv.isOnline);
-    }
+    await manifestProv.fetchActiveManifest(driverId ?? locProv.driverId, syncProv.isOnline);
   }
 
   void selectTab(int index) {

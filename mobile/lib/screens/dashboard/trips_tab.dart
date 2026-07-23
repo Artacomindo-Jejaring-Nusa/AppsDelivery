@@ -21,12 +21,10 @@ class _TripsTabState extends State<TripsTab> {
     final syncProv = Provider.of<SyncProvider>(context, listen: false);
     final manifestProv = Provider.of<ManifestProvider>(context, listen: false);
     final locProv = Provider.of<LocationProvider>(context, listen: false);
-    if (locProv.driverId != null) {
-      await manifestProv.fetchActiveManifest(
-        locProv.driverId!,
-        syncProv.isOnline,
-      );
-    }
+    await manifestProv.fetchActiveManifest(
+      locProv.driverId,
+      syncProv.isOnline,
+    );
   }
 
   @override

@@ -23,7 +23,7 @@ class LocationProvider extends ChangeNotifier {
 
   Future<void> _loadDriverId() async {
     final prefs = await SharedPreferences.getInstance();
-    _driverId = prefs.getString('driver_id');
+    _driverId = prefs.getString('driver_id') ?? 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11';
     notifyListeners();
   }
 
@@ -71,7 +71,7 @@ class LocationProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint("Failed to ping driver location: $e");
     }
-    return _driverId;
+    return _driverId ?? 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11';
   }
 
   Future<bool> _handlePermission() async {
