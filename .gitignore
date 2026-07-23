@@ -1,0 +1,33 @@
+# Sensitive & PRD Files
+PRD_Delivery_Reverse_Logistics_AKS_Artacomindo.md
+*.md.bak
+
+# Environment Variables
+.env
+*.env
+backend/.env
+
+# Temporary and Log files
+*.log
+tmp/
+.idea/
+.vscode/
+
+# Go build & binary artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+backend/api
+
+# Uploaded Files / Media
+uploads/barcodes/*
+!uploads/barcodes/.gitkeep
+backend/uploads/barcodes/*
+!backend/uploads/barcodes/.gitkeep
+
+# OS specific files
+.DS_Store
+Thumbs.db
