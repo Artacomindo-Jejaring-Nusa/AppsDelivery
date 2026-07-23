@@ -1,0 +1,11 @@
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+.env
+/uploads/barcodes/*
+!uploads/barcodes/.gitkeep
+/tmp/
+vendor/

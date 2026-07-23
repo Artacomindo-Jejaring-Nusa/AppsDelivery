@@ -1,0 +1,531 @@
+{
+  "info": {
+    "name": "Delivery & Reverse Logistics API",
+    "description": "API Collection untuk sistem manajemen pengiriman dan logistik balik proyek migrasi BTS Telkomsel.\n\nPT. AKS X Artacomindo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/health", "host": ["{{base_url}}"], "path": ["api", "v1", "health"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.token) {",
+                  "    pm.environment.set('token', jsonData.data.token);",
+                  "    pm.environment.set('user_id', jsonData.data.user.id);",
+                  "    console.log('Token saved to environment');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"dispatcher01\",\n  \"email\": \"dispatcher01@aksartacomindo.com\",\n  \"password\": \"password123\",\n  \"full_name\": \"Ahmad Dispatcher\",\n  \"role\": \"dispatcher\",\n  \"phone\": \"081234567890\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/register", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/users/me", "host": ["{{base_url}}"], "path": ["api", "v1", "users", "me"] }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BTS Sites",
+      "item": [
+        {
+          "name": "Create BTS Site",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set('bts_site_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"site_id\": \"KAL-BTS-0001\",\n  \"site_name\": \"BTS Banjarmasin Utara\",\n  \"address\": \"Jl. A. Yani No. 123, Banjarmasin\",\n  \"province\": \"Kalimantan Selatan\",\n  \"city\": \"Banjarmasin\",\n  \"district\": \"Banjarmasin Utara\",\n  \"latitude\": -3.3194,\n  \"longitude\": 114.5907\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/bts-sites", "host": ["{{base_url}}"], "path": ["api", "v1", "bts-sites"] }
+          }
+        },
+        {
+          "name": "List BTS Sites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bts-sites?page=1&per_page=20&search=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bts-sites"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get BTS Site Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/bts-sites/{{bts_site_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "bts-sites", "{{bts_site_id}}"] }
+          }
+        },
+        {
+          "name": "Update BTS Site",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"site_name\": \"BTS Banjarmasin Utara (Updated)\",\n  \"address\": \"Jl. A. Yani No. 456, Banjarmasin\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/bts-sites/{{bts_site_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "bts-sites", "{{bts_site_id}}"] }
+          }
+        },
+        {
+          "name": "Delete BTS Site",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/bts-sites/{{bts_site_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "bts-sites", "{{bts_site_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Drivers",
+      "item": [
+        {
+          "name": "Create Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set('driver_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Budi Kurir\",\n  \"phone\": \"081299887766\",\n  \"vehicle_plate\": \"DA 1234 AB\",\n  \"vehicle_type\": \"Pickup Truck\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/drivers", "host": ["{{base_url}}"], "path": ["api", "v1", "drivers"] }
+          }
+        },
+        {
+          "name": "List Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/drivers?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "drivers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Driver Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/drivers/{{driver_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "drivers", "{{driver_id}}"] }
+          }
+        },
+        {
+          "name": "Update Driver",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicle_plate\": \"DA 5678 CD\",\n  \"is_available\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/drivers/{{driver_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "drivers", "{{driver_id}}"] }
+          }
+        },
+        {
+          "name": "Delete Driver",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/drivers/{{driver_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "drivers", "{{driver_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delivery Orders",
+      "item": [
+        {
+          "name": "Create Delivery Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set('do_id', jsonData.data.id);",
+                  "    pm.environment.set('do_number', jsonData.data.do_number);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"do_number\": \"DO-2026-07-001\",\n  \"bts_site_id\": \"{{bts_site_id}}\",\n  \"description\": \"Material migrasi BTS Banjarmasin Utara\",\n  \"sla_hours\": 72,\n  \"origin_address\": \"Gudang PT. Eriksin Banjarmasin\",\n  \"destination_address\": \"Site BTS KAL-BTS-0001\",\n  \"notes\": \"Handle with care\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/delivery-orders", "host": ["{{base_url}}"], "path": ["api", "v1", "delivery-orders"] }
+          }
+        },
+        {
+          "name": "List Delivery Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/delivery-orders?page=1&per_page=20&status=&sla_status=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "delivery-orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" },
+                { "key": "status", "value": "" },
+                { "key": "sla_status", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get DO Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/delivery-orders/{{do_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "delivery-orders", "{{do_id}}"] }
+          }
+        },
+        {
+          "name": "Update DO Status",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_transit\",\n  \"notes\": \"Driver sudah berangkat\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/delivery-orders/{{do_id}}/status", "host": ["{{base_url}}"], "path": ["api", "v1", "delivery-orders", "{{do_id}}", "status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manifests",
+      "item": [
+        {
+          "name": "Create Manifest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set('manifest_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driver_id\": \"{{driver_id}}\",\n  \"delivery_order_ids\": [\"{{do_id}}\"],\n  \"notes\": \"Manifest pengiriman batch pertama\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/manifests", "host": ["{{base_url}}"], "path": ["api", "v1", "manifests"] }
+          }
+        },
+        {
+          "name": "List Manifests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/manifests?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "manifests"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Manifest Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/manifests/{{manifest_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "manifests", "{{manifest_id}}"] }
+          }
+        },
+        {
+          "name": "Update Manifest Status (Dispatch)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"dispatched\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/manifests/{{manifest_id}}/status", "host": ["{{base_url}}"], "path": ["api", "v1", "manifests", "{{manifest_id}}", "status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dismantle Assets",
+      "item": [
+        {
+          "name": "Create Single Asset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set('asset_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"Antenna\",\n  \"item_name\": \"Antenna Panel 1800MHz\",\n  \"serial_number\": \"SN-ANT-20260001\",\n  \"quantity\": 1,\n  \"unit\": \"pcs\",\n  \"condition\": \"good\",\n  \"notes\": \"Kondisi baik, tidak ada kerusakan\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/delivery-orders/{{do_id}}/assets", "host": ["{{base_url}}"], "path": ["api", "v1", "delivery-orders", "{{do_id}}", "assets"] }
+          }
+        },
+        {
+          "name": "Batch Create Assets",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assets\": [\n    {\n      \"category\": \"RRU\",\n      \"item_name\": \"Remote Radio Unit 2100MHz\",\n      \"serial_number\": \"SN-RRU-20260001\",\n      \"quantity\": 2,\n      \"unit\": \"pcs\",\n      \"condition\": \"good\"\n    },\n    {\n      \"category\": \"Cable\",\n      \"item_name\": \"Feeder Cable 7/8\",\n      \"serial_number\": \"SN-CBL-20260001\",\n      \"quantity\": 50,\n      \"unit\": \"meter\",\n      \"condition\": \"fair\"\n    },\n    {\n      \"category\": \"Battery\",\n      \"item_name\": \"Battery Pack 48V\",\n      \"serial_number\": \"SN-BAT-20260001\",\n      \"quantity\": 4,\n      \"unit\": \"pcs\",\n      \"condition\": \"good\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/delivery-orders/{{do_id}}/assets/batch", "host": ["{{base_url}}"], "path": ["api", "v1", "delivery-orders", "{{do_id}}", "assets", "batch"] }
+          }
+        },
+        {
+          "name": "List Assets by DO",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/delivery-orders/{{do_id}}/assets?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "delivery-orders", "{{do_id}}", "assets"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Asset",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"condition\": \"damaged\",\n  \"notes\": \"Ditemukan kerusakan minor pada body\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/assets/{{asset_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "assets", "{{asset_id}}"] }
+          }
+        },
+        {
+          "name": "Delete Asset",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/assets/{{asset_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "assets", "{{asset_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Barcodes",
+      "item": [
+        {
+          "name": "Generate Barcode for Asset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set('barcode_data', jsonData.data.barcode_data);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/assets/{{asset_id}}/barcode", "host": ["{{base_url}}"], "path": ["api", "v1", "assets", "{{asset_id}}", "barcode"] }
+          }
+        },
+        {
+          "name": "Lookup Barcode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/barcodes/{{barcode_data}}", "host": ["{{base_url}}"], "path": ["api", "v1", "barcodes", "{{barcode_data}}"] }
+          }
+        },
+        {
+          "name": "Scan Barcode",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/barcodes/{{barcode_data}}/scan", "host": ["{{base_url}}"], "path": ["api", "v1", "barcodes", "{{barcode_data}}", "scan"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SLA Dashboard",
+      "item": [
+        {
+          "name": "Get SLA Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/sla/summary", "host": ["{{base_url}}"], "path": ["api", "v1", "sla", "summary"] }
+          }
+        },
+        {
+          "name": "Get SLA Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sla/logs?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sla", "logs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

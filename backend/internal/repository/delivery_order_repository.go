@@ -1,0 +1,244 @@
+package repository
+
+import (
+	"context"
+	"fmt"
+
+	"backend-delivery/internal/domain"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type deliveryOrderRepository struct {
+	db *pgxpool.Pool
+}
+
+// NewDeliveryOrderRepository creates a new DeliveryOrderRepository implementation.
+func NewDeliveryOrderRepository(db *pgxpool.Pool) domain.DeliveryOrderRepository {
+	return &deliveryOrderRepository{db: db}
+}
+
+func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.DeliveryOrder) error {
+	query := `
+		INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		RETURNING created_at, updated_at`
+
+	if do.ID == uuid.Nil {
+		do.ID = uuid.New()
+	}
+
+	return r.db.QueryRow(ctx, query,
+		do.ID, do.DONumber, do.BtsSiteID, do.Description,
+		do.Status, do.SLAHours, do.SLADeadline, do.SLAStatus,
+		do.OriginAddress, do.DestinationAddress, do.Notes, do.CreatedBy,
+	).Scan(&do.CreatedAt, &do.UpdatedAt)
+}
+
+func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.DeliveryOrder, error) {
+	query := `
+		SELECT do.id, do.do_number, do.bts_site_id, do.description, do.status,
+			   do.sla_hours, do.sla_deadline, do.sla_status, do.origin_address, do.destination_address,
+			   do.notes, do.created_by, do.created_at, do.updated_at, do.deleted_at,
+			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district
+		FROM delivery_orders do
+		LEFT JOIN bts_sites bs ON do.bts_site_id = bs.id
+		WHERE do.id = $1 AND do.deleted_at IS NULL`
+
+	doEntity := &domain.DeliveryOrder{}
+	bts := &domain.BtsSite{}
+
+	var btsID, btsSiteID, btsSiteName, btsAddress, btsProvince, btsCity, btsDistrict *string
+
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&doEntity.ID, &doEntity.DONumber, &doEntity.BtsSiteID, &doEntity.Description,
+		&doEntity.Status, &doEntity.SLAHours, &doEntity.SLADeadline, &doEntity.SLAStatus,
+		&doEntity.OriginAddress, &doEntity.DestinationAddress, &doEntity.Notes,
+		&doEntity.CreatedBy, &doEntity.CreatedAt, &doEntity.UpdatedAt, &doEntity.DeletedAt,
+		&btsID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if btsSiteID != nil {
+		bts.SiteID = *btsSiteID
+		bts.SiteName = *btsSiteName
+		if btsAddress != nil {
+			bts.Address = *btsAddress
+		}
+		if btsProvince != nil {
+			bts.Province = *btsProvince
+		}
+		if btsCity != nil {
+			bts.City = *btsCity
+		}
+		if btsDistrict != nil {
+			bts.District = *btsDistrict
+		}
+		doEntity.BtsSite = bts
+	}
+
+	return doEntity, nil
+}
+
+func (r *deliveryOrderRepository) FindByDONumber(ctx context.Context, doNumber string) (*domain.DeliveryOrder, error) {
+	query := `
+		SELECT id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status,
+			   origin_address, destination_address, notes, created_by, created_at, updated_at, deleted_at
+		FROM delivery_orders WHERE do_number = $1 AND deleted_at IS NULL`
+
+	do := &domain.DeliveryOrder{}
+	err := r.db.QueryRow(ctx, query, doNumber).Scan(
+		&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
+		&do.Status, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
+		&do.OriginAddress, &do.DestinationAddress, &do.Notes,
+		&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt, &do.DeletedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return do, nil
+}
+
+func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DOFilterRequest) ([]*domain.DeliveryOrder, int64, error) {
+	filter.SetDefaults()
+
+	countQuery := `SELECT COUNT(*) FROM delivery_orders WHERE deleted_at IS NULL`
+	args := []interface{}{}
+	argIndex := 1
+
+	if filter.Search != "" {
+		countQuery += fmt.Sprintf(` AND (do_number ILIKE $%d OR description ILIKE $%d)`, argIndex, argIndex)
+		args = append(args, "%"+filter.Search+"%")
+		argIndex++
+	}
+	if filter.Status != "" {
+		countQuery += fmt.Sprintf(` AND status = $%d`, argIndex)
+		args = append(args, filter.Status)
+		argIndex++
+	}
+	if filter.SLAStatus != "" {
+		countQuery += fmt.Sprintf(` AND sla_status = $%d`, argIndex)
+		args = append(args, filter.SLAStatus)
+		argIndex++
+	}
+	if filter.BtsSiteID != "" {
+		countQuery += fmt.Sprintf(` AND bts_site_id = $%d`, argIndex)
+		args = append(args, filter.BtsSiteID)
+		argIndex++
+	}
+
+	var total int64
+	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	dataQuery := `
+		SELECT id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status,
+			   origin_address, destination_address, notes, created_by, created_at, updated_at
+		FROM delivery_orders WHERE deleted_at IS NULL`
+
+	dataArgs := []interface{}{}
+	dataArgIndex := 1
+
+	if filter.Search != "" {
+		dataQuery += fmt.Sprintf(` AND (do_number ILIKE $%d OR description ILIKE $%d)`, dataArgIndex, dataArgIndex)
+		dataArgs = append(dataArgs, "%"+filter.Search+"%")
+		dataArgIndex++
+	}
+	if filter.Status != "" {
+		dataQuery += fmt.Sprintf(` AND status = $%d`, dataArgIndex)
+		dataArgs = append(dataArgs, filter.Status)
+		dataArgIndex++
+	}
+	if filter.SLAStatus != "" {
+		dataQuery += fmt.Sprintf(` AND sla_status = $%d`, dataArgIndex)
+		dataArgs = append(dataArgs, filter.SLAStatus)
+		dataArgIndex++
+	}
+	if filter.BtsSiteID != "" {
+		dataQuery += fmt.Sprintf(` AND bts_site_id = $%d`, dataArgIndex)
+		dataArgs = append(dataArgs, filter.BtsSiteID)
+		dataArgIndex++
+	}
+
+	dataQuery += fmt.Sprintf(` ORDER BY %s %s LIMIT $%d OFFSET $%d`,
+		sanitizeSortColumn(filter.SortBy, "created_at"),
+		sanitizeOrder(filter.Order),
+		dataArgIndex, dataArgIndex+1)
+	dataArgs = append(dataArgs, filter.PerPage, filter.Offset())
+
+	rows, err := r.db.Query(ctx, dataQuery, dataArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var orders []*domain.DeliveryOrder
+	for rows.Next() {
+		do := &domain.DeliveryOrder{}
+		if err := rows.Scan(
+			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
+			&do.Status, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
+			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
+			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		orders = append(orders, do)
+	}
+
+	return orders, total, nil
+}
+
+func (r *deliveryOrderRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status, notes string) error {
+	query := `UPDATE delivery_orders SET status = $1, notes = $2 WHERE id = $3 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, query, status, notes, id)
+	return err
+}
+
+func (r *deliveryOrderRepository) UpdateSLAStatus(ctx context.Context, id uuid.UUID, slaStatus string) error {
+	query := `UPDATE delivery_orders SET sla_status = $1 WHERE id = $2 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, query, slaStatus, id)
+	return err
+}
+
+func (r *deliveryOrderRepository) FindPendingForSLA(ctx context.Context) ([]*domain.DeliveryOrder, error) {
+	query := `
+		SELECT id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status,
+			   origin_address, destination_address, notes, created_by, created_at, updated_at
+		FROM delivery_orders
+		WHERE deleted_at IS NULL
+		  AND status NOT IN ('completed', 'cancelled')
+		  AND sla_deadline IS NOT NULL`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []*domain.DeliveryOrder
+	for rows.Next() {
+		do := &domain.DeliveryOrder{}
+		if err := rows.Scan(
+			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
+			&do.Status, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
+			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
+			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		orders = append(orders, do)
+	}
+
+	return orders, nil
+}
+
+func (r *deliveryOrderRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE delivery_orders SET deleted_at = NOW() WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
+}
