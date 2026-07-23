@@ -44,8 +44,10 @@ class ManifestProvider extends ChangeNotifier {
     try {
       // 1. Fetch all manifests
       final response = await apiClient.dio.get('/api/v1/manifests?per_page=100');
+      debugPrint("FETCH MANIFESTS STATUS: ${response.statusCode}");
       if (response.statusCode == 200) {
         final list = response.data['data'] as List;
+        debugPrint("FETCHED MANIFESTS LIST COUNT: ${list.length}");
 
         // 2. Filter manifests for this driver with status in_transit or dispatched
         String? targetManifestId;
@@ -69,12 +71,15 @@ class ManifestProvider extends ChangeNotifier {
           }
         }
 
+        debugPrint("TARGET MANIFEST ID: $targetManifestId");
+
         if (targetManifestId != null) {
           // 3. Fetch detailed manifest with DO list
           final detailRes = await apiClient.dio.get('/api/v1/manifests/$targetManifestId');
           if (detailRes.statusCode == 200) {
             final manifestData = detailRes.data['data'];
             _activeManifest = ManifestModel.fromJson(manifestData);
+            debugPrint("ACTIVE MANIFEST LOADED SUCCESS: ${_activeManifest?.manifestNumber}");
 
             // Cache manifest locally in SQFlite for offline access
             await dbHelper.cacheManifest(
@@ -89,6 +94,7 @@ class ManifestProvider extends ChangeNotifier {
         }
       }
     } on DioException catch (e) {
+      debugPrint("ERROR FETCHING MANIFEST DIO: ${e.message} ${e.response?.data}");
       _errorMessage = e.response?.data['message'] ?? 'Failed to load manifest';
       // Load fallback from cache
       final cached = await dbHelper.getCachedManifest();
@@ -96,6 +102,7 @@ class ManifestProvider extends ChangeNotifier {
         _activeManifest = ManifestModel.fromJson(jsonDecode(cached['json_data']));
       }
     } catch (e) {
+      debugPrint("ERROR FETCHING MANIFEST CATCH: $e");
       _errorMessage = 'An error occurred: $e';
     }
 
