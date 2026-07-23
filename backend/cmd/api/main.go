@@ -24,6 +24,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -38,29 +39,46 @@ func main() {
 	log.Printf("[%s] Starting %s on port %s", cfg.App.Env, cfg.App.Name, cfg.App.Port)
 
 	// ============================================
-	// 2. Run Database Migrations
+	// 2. Connect to PostgreSQL (with Retry Loop)
 	// ============================================
-	log.Println("Running database migrations...")
-	m, err := migrate.New("file://migrations", cfg.Database.DSN())
-	if err != nil {
-		log.Printf("Migration init warning: %v", err)
-	} else {
-		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-			log.Printf("Migration warning: %v", err)
-		} else {
-			log.Println("Database migrations completed successfully")
+	var db *pgxpool.Pool
+	maxRetries := 10
+	for i := 1; i <= maxRetries; i++ {
+		log.Printf("Connecting to PostgreSQL (Attempt %d/%d)...", i, maxRetries)
+		db, err = database.NewPostgresConnection(&cfg.Database)
+		if err == nil {
+			log.Println("Connected to PostgreSQL successfully")
+			break
 		}
+		log.Printf("PostgreSQL not ready yet: %v. Retrying in 2 seconds...", err)
+		time.Sleep(2 * time.Second)
 	}
-
-	// ============================================
-	// 3. Connect to PostgreSQL
-	// ============================================
-	db, err := database.NewPostgresConnection(&cfg.Database)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Could not connect to PostgreSQL after %d attempts: %v", maxRetries, err)
 	}
 	defer db.Close()
-	log.Println("Connected to PostgreSQL")
+
+	// ============================================
+	// 3. Run Database Migrations
+	// ============================================
+	log.Println("Running database migrations...")
+	for i := 1; i <= maxRetries; i++ {
+		m, err := migrate.New("file://migrations", cfg.Database.DSN())
+		if err != nil {
+			log.Printf("Migration init attempt %d failed: %v. Retrying in 2s...", i, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+			log.Printf("Migration up execution attempt %d failed: %v. Retrying in 2s...", i, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		log.Println("Database migrations completed successfully")
+		break
+	}
 
 	// ============================================
 	// 4. Initialize Packages
