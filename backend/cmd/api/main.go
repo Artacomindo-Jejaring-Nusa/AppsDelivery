@@ -43,7 +43,7 @@ func main() {
 	log.Println("Running database migrations...")
 	m, err := migrate.New("file://migrations", cfg.Database.DSN())
 	if err != nil {
-		log.Printf("Migration init warning: %v (may need to create migration files)", err)
+		log.Printf("Migration init warning: %v", err)
 	} else {
 		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 			log.Printf("Migration warning: %v", err)
@@ -79,6 +79,7 @@ func main() {
 	assetRepo := repository.NewDismantleAssetRepository(db)
 	barcodeRepo := repository.NewBarcodeRepository(db)
 	slaRepo := repository.NewSLARepository(db)
+	dashboardRepo := repository.NewDashboardRepository(db)
 
 	// ============================================
 	// 6. Initialize Usecases
@@ -91,6 +92,8 @@ func main() {
 	assetUsecase := usecase.NewDismantleAssetUsecase(assetRepo, doRepo)
 	barcodeUsecase := usecase.NewBarcodeUsecase(barcodeRepo, assetRepo, doRepo, barcodeGen)
 	slaEngine := usecase.NewSLAEngineUsecase(doRepo, slaRepo, cfg.SLA.WarningHours)
+	dashboardUsecase := usecase.NewDashboardUsecase(dashboardRepo)
+	importExportUsecase := usecase.NewImportExportUsecase(btsSiteRepo, doRepo, assetRepo, cfg.SLA.DefaultHours)
 
 	// ============================================
 	// 7. Initialize HTTP Handlers
@@ -103,6 +106,9 @@ func main() {
 	assetHandler := handler.NewDismantleAssetHandler(assetUsecase)
 	barcodeHandler := handler.NewBarcodeHandler(barcodeUsecase)
 	slaHandler := handler.NewSLAHandler(slaEngine)
+	dashboardHandler := handler.NewDashboardHandler(dashboardUsecase)
+	uploadHandler := handler.NewUploadHandler("./uploads")
+	importExportHandler := handler.NewImportExportHandler(importExportUsecase)
 
 	// ============================================
 	// 8. Setup Router
@@ -117,6 +123,7 @@ func main() {
 	router := httpDelivery.NewRouter(
 		authHandler, btsSiteHandler, driverHandler, doHandler,
 		manifestHandler, assetHandler, barcodeHandler, slaHandler,
+		dashboardHandler, uploadHandler, importExportHandler,
 		jwtManager,
 	)
 	router.Setup(engine)

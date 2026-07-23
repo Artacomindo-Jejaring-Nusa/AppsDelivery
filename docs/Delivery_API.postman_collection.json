@@ -11,6 +11,42 @@
   "variable": [],
   "item": [
     {
+      "name": "Dashboard & Analytics",
+      "item": [
+        {
+          "name": "Get Executive Summary Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/dashboard/stats", "host": ["{{base_url}}"], "path": ["api", "v1", "dashboard", "stats"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uploads (Proof of Delivery / Photo)",
+      "item": [
+        {
+          "name": "Upload Image / Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/v1/uploads", "host": ["{{base_url}}"], "path": ["api", "v1", "uploads"] }
+          }
+        }
+      ]
+    },
+    {
       "name": "Auth",
       "item": [
         {

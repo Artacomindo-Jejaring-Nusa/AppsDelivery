@@ -14,15 +14,18 @@ import (
 
 // Router holds all HTTP handlers and configures routes.
 type Router struct {
-	authHandler    *handler.AuthHandler
-	btsSiteHandler *handler.BtsSiteHandler
-	driverHandler  *handler.DriverHandler
-	doHandler      *handler.DeliveryOrderHandler
-	manifestHandler *handler.ManifestHandler
-	assetHandler   *handler.DismantleAssetHandler
-	barcodeHandler *handler.BarcodeHandler
-	slaHandler     *handler.SLAHandler
-	jwtManager     *jwtPkg.JWTManager
+	authHandler         *handler.AuthHandler
+	btsSiteHandler      *handler.BtsSiteHandler
+	driverHandler       *handler.DriverHandler
+	doHandler           *handler.DeliveryOrderHandler
+	manifestHandler     *handler.ManifestHandler
+	assetHandler        *handler.DismantleAssetHandler
+	barcodeHandler      *handler.BarcodeHandler
+	slaHandler          *handler.SLAHandler
+	dashboardHandler    *handler.DashboardHandler
+	uploadHandler       *handler.UploadHandler
+	importExportHandler *handler.ImportExportHandler
+	jwtManager          *jwtPkg.JWTManager
 }
 
 // NewRouter creates a new Router with all handlers.
@@ -35,18 +38,24 @@ func NewRouter(
 	assetHandler *handler.DismantleAssetHandler,
 	barcodeHandler *handler.BarcodeHandler,
 	slaHandler *handler.SLAHandler,
+	dashboardHandler *handler.DashboardHandler,
+	uploadHandler *handler.UploadHandler,
+	importExportHandler *handler.ImportExportHandler,
 	jwtManager *jwtPkg.JWTManager,
 ) *Router {
 	return &Router{
-		authHandler:     authHandler,
-		btsSiteHandler:  btsSiteHandler,
-		driverHandler:   driverHandler,
-		doHandler:       doHandler,
-		manifestHandler: manifestHandler,
-		assetHandler:    assetHandler,
-		barcodeHandler:  barcodeHandler,
-		slaHandler:      slaHandler,
-		jwtManager:      jwtManager,
+		authHandler:         authHandler,
+		btsSiteHandler:      btsSiteHandler,
+		driverHandler:       driverHandler,
+		doHandler:           doHandler,
+		manifestHandler:     manifestHandler,
+		assetHandler:        assetHandler,
+		barcodeHandler:      barcodeHandler,
+		slaHandler:          slaHandler,
+		dashboardHandler:    dashboardHandler,
+		uploadHandler:       uploadHandler,
+		importExportHandler: importExportHandler,
+		jwtManager:          jwtManager,
 	}
 }
 
@@ -61,11 +70,11 @@ func (r *Router) Setup(engine *gin.Engine) {
 	engine.GET("/api/v1/health", func(c *gin.Context) {
 		response.Success(c, http.StatusOK, "Delivery API is running", gin.H{
 			"status":  "healthy",
-			"version": "1.0.0",
+			"version": "1.1.0",
 		})
 	})
 
-	// Serve barcode images as static files
+	// Serve barcode images and uploaded media as static files
 	engine.Static("/uploads", "./uploads")
 
 	// API v1 routes
@@ -81,6 +90,12 @@ func (r *Router) Setup(engine *gin.Engine) {
 	protected := v1.Group("")
 	protected.Use(middleware.AuthMiddleware(r.jwtManager))
 	{
+		// ---- Dashboard Analytics ----
+		protected.GET("/dashboard/stats", r.dashboardHandler.GetStats)
+
+		// ---- Uploads ----
+		protected.POST("/uploads", r.uploadHandler.UploadFile)
+
 		// ---- Auth / Users ----
 		protected.GET("/users/me", r.authHandler.GetProfile)
 		protected.POST("/auth/register", middleware.RoleMiddleware(domain.RoleAdmin), r.authHandler.Register)
@@ -91,6 +106,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 		btsSites := protected.Group("/bts-sites")
 		{
 			btsSites.POST("", middleware.RoleMiddleware(domain.RoleAdmin), r.btsSiteHandler.Create)
+			btsSites.POST("/import", middleware.RoleMiddleware(domain.RoleAdmin), r.importExportHandler.ImportBtsSites)
 			btsSites.GET("", r.btsSiteHandler.GetAll)
 			btsSites.GET("/:id", r.btsSiteHandler.GetByID)
 			btsSites.PUT("/:id", middleware.RoleMiddleware(domain.RoleAdmin), r.btsSiteHandler.Update)
@@ -111,6 +127,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 		deliveryOrders := protected.Group("/delivery-orders")
 		{
 			deliveryOrders.POST("", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.doHandler.Create)
+			deliveryOrders.POST("/import", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.importExportHandler.ImportDeliveryOrders)
 			deliveryOrders.GET("", r.doHandler.GetAll)
 			deliveryOrders.GET("/:id", r.doHandler.GetByID)
 			deliveryOrders.PUT("/:id/status", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher, domain.RoleDriver), r.doHandler.UpdateStatus)
@@ -119,6 +136,13 @@ func (r *Router) Setup(engine *gin.Engine) {
 			deliveryOrders.POST("/:id/assets", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher, domain.RoleDataEntry), r.assetHandler.Create)
 			deliveryOrders.POST("/:id/assets/batch", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher, domain.RoleDataEntry), r.assetHandler.CreateBatch)
 			deliveryOrders.GET("/:id/assets", r.assetHandler.GetByDeliveryOrderID)
+		}
+
+		// ---- Reports Export ----
+		reports := protected.Group("/reports")
+		{
+			reports.GET("/export/delivery-orders", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.importExportHandler.ExportDeliveryOrders)
+			reports.GET("/export/dismantle-assets", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher, domain.RoleDataEntry), r.importExportHandler.ExportDismantleAssets)
 		}
 
 		// ---- Manifests ----

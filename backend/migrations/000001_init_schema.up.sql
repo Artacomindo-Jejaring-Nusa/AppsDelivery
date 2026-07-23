@@ -218,8 +218,72 @@ CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON dismantle_assets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
--- 6. Seed Data (Default Admin)
--- password: admin123 (bcrypt hash)
+-- 6. Seed Data (Realistic Test Data for Dev & FE)
+-- All user passwords are: admin123 ($2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO)
 -- ============================================
-INSERT INTO users (username, email, password_hash, full_name, role, phone) VALUES
-('admin', 'admin@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'System Administrator', 'admin', '081200000000');
+
+-- Users (Admin, Dispatcher, Drivers, Data Entry)
+INSERT INTO users (id, username, email, password_hash, full_name, role, phone, is_active) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'admin', 'admin@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'System Administrator', 'admin', '081200000000', true),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'dispatcher1', 'dispatcher@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Ahmad Dispatcher', 'dispatcher', '081234567890', true),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'driver1', 'budi.driver@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Budi Kurir', 'driver', '081299887766', true),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', 'driver2', 'joko.driver@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Joko Kurir', 'driver', '081388776655', true),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55', 'dataentry1', 'siti.data@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Siti Data Entry', 'data_entry', '081477665544', true);
+
+-- Drivers
+INSERT INTO drivers (id, user_id, full_name, phone, vehicle_plate, vehicle_type, is_available, is_active) VALUES
+('d1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'Budi Kurir', '081299887766', 'DA 1234 AB', 'Pickup Truck', true, true),
+('d1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', 'Joko Kurir', '081388776655', 'DA 5678 CD', 'Box Truck', true, true);
+
+-- BTS Sites (10 Kalimantan Sites with real GPS coordinates)
+INSERT INTO bts_sites (id, site_id, site_name, address, province, city, district, latitude, longitude, is_active) VALUES
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'KAL-BTS-0001', 'BTS Banjarmasin Utara', 'Jl. A. Yani No. 123', 'Kalimantan Selatan', 'Banjarmasin', 'Banjarmasin Utara', -3.31940000, 114.59070000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c02', 'KAL-BTS-0002', 'BTS Balikpapan Tengah', 'Jl. Jend. Sudirman No. 45', 'Kalimantan Timur', 'Balikpapan', 'Balikpapan Tengah', -1.26540000, 116.83120000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'KAL-BTS-0003', 'BTS Samarinda Seberang', 'Jl. M. Yamin No. 88', 'Kalimantan Timur', 'Samarinda', 'Samarinda Seberang', -0.50220000, 117.15360000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'KAL-BTS-0004', 'BTS Pontianak Kota', 'Jl. Gajah Mada No. 12', 'Kalimantan Barat', 'Pontianak', 'Pontianak Kota', -0.02630000, 109.34250000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'KAL-BTS-0005', 'BTS Palangkaraya Pahandut', 'Jl. Tjilik Riwut Km. 5', 'Kalimantan Tengah', 'Palangkaraya', 'Pahandut', -2.20880000, 113.91600000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c06', 'KAL-BTS-0006', 'BTS Banjarbaru Selatan', 'Jl. Mistar Cokrokusumo No. 7', 'Kalimantan Selatan', 'Banjarbaru', 'Banjarbaru Selatan', -3.44020000, 114.83040000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c07', 'KAL-BTS-0007', 'BTS Tarakan Barat', 'Jl. Yos Sudarso No. 99', 'Kalimantan Utara', 'Tarakan', 'Tarakan Barat', 3.30650000, 117.59250000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c08', 'KAL-BTS-0008', 'BTS Singkawang Barat', 'Jl. St. Syahrir No. 15', 'Kalimantan Barat', 'Singkawang', 'Singkawang Barat', 0.90710000, 108.98600000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c09', 'KAL-BTS-0009', 'BTS Tenggarong Seberang', 'Jl. Raya Tenggarong No. 20', 'Kalimantan Timur', 'Kutai Kartanegara', 'Tenggarong', -0.41890000, 117.00120000, true),
+('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c10', 'KAL-BTS-0010', 'BTS Sampit Baamang', 'Jl. Iskandar No. 34', 'Kalimantan Tengah', 'Kotawaringin Timur', 'Baamang', -2.53670000, 112.95200000, true);
+
+-- Delivery Orders (with Green, Yellow, and Red SLA statuses)
+INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by, created_at) VALUES
+-- Green SLA (48 jam tersisa)
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'DO-2026-07-001', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Material Migrasi BTS Banjarmasin Utara - Batch 1', 'in_transit', 72, NOW() + INTERVAL '48 hours', 'green', 'Gudang PT. Eriksin Banjarmasin', 'Site BTS KAL-BTS-0001', 'Prioritas tinggi', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '24 hours'),
+-- Yellow SLA (10 jam tersisa — warning!)
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'DO-2026-07-002', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c02', 'Material Migrasi BTS Balikpapan - Replacement Unit', 'in_transit', 72, NOW() + INTERVAL '10 hours', 'yellow', 'Gudang PT. Eriksin Balikpapan', 'Site BTS KAL-BTS-0002', 'Mendekati tenggat waktu SLA', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '62 hours'),
+-- Red SLA (Overdue 5 jam — breached!)
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'DO-2026-07-003', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Material Migrasi BTS Samarinda - Antenna Expansion', 'in_transit', 72, NOW() - INTERVAL '5 hours', 'red', 'Gudang PT. Eriksin Samarinda', 'Site BTS KAL-BTS-0003', 'ESKALASI: Terlambat karena kendala cuaca', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '77 hours'),
+-- Green SLA (Pending)
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d04', 'DO-2026-07-004', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Material Migrasi BTS Pontianak Kota - Power Cable', 'pending', 72, NOW() + INTERVAL '72 hours', 'green', 'Gudang PT. Eriksin Pontianak', 'Site BTS KAL-BTS-0004', 'Siap dikirim', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW()),
+-- Completed DO
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d05', 'DO-2026-07-005', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'Material Migrasi BTS Palangkaraya - Battery Replacement', 'completed', 72, NOW() + INTERVAL '20 hours', 'green', 'Gudang PT. Eriksin Palangkaraya', 'Site BTS KAL-BTS-0005', 'Selesai serah terima', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '50 hours');
+
+-- Manifests
+INSERT INTO manifests (id, manifest_number, driver_id, status, dispatch_date, notes, created_by, created_at) VALUES
+('m1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'MNF-20260722-001', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', 'in_transit', NOW() - INTERVAL '24 hours', 'Pengiriman rute Banjarmasin - Balikpapan', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '24 hours');
+
+-- Manifest Items
+INSERT INTO manifest_items (id, manifest_id, delivery_order_id, sequence_number) VALUES
+(gen_random_uuid(), 'm1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 1),
+(gen_random_uuid(), 'm1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 2);
+
+-- Dismantle Assets
+INSERT INTO dismantle_assets (id, delivery_order_id, category, item_name, serial_number, quantity, unit, condition, notes, created_by) VALUES
+('e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'Antenna', 'Antenna Panel 1800MHz (Bongkaran)', 'SN-ANT-2026001', 2, 'pcs', 'good', 'Kondisi mulus', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55'),
+('e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f02', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'RRU', 'Remote Radio Unit 2100MHz', 'SN-RRU-2026002', 1, 'pcs', 'good', 'Bongkaran BTS Banjarmasin', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55'),
+('e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f03', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'Battery', 'Battery Pack 48V 100Ah', 'SN-BAT-2026003', 4, 'unit', 'fair', 'Kondisi penurun kapasitas 10%', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55');
+
+-- Barcodes
+INSERT INTO barcodes (id, asset_id, barcode_data, barcode_type, is_scanned) VALUES
+(gen_random_uuid(), 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f01', 'INB-DO-2026-07-001-ANT001-20260722', 'qrcode', false),
+(gen_random_uuid(), 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f02', 'INB-DO-2026-07-001-RRU002-20260722', 'qrcode', false),
+(gen_random_uuid(), 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f03', 'INB-DO-2026-07-002-BAT003-20260722', 'qrcode', false);
+
+-- SLA Logs
+INSERT INTO sla_logs (id, delivery_order_id, previous_status, new_status, remaining_hours, message) VALUES
+(gen_random_uuid(), 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'green', 'yellow', 10.0, 'SLA warning: 10.0 hours remaining'),
+(gen_random_uuid(), 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'yellow', 'red', -5.0, 'SLA breached! Overdue by 5.0 hours');
+

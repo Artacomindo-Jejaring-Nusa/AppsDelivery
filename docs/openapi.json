@@ -3,7 +3,7 @@
   "info": {
     "title": "Delivery & Reverse Logistics Management API",
     "description": "REST API untuk sistem manajemen pengiriman dan logistik balik proyek migrasi BTS Telkomsel (4.600 titik, Kalimantan). Dibangun oleh PT. AKS X Artacomindo.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "contact": {
       "name": "PT. AKS X Artacomindo",
       "email": "admin@aksartacomindo.com"
@@ -16,13 +16,16 @@
     }
   ],
   "tags": [
+    { "name": "Dashboard", "description": "Analytics & Executive Summary" },
+    { "name": "Uploads", "description": "Media & Document Uploads (Proof of Delivery / Dismantle Photos)" },
     { "name": "Auth", "description": "Authentication & User Management" },
-    { "name": "BTS Sites", "description": "Master Data BTS Tower Locations" },
+    { "name": "BTS Sites", "description": "Master Data BTS Tower Locations (with CSV/Excel Import)" },
     { "name": "Drivers", "description": "Master Data Driver / Kurir" },
-    { "name": "Delivery Orders", "description": "Delivery Order Management" },
+    { "name": "Delivery Orders", "description": "Delivery Order Management (with CSV/Excel Import)" },
     { "name": "Manifests", "description": "Manifest (Group DOs + Assign Driver)" },
     { "name": "Dismantle Assets", "description": "Barang Bongkaran dari BTS (Inbound)" },
     { "name": "Barcodes", "description": "QR Code Generator & Scanner" },
+    { "name": "Reports", "description": "Excel Report Exports" },
     { "name": "SLA", "description": "SLA Dashboard & Logs" }
   ],
   "components": {
@@ -34,260 +37,52 @@
       }
     },
     "schemas": {
-      "SuccessResponse": {
+      "DashboardStats": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean", "example": true },
-          "message": { "type": "string" },
-          "data": { "type": "object" },
-          "meta": { "$ref": "#/components/schemas/Meta" }
+          "total_delivery_orders": { "type": "integer", "example": 25 },
+          "today_delivery_orders": { "type": "integer", "example": 3 },
+          "month_delivery_orders": { "type": "integer", "example": 25 },
+          "do_status_breakdown": {
+            "type": "object",
+            "properties": {
+              "pending": { "type": "integer", "example": 5 },
+              "assigned": { "type": "integer", "example": 3 },
+              "in_transit": { "type": "integer", "example": 10 },
+              "delivered": { "type": "integer", "example": 4 },
+              "completed": { "type": "integer", "example": 2 },
+              "cancelled": { "type": "integer", "example": 1 }
+            }
+          },
+          "sla_breakdown": {
+            "type": "object",
+            "properties": {
+              "green": { "type": "integer", "example": 12 },
+              "yellow": { "type": "integer", "example": 5 },
+              "red": { "type": "integer", "example": 3 }
+            }
+          },
+          "active_manifests": { "type": "integer", "example": 4 },
+          "total_dismantle_assets": { "type": "integer", "example": 48 }
         }
       },
-      "ErrorResponse": {
+      "ImportResult": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean", "example": false },
-          "message": { "type": "string" },
-          "errors": { "type": "object" }
+          "total_rows": { "type": "integer" },
+          "success": { "type": "integer" },
+          "skipped": { "type": "integer" },
+          "errors": { "type": "array", "items": { "type": "string" } }
         }
       },
-      "Meta": {
+      "FileUploadResponse": {
         "type": "object",
         "properties": {
-          "page": { "type": "integer" },
-          "per_page": { "type": "integer" },
-          "total": { "type": "integer" },
-          "total_pages": { "type": "integer" }
-        }
-      },
-      "LoginRequest": {
-        "type": "object",
-        "required": ["username", "password"],
-        "properties": {
-          "username": { "type": "string", "example": "admin" },
-          "password": { "type": "string", "example": "admin123" }
-        }
-      },
-      "LoginResponse": {
-        "type": "object",
-        "properties": {
-          "token": { "type": "string" },
-          "user": { "$ref": "#/components/schemas/User" }
-        }
-      },
-      "RegisterRequest": {
-        "type": "object",
-        "required": ["username", "email", "password", "full_name", "role"],
-        "properties": {
-          "username": { "type": "string", "example": "dispatcher01" },
-          "email": { "type": "string", "example": "dispatcher01@aksartacomindo.com" },
-          "password": { "type": "string", "example": "password123" },
-          "full_name": { "type": "string", "example": "Ahmad Dispatcher" },
-          "role": { "type": "string", "enum": ["admin", "dispatcher", "driver", "data_entry"] },
-          "phone": { "type": "string", "example": "081234567890" }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "username": { "type": "string" },
-          "email": { "type": "string" },
-          "full_name": { "type": "string" },
-          "role": { "type": "string", "enum": ["admin", "dispatcher", "driver", "data_entry"] },
-          "phone": { "type": "string" },
-          "is_active": { "type": "boolean" },
-          "last_login_at": { "type": "string", "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "BtsSite": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "site_id": { "type": "string", "example": "KAL-BTS-0001" },
-          "site_name": { "type": "string", "example": "BTS Banjarmasin Utara" },
-          "address": { "type": "string" },
-          "province": { "type": "string", "example": "Kalimantan Selatan" },
-          "city": { "type": "string", "example": "Banjarmasin" },
-          "district": { "type": "string" },
-          "latitude": { "type": "number" },
-          "longitude": { "type": "number" },
-          "is_active": { "type": "boolean" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "CreateBtsSiteRequest": {
-        "type": "object",
-        "required": ["site_id", "site_name"],
-        "properties": {
-          "site_id": { "type": "string", "example": "KAL-BTS-0001" },
-          "site_name": { "type": "string", "example": "BTS Banjarmasin Utara" },
-          "address": { "type": "string", "example": "Jl. A. Yani No. 123" },
-          "province": { "type": "string", "example": "Kalimantan Selatan" },
-          "city": { "type": "string", "example": "Banjarmasin" },
-          "district": { "type": "string", "example": "Banjarmasin Utara" },
-          "latitude": { "type": "number", "example": -3.3194 },
-          "longitude": { "type": "number", "example": 114.5907 }
-        }
-      },
-      "Driver": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "user_id": { "type": "string", "format": "uuid" },
-          "full_name": { "type": "string" },
-          "phone": { "type": "string" },
-          "vehicle_plate": { "type": "string" },
-          "vehicle_type": { "type": "string" },
-          "is_available": { "type": "boolean" },
-          "is_active": { "type": "boolean" }
-        }
-      },
-      "CreateDriverRequest": {
-        "type": "object",
-        "required": ["full_name", "phone"],
-        "properties": {
-          "full_name": { "type": "string", "example": "Budi Kurir" },
-          "phone": { "type": "string", "example": "081299887766" },
-          "vehicle_plate": { "type": "string", "example": "DA 1234 AB" },
-          "vehicle_type": { "type": "string", "example": "Pickup Truck" }
-        }
-      },
-      "DeliveryOrder": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "do_number": { "type": "string" },
-          "bts_site_id": { "type": "string", "format": "uuid" },
-          "bts_site": { "$ref": "#/components/schemas/BtsSite" },
-          "description": { "type": "string" },
-          "status": { "type": "string", "enum": ["pending", "assigned", "in_transit", "delivered", "returned", "completed", "cancelled"] },
-          "sla_hours": { "type": "integer" },
-          "sla_deadline": { "type": "string", "format": "date-time" },
-          "sla_status": { "type": "string", "enum": ["green", "yellow", "red"] },
-          "origin_address": { "type": "string" },
-          "destination_address": { "type": "string" },
-          "notes": { "type": "string" }
-        }
-      },
-      "CreateDeliveryOrderRequest": {
-        "type": "object",
-        "required": ["do_number"],
-        "properties": {
-          "do_number": { "type": "string", "example": "DO-2026-07-001" },
-          "bts_site_id": { "type": "string", "format": "uuid" },
-          "description": { "type": "string", "example": "Material migrasi BTS Banjarmasin Utara" },
-          "sla_hours": { "type": "integer", "example": 72 },
-          "origin_address": { "type": "string", "example": "Gudang PT. Eriksin Banjarmasin" },
-          "destination_address": { "type": "string", "example": "Site BTS KAL-BTS-0001" },
-          "notes": { "type": "string" }
-        }
-      },
-      "UpdateDOStatusRequest": {
-        "type": "object",
-        "required": ["status"],
-        "properties": {
-          "status": { "type": "string", "enum": ["pending", "assigned", "in_transit", "delivered", "returned", "completed", "cancelled"] },
-          "notes": { "type": "string" }
-        }
-      },
-      "Manifest": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "manifest_number": { "type": "string" },
-          "driver_id": { "type": "string", "format": "uuid" },
-          "driver": { "$ref": "#/components/schemas/Driver" },
-          "status": { "type": "string", "enum": ["draft", "dispatched", "in_transit", "completed", "cancelled"] },
-          "dispatch_date": { "type": "string", "format": "date-time" },
-          "items": { "type": "array", "items": { "$ref": "#/components/schemas/ManifestItem" } }
-        }
-      },
-      "ManifestItem": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "manifest_id": { "type": "string", "format": "uuid" },
-          "delivery_order_id": { "type": "string", "format": "uuid" },
-          "delivery_order": { "$ref": "#/components/schemas/DeliveryOrder" },
-          "sequence_number": { "type": "integer" }
-        }
-      },
-      "CreateManifestRequest": {
-        "type": "object",
-        "required": ["driver_id", "delivery_order_ids"],
-        "properties": {
-          "driver_id": { "type": "string", "format": "uuid" },
-          "delivery_order_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } },
-          "notes": { "type": "string" }
-        }
-      },
-      "DismantleAsset": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "delivery_order_id": { "type": "string", "format": "uuid" },
-          "category": { "type": "string", "example": "Antenna" },
-          "item_name": { "type": "string", "example": "Antenna Panel 1800MHz" },
-          "serial_number": { "type": "string", "example": "SN-ANT-20260001" },
-          "quantity": { "type": "integer", "example": 1 },
-          "unit": { "type": "string", "example": "pcs" },
-          "condition": { "type": "string", "example": "good" }
-        }
-      },
-      "CreateDismantleAssetRequest": {
-        "type": "object",
-        "required": ["category", "item_name", "quantity", "unit"],
-        "properties": {
-          "category": { "type": "string", "example": "Antenna" },
-          "item_name": { "type": "string", "example": "Antenna Panel 1800MHz" },
-          "serial_number": { "type": "string", "example": "SN-ANT-20260001" },
-          "quantity": { "type": "integer", "example": 1 },
-          "unit": { "type": "string", "example": "pcs" },
-          "condition": { "type": "string", "example": "good" },
-          "notes": { "type": "string" }
-        }
-      },
-      "BatchCreateDismantleAssetRequest": {
-        "type": "object",
-        "required": ["assets"],
-        "properties": {
-          "assets": { "type": "array", "items": { "$ref": "#/components/schemas/CreateDismantleAssetRequest" } }
-        }
-      },
-      "Barcode": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "asset_id": { "type": "string", "format": "uuid" },
-          "barcode_data": { "type": "string", "example": "INB-DO-2026-07-001-abc12345-20260722143000" },
-          "barcode_type": { "type": "string", "example": "qrcode" },
-          "image_path": { "type": "string" },
-          "is_scanned": { "type": "boolean" },
-          "scanned_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "SLASummary": {
-        "type": "object",
-        "properties": {
-          "total_orders": { "type": "integer" },
-          "green_count": { "type": "integer" },
-          "yellow_count": { "type": "integer" },
-          "red_count": { "type": "integer" }
-        }
-      },
-      "SLALog": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "delivery_order_id": { "type": "string", "format": "uuid" },
-          "previous_status": { "type": "string" },
-          "new_status": { "type": "string" },
-          "remaining_hours": { "type": "number" },
-          "message": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time" }
+          "original_name": { "type": "string", "example": "foto_bukti_pod.jpg" },
+          "saved_name": { "type": "string", "example": "20260723_150405_a1b2c3d4.jpg" },
+          "size_bytes": { "type": "integer", "example": 204800 },
+          "extension": { "type": "string", "example": ".jpg" },
+          "url": { "type": "string", "example": "/uploads/20260723_150405_a1b2c3d4.jpg" }
         }
       }
     }
@@ -300,306 +95,98 @@
         "responses": { "200": { "description": "API is healthy" } }
       }
     },
+    "/api/v1/dashboard/stats": {
+      "get": {
+        "summary": "Get Executive Summary & Analytics Stats",
+        "tags": ["Dashboard"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Aggregated stats for dashboard cards" } }
+      }
+    },
+    "/api/v1/uploads": {
+      "post": {
+        "summary": "Upload File/Photo (Proof of Delivery / Dismantle Photo)",
+        "tags": ["Uploads"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "File uploaded successfully" } }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "summary": "Login",
         "tags": ["Auth"],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } } },
-        "responses": { "200": { "description": "Login successful" }, "401": { "description": "Invalid credentials" } }
+        "responses": { "200": { "description": "Login successful" } }
       }
     },
-    "/api/v1/auth/register": {
+    "/api/v1/bts-sites/import": {
       "post": {
-        "summary": "Register User",
-        "tags": ["Auth"],
+        "summary": "Import BTS Sites via CSV/Excel",
+        "tags": ["BTS Sites"],
         "security": [{ "BearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } } } },
-        "responses": { "201": { "description": "User registered" }, "400": { "description": "Validation error" } }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Import result summary" } }
       }
     },
-    "/api/v1/users/me": {
-      "get": {
-        "summary": "Get Current User Profile",
-        "tags": ["Auth"],
-        "security": [{ "BearerAuth": [] }],
-        "responses": { "200": { "description": "User profile" } }
-      }
-    },
-    "/api/v1/users": {
-      "get": {
-        "summary": "List All Users",
-        "tags": ["Auth"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "search", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "List of users" } }
-      }
-    },
-    "/api/v1/bts-sites": {
+    "/api/v1/delivery-orders/import": {
       "post": {
-        "summary": "Create BTS Site",
-        "tags": ["BTS Sites"],
-        "security": [{ "BearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateBtsSiteRequest" } } } },
-        "responses": { "201": { "description": "BTS site created" } }
-      },
-      "get": {
-        "summary": "List BTS Sites",
-        "tags": ["BTS Sites"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "search", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "List of BTS sites" } }
-      }
-    },
-    "/api/v1/bts-sites/{id}": {
-      "get": {
-        "summary": "Get BTS Site Detail",
-        "tags": ["BTS Sites"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "BTS site detail" } }
-      },
-      "put": {
-        "summary": "Update BTS Site",
-        "tags": ["BTS Sites"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
-        "responses": { "200": { "description": "BTS site updated" } }
-      },
-      "delete": {
-        "summary": "Delete BTS Site",
-        "tags": ["BTS Sites"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "BTS site deleted" } }
-      }
-    },
-    "/api/v1/drivers": {
-      "post": {
-        "summary": "Create Driver",
-        "tags": ["Drivers"],
-        "security": [{ "BearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateDriverRequest" } } } },
-        "responses": { "201": { "description": "Driver created" } }
-      },
-      "get": {
-        "summary": "List Drivers",
-        "tags": ["Drivers"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "search", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "List of drivers" } }
-      }
-    },
-    "/api/v1/drivers/{id}": {
-      "get": {
-        "summary": "Get Driver Detail",
-        "tags": ["Drivers"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Driver detail" } }
-      },
-      "put": {
-        "summary": "Update Driver",
-        "tags": ["Drivers"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
-        "responses": { "200": { "description": "Driver updated" } }
-      },
-      "delete": {
-        "summary": "Delete Driver",
-        "tags": ["Drivers"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Driver deleted" } }
-      }
-    },
-    "/api/v1/delivery-orders": {
-      "post": {
-        "summary": "Create Delivery Order",
+        "summary": "Import Delivery Orders via CSV/Excel",
         "tags": ["Delivery Orders"],
         "security": [{ "BearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateDeliveryOrderRequest" } } } },
-        "responses": { "201": { "description": "DO created" } }
-      },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Import result summary" } }
+      }
+    },
+    "/api/v1/reports/export/delivery-orders": {
       "get": {
-        "summary": "List Delivery Orders",
-        "tags": ["Delivery Orders"],
+        "summary": "Export Delivery Orders Report (.xlsx)",
+        "tags": ["Reports"],
         "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "search", "in": "query", "schema": { "type": "string" } },
-          { "name": "status", "in": "query", "schema": { "type": "string" } },
-          { "name": "sla_status", "in": "query", "schema": { "type": "string" } },
-          { "name": "bts_site_id", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "List of delivery orders" } }
+        "responses": { "200": { "description": "Excel binary file download" } }
       }
     },
-    "/api/v1/delivery-orders/{id}": {
+    "/api/v1/reports/export/dismantle-assets": {
       "get": {
-        "summary": "Get Delivery Order Detail",
-        "tags": ["Delivery Orders"],
+        "summary": "Export Dismantle Assets Report (.xlsx)",
+        "tags": ["Reports"],
         "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "DO detail with BTS site info" } }
-      }
-    },
-    "/api/v1/delivery-orders/{id}/status": {
-      "put": {
-        "summary": "Update DO Status",
-        "tags": ["Delivery Orders"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateDOStatusRequest" } } } },
-        "responses": { "200": { "description": "DO status updated" } }
-      }
-    },
-    "/api/v1/delivery-orders/{id}/assets": {
-      "post": {
-        "summary": "Create Dismantle Asset",
-        "tags": ["Dismantle Assets"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateDismantleAssetRequest" } } } },
-        "responses": { "201": { "description": "Asset created" } }
-      },
-      "get": {
-        "summary": "List Assets by DO",
-        "tags": ["Dismantle Assets"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer" } }
-        ],
-        "responses": { "200": { "description": "List of assets" } }
-      }
-    },
-    "/api/v1/delivery-orders/{id}/assets/batch": {
-      "post": {
-        "summary": "Batch Create Dismantle Assets",
-        "tags": ["Dismantle Assets"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BatchCreateDismantleAssetRequest" } } } },
-        "responses": { "201": { "description": "Assets created" } }
-      }
-    },
-    "/api/v1/manifests": {
-      "post": {
-        "summary": "Create Manifest",
-        "tags": ["Manifests"],
-        "security": [{ "BearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateManifestRequest" } } } },
-        "responses": { "201": { "description": "Manifest created" } }
-      },
-      "get": {
-        "summary": "List Manifests",
-        "tags": ["Manifests"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "search", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "List of manifests" } }
-      }
-    },
-    "/api/v1/manifests/{id}": {
-      "get": {
-        "summary": "Get Manifest Detail",
-        "tags": ["Manifests"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Manifest detail with items" } }
-      }
-    },
-    "/api/v1/manifests/{id}/status": {
-      "put": {
-        "summary": "Update Manifest Status",
-        "tags": ["Manifests"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string", "enum": ["draft", "dispatched", "in_transit", "completed", "cancelled"] } } } } } },
-        "responses": { "200": { "description": "Manifest status updated" } }
-      }
-    },
-    "/api/v1/assets/{id}": {
-      "put": {
-        "summary": "Update Asset",
-        "tags": ["Dismantle Assets"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
-        "responses": { "200": { "description": "Asset updated" } }
-      },
-      "delete": {
-        "summary": "Delete Asset",
-        "tags": ["Dismantle Assets"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Asset deleted" } }
-      }
-    },
-    "/api/v1/assets/{id}/barcode": {
-      "post": {
-        "summary": "Generate Barcode for Asset",
-        "tags": ["Barcodes"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "201": { "description": "Barcode generated" } }
-      }
-    },
-    "/api/v1/barcodes/{code}": {
-      "get": {
-        "summary": "Lookup Barcode",
-        "tags": ["Barcodes"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "code", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Barcode found" } }
-      }
-    },
-    "/api/v1/barcodes/{code}/scan": {
-      "post": {
-        "summary": "Scan Barcode",
-        "tags": ["Barcodes"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "code", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Barcode scanned" } }
-      }
-    },
-    "/api/v1/sla/summary": {
-      "get": {
-        "summary": "Get SLA Summary",
-        "tags": ["SLA"],
-        "security": [{ "BearerAuth": [] }],
-        "responses": { "200": { "description": "SLA summary (green/yellow/red counts)" } }
-      }
-    },
-    "/api/v1/sla/logs": {
-      "get": {
-        "summary": "Get SLA Logs",
-        "tags": ["SLA"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer" } }
-        ],
-        "responses": { "200": { "description": "SLA change logs" } }
+        "responses": { "200": { "description": "Excel binary file download" } }
       }
     }
   }
