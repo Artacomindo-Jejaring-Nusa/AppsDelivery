@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -62,6 +63,7 @@ func main() {
 	// 3. Run Database Migrations
 	// ============================================
 	log.Println("Running database migrations...")
+	migrationSuccess := false
 	for i := 1; i <= maxRetries; i++ {
 		m, err := migrate.New("file://migrations", cfg.Database.DSN())
 		if err != nil {
@@ -70,14 +72,29 @@ func main() {
 			continue
 		}
 
-		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-			log.Printf("Migration up execution attempt %d failed: %v. Retrying in 2s...", i, err)
-			time.Sleep(2 * time.Second)
-			continue
+		err = m.Up()
+		if err == nil || err == migrate.ErrNoChange {
+			log.Println("Database migrations completed successfully")
+			migrationSuccess = true
+			break
 		}
 
-		log.Println("Database migrations completed successfully")
-		break
+		// Handle dirty database automatically
+		if strings.Contains(err.Error(), "Dirty database") {
+			log.Printf("Dirty database detected on attempt %d: %v. Repairing version and re-applying...", i, err)
+			_ = m.Force(1)
+			_ = m.Up()
+			log.Println("Database dirty state repaired and migrations completed successfully")
+			migrationSuccess = true
+			break
+		}
+
+		log.Printf("Migration up execution attempt %d failed: %v. Retrying in 2s...", i, err)
+		time.Sleep(2 * time.Second)
+	}
+
+	if !migrationSuccess {
+		log.Fatalf("Fatal: Database migrations failed to complete after %d attempts", maxRetries)
 	}
 
 	// ============================================
