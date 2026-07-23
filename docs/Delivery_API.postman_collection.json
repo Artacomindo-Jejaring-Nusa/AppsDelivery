@@ -47,6 +47,46 @@
       ]
     },
     {
+      "name": "Driver Tracking & GPS",
+      "item": [
+        {
+          "name": "Submit Current Coordinate (Driver)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": -3.32560000,\n  \"longitude\": 114.59880000\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/drivers/location", "host": ["{{base_url}}"], "path": ["api", "v1", "drivers", "location"] }
+          }
+        },
+        {
+          "name": "Get Latest Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/drivers/{{driver_id}}/location", "host": ["{{base_url}}"], "path": ["api", "v1", "drivers", "{{driver_id}}", "location"] }
+          }
+        },
+        {
+          "name": "Get Location History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/drivers/{{driver_id}}/location/history?limit=50", "host": ["{{base_url}}"], "path": ["api", "v1", "drivers", "{{driver_id}}", "location", "history"], "query": [
+              { "key": "limit", "value": "50" }
+            ]}
+          }
+        }
+      ]
+    },
+    {
       "name": "Auth",
       "item": [
         {

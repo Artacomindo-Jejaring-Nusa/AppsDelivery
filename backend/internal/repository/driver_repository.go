@@ -53,6 +53,24 @@ func (r *driverRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 	return driver, nil
 }
 
+func (r *driverRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*domain.Driver, error) {
+	query := `
+		SELECT id, user_id, full_name, phone, vehicle_plate, vehicle_type, is_available, is_active, created_at, updated_at
+		FROM drivers WHERE user_id = $1 AND is_active = true`
+
+	driver := &domain.Driver{}
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&driver.ID, &driver.UserID, &driver.FullName, &driver.Phone,
+		&driver.VehiclePlate, &driver.VehicleType,
+		&driver.IsAvailable, &driver.IsActive,
+		&driver.CreatedAt, &driver.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return driver, nil
+}
+
 func (r *driverRepository) FindAll(ctx context.Context, pagination *domain.PaginationRequest) ([]*domain.Driver, int64, error) {
 	pagination.SetDefaults()
 

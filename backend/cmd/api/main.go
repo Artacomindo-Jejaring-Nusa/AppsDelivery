@@ -115,6 +115,7 @@ func main() {
 	barcodeRepo := repository.NewBarcodeRepository(db)
 	slaRepo := repository.NewSLARepository(db)
 	dashboardRepo := repository.NewDashboardRepository(db)
+	locRepo := repository.NewDriverLocationRepository(db)
 
 	// ============================================
 	// 6. Initialize Usecases
@@ -129,6 +130,7 @@ func main() {
 	slaEngine := usecase.NewSLAEngineUsecase(doRepo, slaRepo, cfg.SLA.WarningHours)
 	dashboardUsecase := usecase.NewDashboardUsecase(dashboardRepo)
 	importExportUsecase := usecase.NewImportExportUsecase(btsSiteRepo, doRepo, assetRepo, cfg.SLA.DefaultHours)
+	locUsecase := usecase.NewDriverLocationUsecase(locRepo, driverRepo)
 
 	// ============================================
 	// 7. Initialize HTTP Handlers
@@ -144,6 +146,7 @@ func main() {
 	dashboardHandler := handler.NewDashboardHandler(dashboardUsecase)
 	uploadHandler := handler.NewUploadHandler("./uploads")
 	importExportHandler := handler.NewImportExportHandler(importExportUsecase)
+	locHandler := handler.NewDriverLocationHandler(locUsecase)
 
 	// ============================================
 	// 8. Setup Router
@@ -158,7 +161,7 @@ func main() {
 	router := httpDelivery.NewRouter(
 		authHandler, btsSiteHandler, driverHandler, doHandler,
 		manifestHandler, assetHandler, barcodeHandler, slaHandler,
-		dashboardHandler, uploadHandler, importExportHandler,
+		dashboardHandler, uploadHandler, importExportHandler, locHandler,
 		jwtManager,
 	)
 	router.Setup(engine)

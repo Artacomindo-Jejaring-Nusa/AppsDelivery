@@ -14,6 +14,7 @@ DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 DROP FUNCTION IF EXISTS update_updated_at_column();
 
 -- Drop tables (reverse order of creation)
+DROP TABLE IF EXISTS driver_locations;
 DROP TABLE IF EXISTS sla_logs;
 DROP TABLE IF EXISTS barcodes;
 DROP TABLE IF EXISTS dismantle_assets;

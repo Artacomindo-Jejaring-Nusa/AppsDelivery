@@ -167,6 +167,15 @@ CREATE TABLE IF NOT EXISTS sla_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Driver Locations (Pelacakan koordinat GPS Driver)
+CREATE TABLE IF NOT EXISTS driver_locations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ============================================
 -- 4. Indexes
 -- ============================================
@@ -205,6 +214,9 @@ CREATE INDEX IF NOT EXISTS idx_barcodes_barcode_data ON barcodes(barcode_data);
 
 CREATE INDEX IF NOT EXISTS idx_sla_logs_do_id ON sla_logs(delivery_order_id);
 CREATE INDEX IF NOT EXISTS idx_sla_logs_created_at ON sla_logs(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_driver_locations_driver_id ON driver_locations(driver_id);
+CREATE INDEX IF NOT EXISTS idx_driver_locations_recorded_at ON driver_locations(recorded_at);
 
 -- ============================================
 -- 5. Updated_at Trigger Function
@@ -314,3 +326,11 @@ INSERT INTO sla_logs (id, delivery_order_id, previous_status, new_status, remain
 ('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'green', 'yellow', 10.0, 'SLA warning: 10.0 hours remaining'),
 ('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'yellow', 'red', -5.0, 'SLA breached! Overdue by 5.0 hours')
 ON CONFLICT (id) DO NOTHING;
+
+-- Driver Locations
+INSERT INTO driver_locations (id, driver_id, latitude, longitude, recorded_at) VALUES
+(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', -3.31940000, 114.59070000, NOW() - INTERVAL '15 minutes'),
+(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', -3.32100000, 114.59200000, NOW() - INTERVAL '10 minutes'),
+(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', -3.32350000, 114.59550000, NOW() - INTERVAL '5 minutes'),
+(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', -1.26540000, 116.83120000, NOW() - INTERVAL '10 minutes'),
+(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', -1.26800000, 116.83400000, NOW() - INTERVAL '5 minutes');

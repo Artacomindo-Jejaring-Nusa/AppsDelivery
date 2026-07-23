@@ -3,7 +3,7 @@
   "info": {
     "title": "Delivery & Reverse Logistics Management API",
     "description": "REST API untuk sistem manajemen pengiriman dan logistik balik proyek migrasi BTS Telkomsel (4.600 titik, Kalimantan). Dibangun oleh PT. AKS X Artacomindo.",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "contact": {
       "name": "PT. AKS X Artacomindo",
       "email": "admin@aksartacomindo.com"
@@ -20,7 +20,7 @@
     { "name": "Uploads", "description": "Media & Document Uploads (Proof of Delivery / Dismantle Photos)" },
     { "name": "Auth", "description": "Authentication & User Management" },
     { "name": "BTS Sites", "description": "Master Data BTS Tower Locations (with CSV/Excel Import)" },
-    { "name": "Drivers", "description": "Master Data Driver / Kurir" },
+    { "name": "Drivers", "description": "Master Data Driver & GPS Location Tracking" },
     { "name": "Delivery Orders", "description": "Delivery Order Management (with CSV/Excel Import)" },
     { "name": "Manifests", "description": "Manifest (Group DOs + Assign Driver)" },
     { "name": "Dismantle Assets", "description": "Barang Bongkaran dari BTS (Inbound)" },
@@ -84,6 +84,24 @@
           "extension": { "type": "string", "example": ".jpg" },
           "url": { "type": "string", "example": "/uploads/20260723_150405_a1b2c3d4.jpg" }
         }
+      },
+      "DriverLocation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "driver_id": { "type": "string", "format": "uuid" },
+          "latitude": { "type": "number", "example": -3.3194 },
+          "longitude": { "type": "number", "example": 114.5907 },
+          "recorded_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SaveDriverLocationRequest": {
+        "type": "object",
+        "required": ["latitude", "longitude"],
+        "properties": {
+          "latitude": { "type": "number", "example": -3.31940000 },
+          "longitude": { "type": "number", "example": 114.59070000 }
+        }
       }
     }
   },
@@ -128,7 +146,98 @@
       "post": {
         "summary": "Login",
         "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string", "example": "admin" },
+                  "password": { "type": "string", "example": "admin123" }
+                }
+              }
+            }
+          }
+        },
         "responses": { "200": { "description": "Login successful" } }
+      }
+    },
+    "/api/v1/drivers/location": {
+      "post": {
+        "summary": "Submit Current GPS Coordinates (Driver only)",
+        "tags": ["Drivers"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDriverLocationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Location logged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverLocation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/{id}/location": {
+      "get": {
+        "summary": "Get Latest GPS Coordinate of a Driver",
+        "tags": ["Drivers"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest location returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverLocation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/{id}/location/history": {
+      "get": {
+        "summary": "Get Location History Logs of a Driver",
+        "tags": ["Drivers"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historical coordinates returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DriverLocation"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/bts-sites/import": {

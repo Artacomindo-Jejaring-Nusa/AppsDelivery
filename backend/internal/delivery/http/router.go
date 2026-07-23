@@ -25,6 +25,7 @@ type Router struct {
 	dashboardHandler    *handler.DashboardHandler
 	uploadHandler       *handler.UploadHandler
 	importExportHandler *handler.ImportExportHandler
+	locHandler          *handler.DriverLocationHandler
 	jwtManager          *jwtPkg.JWTManager
 }
 
@@ -41,6 +42,7 @@ func NewRouter(
 	dashboardHandler *handler.DashboardHandler,
 	uploadHandler *handler.UploadHandler,
 	importExportHandler *handler.ImportExportHandler,
+	locHandler *handler.DriverLocationHandler,
 	jwtManager *jwtPkg.JWTManager,
 ) *Router {
 	return &Router{
@@ -55,6 +57,7 @@ func NewRouter(
 		dashboardHandler:    dashboardHandler,
 		uploadHandler:       uploadHandler,
 		importExportHandler: importExportHandler,
+		locHandler:          locHandler,
 		jwtManager:          jwtManager,
 	}
 }
@@ -118,9 +121,12 @@ func (r *Router) Setup(engine *gin.Engine) {
 		{
 			drivers.POST("", middleware.RoleMiddleware(domain.RoleAdmin), r.driverHandler.Create)
 			drivers.GET("", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.driverHandler.GetAll)
+			drivers.POST("/location", middleware.RoleMiddleware(domain.RoleDriver), r.locHandler.Track)
 			drivers.GET("/:id", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.driverHandler.GetByID)
 			drivers.PUT("/:id", middleware.RoleMiddleware(domain.RoleAdmin), r.driverHandler.Update)
 			drivers.DELETE("/:id", middleware.RoleMiddleware(domain.RoleAdmin), r.driverHandler.Delete)
+			drivers.GET("/:id/location", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.locHandler.GetLatest)
+			drivers.GET("/:id/location/history", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.locHandler.GetHistory)
 		}
 
 		// ---- Delivery Orders ----

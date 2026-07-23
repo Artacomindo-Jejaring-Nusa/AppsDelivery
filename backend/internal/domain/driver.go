@@ -48,6 +48,7 @@ type UpdateDriverRequest struct {
 type DriverRepository interface {
 	Create(ctx context.Context, driver *Driver) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Driver, error)
+	FindByUserID(ctx context.Context, userID uuid.UUID) (*Driver, error)
 	FindAll(ctx context.Context, pagination *PaginationRequest) ([]*Driver, int64, error)
 	FindAvailable(ctx context.Context) ([]*Driver, error)
 	Update(ctx context.Context, driver *Driver) error
