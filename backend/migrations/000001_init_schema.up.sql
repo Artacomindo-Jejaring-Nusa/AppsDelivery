@@ -286,13 +286,13 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Manifests
 INSERT INTO manifests (id, manifest_number, driver_id, status, dispatch_date, notes, created_by, created_at) VALUES
-('m1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'MNF-20260722-001', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', 'in_transit', NOW() - INTERVAL '24 hours', 'Pengiriman rute Banjarmasin - Balikpapan', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '24 hours')
+('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'MNF-20260722-001', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', 'in_transit', NOW() - INTERVAL '24 hours', 'Pengiriman rute Banjarmasin - Balikpapan', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '24 hours')
 ON CONFLICT (id) DO NOTHING;
 
 -- Manifest Items
 INSERT INTO manifest_items (id, manifest_id, delivery_order_id, sequence_number) VALUES
-('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'm1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 1),
-('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'm1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 2)
+('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 1),
+('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 2)
 ON CONFLICT (id) DO NOTHING;
 
 -- Dismantle Assets
@@ -311,6 +311,6 @@ ON CONFLICT (id) DO NOTHING;
 
 -- SLA Logs
 INSERT INTO sla_logs (id, delivery_order_id, previous_status, new_status, remaining_hours, message) VALUES
-('s0eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'green', 'yellow', 10.0, 'SLA warning: 10.0 hours remaining'),
-('s0eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'yellow', 'red', -5.0, 'SLA breached! Overdue by 5.0 hours')
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'green', 'yellow', 10.0, 'SLA warning: 10.0 hours remaining'),
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'yellow', 'red', -5.0, 'SLA breached! Overdue by 5.0 hours')
 ON CONFLICT (id) DO NOTHING;
