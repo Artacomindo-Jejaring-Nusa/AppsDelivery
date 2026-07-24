@@ -21,8 +21,8 @@ func NewDeliveryOrderRepository(db *pgxpool.Pool) domain.DeliveryOrderRepository
 
 func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.DeliveryOrder) error {
 	query := `
-		INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING created_at, updated_at`
 
 	if do.ID == uuid.Nil {
@@ -31,7 +31,7 @@ func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.Deliver
 
 	return r.db.QueryRow(ctx, query,
 		do.ID, do.DONumber, do.BtsSiteID, do.Description,
-		do.Status, do.SLAHours, do.SLADeadline, do.SLAStatus,
+		do.Status, do.SLADays, do.SLAHours, do.SLADeadline, do.SLAStatus,
 		do.OriginAddress, do.DestinationAddress, do.Notes, do.CreatedBy,
 	).Scan(&do.CreatedAt, &do.UpdatedAt)
 }
@@ -39,7 +39,7 @@ func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.Deliver
 func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.DeliveryOrder, error) {
 	query := `
 		SELECT do.id, do.do_number, do.bts_site_id, do.description, do.status,
-			   do.sla_hours, do.sla_deadline, do.sla_status, do.origin_address, do.destination_address,
+			   do.sla_days, do.sla_hours, do.sla_deadline, do.sla_status, do.origin_address, do.destination_address,
 			   do.notes, do.created_by, do.created_at, do.updated_at, do.deleted_at,
 			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district
 		FROM delivery_orders do
@@ -53,7 +53,7 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&doEntity.ID, &doEntity.DONumber, &doEntity.BtsSiteID, &doEntity.Description,
-		&doEntity.Status, &doEntity.SLAHours, &doEntity.SLADeadline, &doEntity.SLAStatus,
+		&doEntity.Status, &doEntity.SLADays, &doEntity.SLAHours, &doEntity.SLADeadline, &doEntity.SLAStatus,
 		&doEntity.OriginAddress, &doEntity.DestinationAddress, &doEntity.Notes,
 		&doEntity.CreatedBy, &doEntity.CreatedAt, &doEntity.UpdatedAt, &doEntity.DeletedAt,
 		&btsID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
@@ -85,14 +85,14 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 
 func (r *deliveryOrderRepository) FindByDONumber(ctx context.Context, doNumber string) (*domain.DeliveryOrder, error) {
 	query := `
-		SELECT id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status,
+		SELECT id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status,
 			   origin_address, destination_address, notes, created_by, created_at, updated_at, deleted_at
 		FROM delivery_orders WHERE do_number = $1 AND deleted_at IS NULL`
 
 	do := &domain.DeliveryOrder{}
 	err := r.db.QueryRow(ctx, query, doNumber).Scan(
 		&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
-		&do.Status, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
+		&do.Status, &do.SLADays, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
 		&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 		&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt, &do.DeletedAt,
 	)
@@ -136,7 +136,7 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 	}
 
 	dataQuery := `
-		SELECT id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status,
+		SELECT id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status,
 			   origin_address, destination_address, notes, created_by, created_at, updated_at
 		FROM delivery_orders WHERE deleted_at IS NULL`
 
@@ -181,7 +181,7 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 		do := &domain.DeliveryOrder{}
 		if err := rows.Scan(
 			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
-			&do.Status, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
+			&do.Status, &do.SLADays, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
 			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,
 		); err != nil {
@@ -207,7 +207,7 @@ func (r *deliveryOrderRepository) UpdateSLAStatus(ctx context.Context, id uuid.U
 
 func (r *deliveryOrderRepository) FindPendingForSLA(ctx context.Context) ([]*domain.DeliveryOrder, error) {
 	query := `
-		SELECT id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status,
+		SELECT id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status,
 			   origin_address, destination_address, notes, created_by, created_at, updated_at
 		FROM delivery_orders
 		WHERE deleted_at IS NULL
@@ -225,7 +225,7 @@ func (r *deliveryOrderRepository) FindPendingForSLA(ctx context.Context) ([]*dom
 		do := &domain.DeliveryOrder{}
 		if err := rows.Scan(
 			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
-			&do.Status, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
+			&do.Status, &do.SLADays, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
 			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,
 		); err != nil {

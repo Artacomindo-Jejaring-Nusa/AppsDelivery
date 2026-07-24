@@ -9,22 +9,34 @@ import (
 
 // DeliveryOrder represents a Delivery Order (DO) from PT. Eriksin.
 type DeliveryOrder struct {
-	ID                 uuid.UUID  `json:"id"`
-	DONumber           string     `json:"do_number"`
-	BtsSiteID          *uuid.UUID `json:"bts_site_id"`
-	BtsSite            *BtsSite   `json:"bts_site,omitempty"`
-	Description        string     `json:"description"`
-	Status             string     `json:"status"`
-	SLAHours           int        `json:"sla_hours"`
-	SLADeadline        *time.Time `json:"sla_deadline"`
-	SLAStatus          string     `json:"sla_status"`
-	OriginAddress      string     `json:"origin_address"`
-	DestinationAddress string     `json:"destination_address"`
-	Notes              string     `json:"notes"`
-	CreatedBy          *uuid.UUID `json:"created_by"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
-	DeletedAt          *time.Time `json:"deleted_at,omitempty"`
+	ID                 uuid.UUID          `json:"id"`
+	DONumber           string             `json:"do_number"`
+	BtsSiteID          *uuid.UUID         `json:"bts_site_id"`
+	BtsSite            *BtsSite           `json:"bts_site,omitempty"`
+	Description        string             `json:"description"`
+	Status             string             `json:"status"`
+	SLADays            int                `json:"sla_days"`
+	SLAHours           int                `json:"sla_hours"`
+	SLADeadline        *time.Time         `json:"sla_deadline"`
+	SLAStatus          string             `json:"sla_status"`
+	SLADetail          *SLADetailResponse `json:"sla_detail,omitempty"`
+	OriginAddress      string             `json:"origin_address"`
+	DestinationAddress string             `json:"destination_address"`
+	Notes              string             `json:"notes"`
+	CreatedBy          *uuid.UUID         `json:"created_by"`
+	CreatedAt          time.Time          `json:"created_at"`
+	UpdatedAt          time.Time          `json:"updated_at"`
+	DeletedAt          *time.Time         `json:"deleted_at,omitempty"`
+}
+
+// SLADetailResponse contains granular day and hour SLA metrics when requested.
+type SLADetailResponse struct {
+	TargetDays         int    `json:"target_days"`
+	TargetText         string `json:"target_text"`
+	RemainingDays      int    `json:"remaining_days"`
+	RemainingHours     int    `json:"remaining_hours"`
+	RemainingFormatted string `json:"remaining_formatted"`
+	IsOverdue          bool   `json:"is_overdue"`
 }
 
 // ---- Request DTOs ----
@@ -34,6 +46,7 @@ type CreateDeliveryOrderRequest struct {
 	DONumber           string     `json:"do_number" binding:"required"`
 	BtsSiteID          *uuid.UUID `json:"bts_site_id"`
 	Description        string     `json:"description"`
+	SLADays            int        `json:"sla_days"` // 1, 2, 3, 4, 5 days
 	SLAHours           int        `json:"sla_hours"`
 	OriginAddress      string     `json:"origin_address"`
 	DestinationAddress string     `json:"destination_address"`

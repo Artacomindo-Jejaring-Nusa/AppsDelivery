@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"backend-delivery/internal/domain"
@@ -31,11 +32,14 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 		return nil, errors.New("delivery order number already exists")
 	}
 
-	slaHours := u.slaHours
-	if req.SLAHours > 0 {
-		slaHours = req.SLAHours
+	slaDays := 3 // default 3 days
+	if req.SLADays > 0 {
+		slaDays = req.SLADays
+	} else if req.SLAHours > 0 {
+		slaDays = (req.SLAHours + 23) / 24
 	}
 
+	slaHours := slaDays * 24
 	now := time.Now()
 	slaDeadline := now.Add(time.Duration(slaHours) * time.Hour)
 
@@ -45,6 +49,7 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 		BtsSiteID:          req.BtsSiteID,
 		Description:        req.Description,
 		Status:             domain.DOStatusPending,
+		SLADays:            slaDays,
 		SLAHours:           slaHours,
 		SLADeadline:        &slaDeadline,
 		SLAStatus:          domain.SLAStatusGreen,
@@ -58,6 +63,7 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 		return nil, err
 	}
 
+	populateSLADetail(do)
 	return do, nil
 }
 
@@ -69,11 +75,19 @@ func (u *deliveryOrderUsecase) GetByID(ctx context.Context, id uuid.UUID) (*doma
 		}
 		return nil, err
 	}
+	populateSLADetail(do)
 	return do, nil
 }
 
 func (u *deliveryOrderUsecase) GetAll(ctx context.Context, filter *domain.DOFilterRequest) ([]*domain.DeliveryOrder, int64, error) {
-	return u.doRepo.FindAll(ctx, filter)
+	dos, total, err := u.doRepo.FindAll(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	for _, do := range dos {
+		populateSLADetail(do)
+	}
+	return dos, total, nil
 }
 
 func (u *deliveryOrderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, req *domain.UpdateDOStatusRequest) (*domain.DeliveryOrder, error) {
@@ -95,6 +109,7 @@ func (u *deliveryOrderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, r
 	}
 
 	do.Status = req.Status
+	populateSLADetail(do)
 	return do, nil
 }
 
@@ -119,4 +134,55 @@ func isValidStatusTransition(current, target string) bool {
 		}
 	}
 	return false
+}
+
+// populateSLADetail calculates granular day and hour SLA metrics for a DO.
+func populateSLADetail(do *domain.DeliveryOrder) {
+	if do == nil || do.SLADeadline == nil {
+		return
+	}
+
+	targetDays := do.SLADays
+	if targetDays <= 0 {
+		targetDays = (do.SLAHours + 23) / 24
+		if targetDays <= 0 {
+			targetDays = 3
+		}
+	}
+
+	now := time.Now()
+	diff := do.SLADeadline.Sub(now)
+
+	isOverdue := diff < 0
+	totalHours := int(diff.Hours())
+
+	remainingDays := totalHours / 24
+	remainingHours := totalHours % 24
+
+	formatted := ""
+	if isOverdue {
+		overdueHours := int(-diff.Hours())
+		oDays := overdueHours / 24
+		oHrs := overdueHours % 24
+		if oDays > 0 {
+			formatted = fmt.Sprintf("Terlambat %d Hari %d Jam", oDays, oHrs)
+		} else {
+			formatted = fmt.Sprintf("Terlambat %d Jam", oHrs)
+		}
+	} else {
+		if remainingDays > 0 {
+			formatted = fmt.Sprintf("%d Hari %d Jam", remainingDays, remainingHours)
+		} else {
+			formatted = fmt.Sprintf("%d Jam", remainingHours)
+		}
+	}
+
+	do.SLADetail = &domain.SLADetailResponse{
+		TargetDays:         targetDays,
+		TargetText:         fmt.Sprintf("%d Hari", targetDays),
+		RemainingDays:      remainingDays,
+		RemainingHours:     remainingHours,
+		RemainingFormatted: formatted,
+		IsOverdue:          isOverdue,
+	}
 }
