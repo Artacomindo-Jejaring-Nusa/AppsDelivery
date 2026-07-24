@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"time"
 
 	"backend-delivery/internal/delivery/http/handler"
 	"backend-delivery/internal/delivery/http/middleware"
@@ -10,6 +11,7 @@ import (
 	"backend-delivery/pkg/response"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 // Router holds all HTTP handlers and configures routes.
@@ -27,6 +29,8 @@ type Router struct {
 	importExportHandler *handler.ImportExportHandler
 	locHandler          *handler.DriverLocationHandler
 	jwtManager          *jwtPkg.JWTManager
+	rdb                 *redis.Client
+	auditRepo           domain.AuditLogRepository
 }
 
 // NewRouter creates a new Router with all handlers.
@@ -44,6 +48,8 @@ func NewRouter(
 	importExportHandler *handler.ImportExportHandler,
 	locHandler *handler.DriverLocationHandler,
 	jwtManager *jwtPkg.JWTManager,
+	rdb *redis.Client,
+	auditRepo domain.AuditLogRepository,
 ) *Router {
 	return &Router{
 		authHandler:         authHandler,
@@ -59,6 +65,8 @@ func NewRouter(
 		importExportHandler: importExportHandler,
 		locHandler:          locHandler,
 		jwtManager:          jwtManager,
+		rdb:                 rdb,
+		auditRepo:           auditRepo,
 	}
 }
 
@@ -66,8 +74,12 @@ func NewRouter(
 func (r *Router) Setup(engine *gin.Engine) {
 	// Global middleware
 	engine.Use(middleware.CORSMiddleware())
+	engine.Use(middleware.SecurityHeaders())
 	engine.Use(middleware.LoggerMiddleware())
 	engine.Use(middleware.RequestIDMiddleware())
+	if r.auditRepo != nil {
+		engine.Use(middleware.AuditLogger(r.auditRepo))
+	}
 
 	// Health check (public)
 	engine.GET("/api/v1/health", func(c *gin.Context) {
@@ -86,12 +98,12 @@ func (r *Router) Setup(engine *gin.Engine) {
 	// ---- Auth (Public) ----
 	auth := v1.Group("/auth")
 	{
-		auth.POST("/login", r.authHandler.Login)
+		auth.POST("/login", middleware.RateLimiter(r.rdb, 5, 1*time.Minute, "rate:login"), r.authHandler.Login)
 	}
 
 	// ---- Protected Routes ----
 	protected := v1.Group("")
-	protected.Use(middleware.AuthMiddleware(r.jwtManager))
+	protected.Use(middleware.AuthMiddleware(r.jwtManager, r.rdb))
 	{
 		// ---- Dashboard Analytics ----
 		protected.GET("/dashboard/stats", r.dashboardHandler.GetStats)
@@ -101,6 +113,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 
 		// ---- Auth / Users ----
 		protected.GET("/users/me", r.authHandler.GetProfile)
+		protected.POST("/auth/logout", r.authHandler.Logout)
 		protected.POST("/auth/register", middleware.RoleMiddleware(domain.RoleAdmin), r.authHandler.Register)
 		protected.GET("/users", middleware.RoleMiddleware(domain.RoleAdmin), r.authHandler.GetAllUsers)
 		protected.PUT("/users/:id", middleware.RoleMiddleware(domain.RoleAdmin), r.authHandler.UpdateUser)

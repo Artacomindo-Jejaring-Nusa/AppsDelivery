@@ -31,3 +31,4 @@ backend/uploads/barcodes/*
 # OS specific files
 .DS_Store
 Thumbs.db
+mobile

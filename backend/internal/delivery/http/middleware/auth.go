@@ -8,10 +8,11 @@ import (
 	"backend-delivery/pkg/response"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
-// AuthMiddleware validates JWT token and sets user info in context.
-func AuthMiddleware(jwtManager *jwtPkg.JWTManager) gin.HandlerFunc {
+// AuthMiddleware validates JWT token, checks Redis revocation blacklist, and sets user info in context.
+func AuthMiddleware(jwtManager *jwtPkg.JWTManager, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -28,7 +29,19 @@ func AuthMiddleware(jwtManager *jwtPkg.JWTManager) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := jwtManager.ValidateToken(parts[1])
+		tokenStr := parts[1]
+
+		// Check if token has been revoked in Redis Blacklist
+		if rdb != nil {
+			blacklisted, err := rdb.Exists(c.Request.Context(), "blacklist:"+tokenStr).Result()
+			if err == nil && blacklisted > 0 {
+				response.Unauthorized(c, "Token has been revoked. Please log in again.")
+				c.Abort()
+				return
+			}
+		}
+
+		claims, err := jwtManager.ValidateToken(tokenStr)
 		if err != nil {
 			response.Unauthorized(c, "Invalid or expired token")
 			c.Abort()
