@@ -6,12 +6,18 @@ PRD_Delivery_Reverse_Logistics_AKS_Artacomindo.md
 .env
 *.env
 backend/.env
+frontend/.env.local
 
 # Temporary and Log files
 *.log
 tmp/
 .idea/
 .vscode/
+
+# Node / React Frontend artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
 
 # Go build & binary artifacts
 *.exe
