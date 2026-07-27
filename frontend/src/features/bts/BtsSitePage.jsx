@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import TrackingMap from '../../components/shared/TrackingMap';
+import zteBtsSites from '../../data/zte_bts_sites.json';
 
 export default function BtsSitePage() {
   const [sites, setSites] = useState([]);
@@ -46,9 +47,15 @@ export default function BtsSitePage() {
     setLoading(true);
     try {
       const res = await api.get('/bts-sites?per_page=100');
-      setSites(res.data.data || []);
+      const data = res.data.data;
+      if (data && data.length > 0) {
+        setSites(data);
+      } else {
+        setSites(zteBtsSites);
+      }
     } catch (err) {
-      console.error('Failed to fetch BTS sites:', err);
+      console.warn('Failed to fetch BTS sites from API, using ZTE KML dataset:', err);
+      setSites(zteBtsSites);
     } finally {
       setLoading(false);
     }

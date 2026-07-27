@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+import zteBtsSites from '../../data/zte_bts_sites.json';
 
 // ─── Google Maps API Key ───
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCP9cX0PB6oA2MkereZlEzuYJd98bTrMOM';
@@ -13,19 +14,8 @@ setOptions({
 const KALIMANTAN_CENTER = { lat: -1.5, lng: 116.0 };
 const DEFAULT_ZOOM = 6;
 
-// ─── BTS Site Data (Kalimantan sites) ───
-const BTS_SITES = [
-  { id: 'KAL-BTS-0001', name: 'BTS Banjarmasin Utara', lat: -3.3194, lng: 114.5907, status: 'active' },
-  { id: 'KAL-BTS-0002', name: 'BTS Balikpapan Tengah', lat: -1.2654, lng: 116.8312, status: 'active' },
-  { id: 'KAL-BTS-0003', name: 'BTS Samarinda Seberang', lat: -0.5022, lng: 117.1536, status: 'warning' },
-  { id: 'KAL-BTS-0004', name: 'BTS Pontianak Kota', lat: -0.0263, lng: 109.3425, status: 'active' },
-  { id: 'KAL-BTS-0005', name: 'BTS Palangkaraya Pahandut', lat: -2.2088, lng: 113.916, status: 'active' },
-  { id: 'KAL-BTS-0006', name: 'BTS Banjarbaru Selatan', lat: -3.4402, lng: 114.8304, status: 'active' },
-  { id: 'KAL-BTS-0007', name: 'BTS Tarakan Barat', lat: 3.3065, lng: 117.5925, status: 'error' },
-  { id: 'KAL-BTS-0008', name: 'BTS Singkawang Barat', lat: 0.9071, lng: 108.986, status: 'active' },
-  { id: 'KAL-BTS-0009', name: 'BTS Tenggarong Seberang', lat: -0.4189, lng: 117.0012, status: 'warning' },
-  { id: 'KAL-BTS-0010', name: 'BTS Sampit Baamang', lat: -2.5367, lng: 112.952, status: 'active' },
-];
+// ─── BTS Site Data (4,599 ZTE Kalimantan Sites) ───
+const BTS_SITES = zteBtsSites;
 
 // ─── Simulated Active Fleet ───
 const FLEET_VEHICLES = [
@@ -110,12 +100,13 @@ export default function TrackingMap() {
 
       // ─── Plot BTS Sites ───
       BTS_SITES.forEach((site) => {
+        const siteTitle = `${site.id} - ${site.site_name || site.name || site.id}`;
         const marker = new Marker({
           position: { lat: site.lat, lng: site.lng },
           map: activeMap,
-          title: site.name,
+          title: siteTitle,
           icon: {
-            url: btsSvgIcon(STATUS_COLORS[site.status]),
+            url: btsSvgIcon(STATUS_COLORS[site.status] || STATUS_COLORS.active),
             scaledSize: new Size(36, 36),
             origin: new Point(0, 0),
             anchor: new Point(18, 36),
@@ -125,10 +116,10 @@ export default function TrackingMap() {
         marker.addListener('click', () => {
           infoWindow.setContent(`
             <div style="font-family: 'Inter', sans-serif; padding: 8px;">
-              <h4 style="margin: 0 0 4px 0; font-weight: 600; color: #00236f;">${site.name}</h4>
-              <p style="margin: 0; font-size: 11px; color: #64748b;">ID: ${site.id}</p>
-              <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: 500; text-transform: uppercase; color: ${STATUS_COLORS[site.status]};">
-                Status: ${site.status}
+              <h4 style="margin: 0 0 4px 0; font-weight: 600; color: #00236f;">${site.site_name || site.name || site.id}</h4>
+              <p style="margin: 0; font-size: 11px; color: #64748b;">ID: ${site.id} | Tech: ${site.tech || '4G/LTE'}</p>
+              <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: 500; text-transform: uppercase; color: ${STATUS_COLORS[site.status] || STATUS_COLORS.active};">
+                Cluster: ${site.city || 'Kalimantan'}
               </p>
             </div>
           `);
