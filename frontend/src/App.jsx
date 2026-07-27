@@ -34,9 +34,10 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="delivery-orders" element={<DeliveryOrdersPage />} />
-          <Route path="manifests" element={<DeliveryOrdersPage />} />
-          <Route path="assets" element={<DashboardPage />} />
-          <Route path="sla" element={<DashboardPage />} />
+          <Route path="inventory" element={<DashboardPage />} />
+          <Route path="fleet" element={<DashboardPage />} />
+          <Route path="analytics" element={<DashboardPage />} />
+          <Route path="compliance" element={<DashboardPage />} />
         </Route>
 
         {/* Catch-all redirect */}

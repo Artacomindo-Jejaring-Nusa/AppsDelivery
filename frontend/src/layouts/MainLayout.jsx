@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
@@ -6,6 +6,7 @@ export default function MainLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleLogout = async () => {
     await logout();
@@ -14,86 +15,141 @@ export default function MainLayout() {
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
-    { label: 'Delivery Orders', path: '/delivery-orders', icon: 'local_shipping' },
-    { label: 'Manifests', path: '/manifests', icon: 'inventory_2' },
-    { label: 'Aset Dismantle', path: '/assets', icon: 'qr_code_scanner' },
-    { label: 'SLA Monitoring', path: '/sla', icon: 'timer' },
+    { label: 'Shipments', path: '/delivery-orders', icon: 'local_shipping' },
+    { label: 'Inventory', path: '/inventory', icon: 'inventory_2' },
+    { label: 'Fleet', path: '/fleet', icon: 'directions_bus' },
+    { label: 'Analytics', path: '/analytics', icon: 'analytics' },
+    { label: 'Compliance', path: '/compliance', icon: 'verified_user' },
   ];
 
-  return (
-    <div className="min-h-screen bg-background flex flex-col font-body-md text-on-surface">
-      {/* Top Bar */}
-      <header className="h-16 bg-surface-container-lowest border-b border-outline-variant px-margin flex items-center justify-between sticky top-0 z-40 shadow-xs">
-        <div className="flex items-center gap-xl">
-          <div className="font-headline-md text-headline-md font-bold text-primary flex items-center gap-xs cursor-pointer" onClick={() => navigate('/dashboard')}>
-            Logistics<span className="text-primary-container">Pro</span>
-          </div>
-          <span className="bg-primary-fixed-dim text-on-primary-fixed font-label-sm text-label-sm px-sm py-xs rounded-full">
-            PT. AKS X ARTACOM — Telkomsel BTS Project
-          </span>
-        </div>
+  const userInitials = (user?.full_name || user?.username || 'A')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
-        <div className="flex items-center gap-md">
-          {/* User Badge */}
-          <div className="flex items-center gap-sm bg-surface-container px-md py-xs rounded-full border border-outline-variant">
-            <span className="material-symbols-outlined text-primary text-[20px]">account_circle</span>
-            <div className="text-left">
-              <p className="font-label-md text-label-md text-on-surface leading-tight">
-                {user?.full_name || user?.username || 'Logistics Admin'}
-              </p>
-              <p className="font-label-sm text-label-sm text-secondary capitalize">
-                {user?.role || 'Admin'}
+  return (
+    <div className="min-h-screen bg-background font-body-md text-on-surface">
+      {/* ─── Sidebar Navigation ─── */}
+      <nav className="w-60 h-screen fixed left-0 top-0 bg-surface-container-low border-r border-outline-variant flex flex-col py-lg px-md z-50">
+        {/* Brand */}
+        <div className="mb-xl px-sm">
+          <div
+            className="flex items-center gap-sm cursor-pointer"
+            onClick={() => navigate('/dashboard')}
+          >
+            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary">
+              <span className="material-symbols-outlined text-lg">hub</span>
+            </div>
+            <div>
+              <h1 className="font-headline-sm text-headline-sm text-primary leading-none">
+                Operations Center
+              </h1>
+              <p className="font-label-sm text-label-sm text-on-surface-variant opacity-70">
+                Global Logistics
               </p>
             </div>
           </div>
+        </div>
 
-          {/* Logout Button */}
+        {/* New Shipment Button */}
+        <button
+          onClick={() => navigate('/delivery-orders')}
+          className="mb-xl w-full py-sm px-md bg-primary text-on-primary font-label-md text-label-md rounded-lg flex items-center justify-center gap-xs hover:opacity-90 transition-all"
+        >
+          <span className="material-symbols-outlined text-sm">add</span>
+          New Shipment
+        </button>
+
+        {/* Main Nav Items */}
+        <div className="flex-1 flex flex-col gap-xs">
+          {navItems.map((item) => {
+            const isActive =
+              location.pathname === item.path ||
+              (item.path === '/dashboard' && location.pathname === '/');
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex items-center gap-md px-md py-sm rounded-lg transition-colors duration-200 ease-in-out w-full text-left ${
+                  isActive
+                    ? 'bg-secondary-container text-on-secondary-container font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+                }`}
+              >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span className="font-label-md text-label-md">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Bottom Links */}
+        <div className="mt-auto flex flex-col gap-xs pt-md border-t border-outline-variant">
+          <button
+            className="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface transition-colors w-full text-left"
+          >
+            <span className="material-symbols-outlined">help</span>
+            <span className="font-label-md text-label-md">Support</span>
+          </button>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-xs px-md py-xs text-error hover:bg-error-container/30 transition-colors rounded-lg font-label-md text-label-md"
-            title="Logout"
+            className="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface transition-colors w-full text-left"
           >
-            <span className="material-symbols-outlined text-[18px]">logout</span>
-            <span>Logout</span>
+            <span className="material-symbols-outlined">logout</span>
+            <span className="font-label-md text-label-md">Sign Out</span>
           </button>
         </div>
-      </header>
-
-      {/* Navigation Sub-Bar */}
-      <nav className="bg-surface border-b border-outline-variant px-margin flex items-center gap-md overflow-x-auto">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`flex items-center gap-xs px-md py-md border-b-2 font-label-md text-label-md transition-all whitespace-nowrap ${
-                isActive
-                  ? 'border-primary text-primary font-semibold bg-primary-fixed/20'
-                  : 'border-transparent text-secondary hover:text-on-surface hover:border-outline'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
       </nav>
 
-      {/* Main Outlet Content */}
-      <main className="flex-1 p-margin max-w-7xl w-full mx-auto animate-in fade-in duration-300">
-        <Outlet />
-      </main>
+      {/* ─── Main Content Canvas ─── */}
+      <main className="ml-60 flex-1 min-h-screen">
+        {/* Top App Bar */}
+        <header className="flex justify-between items-center px-lg w-full sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant h-16">
+          <div className="flex items-center gap-lg flex-1">
+            <div className="relative w-96">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-body-md">
+                search
+              </span>
+              <input
+                className="w-full pl-10 pr-4 py-1.5 bg-surface-container-low border-none rounded-lg focus:ring-1 focus:ring-primary text-body-md"
+                placeholder="Search DO, Driver, or Hub..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-md">
+            {/* Live Indicator */}
+            <div className="flex items-center gap-xs pr-md border-r border-outline-variant">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                Live System: Active
+              </span>
+            </div>
+            {/* Notifications */}
+            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full relative">
+              <span className="material-symbols-outlined">notifications</span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+            </button>
+            {/* Settings */}
+            <button className="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full">
+              <span className="material-symbols-outlined">settings</span>
+            </button>
+            {/* User Avatar */}
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-outline-variant bg-primary flex items-center justify-center text-on-primary font-label-md text-label-md font-bold">
+              {userInitials}
+            </div>
+          </div>
+        </header>
 
-      {/* Global Footer */}
-      <footer className="w-full py-md px-margin flex flex-col md:flex-row justify-between items-center gap-md bg-surface border-t border-outline-variant mt-auto text-body-sm text-secondary">
-        <div>
-          PT. AKS X ARTACOM <span className="text-outline">LogisticsPro Enterprise</span>
+        {/* Page Content */}
+        <div className="p-lg">
+          <Outlet />
         </div>
-        <div>
-          © 2026 PT. Aksarta Artacom Nusa — BTS Telkomsel 4.600 Titik Kalimantan
-        </div>
-      </footer>
+      </main>
     </div>
   );
 }
