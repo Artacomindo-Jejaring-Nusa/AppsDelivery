@@ -20,8 +20,10 @@ export default function MainLayout() {
     { label: 'Shipments', path: '/delivery-orders', icon: 'local_shipping' },
     { label: 'Fleet', path: '/fleet', icon: 'directions_bus' },
     { label: 'Analytics', path: '/analytics', icon: 'analytics' },
+    { label: 'Compliance', path: '/dashboard', icon: 'verified_user' },
     { label: 'User & Accounts', path: '/user', icon: 'people' },
     { label: 'Tracking & Monitoring', path: '/tracking', icon: 'location_searching' },
+    { label: 'BTS Sites', path: '/bts-sites', icon: 'cell_tower' },
   ];
 
   const userInitials = (user?.full_name || user?.username || 'A')
