@@ -1,8 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 // ─── Google Maps API Key ───
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao';
+
+setOptions({
+  apiKey: GOOGLE_MAPS_API_KEY,
+  version: 'weekly',
+});
 
 // ─── Kalimantan Center ───
 const KALIMANTAN_CENTER = { lat: -1.5, lng: 116.0 };
@@ -109,29 +114,23 @@ export default function FleetMap({ height = '320px', className = '' }) {
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
-    const loader = new Loader({
-      apiKey: GOOGLE_MAPS_API_KEY,
-      version: 'weekly',
-      libraries: ['marker'],
-    });
-
-    loader
-      .importLibrary('maps')
+    importLibrary('maps')
       .then(({ Map }) => {
+        const { InfoWindow, Marker, Size, Point } = google.maps;
         const map = new Map(mapContainerRef.current, {
           center: KALIMANTAN_CENTER,
           zoom: DEFAULT_ZOOM,
           mapTypeId: 'roadmap',
           mapTypeControl: true,
           mapTypeControlOptions: {
-            position: 3, // google.maps.ControlPosition.TOP_RIGHT
-            style: 1,    // google.maps.MapTypeControlStyle.DROPDOWN_MENU
+            position: 3, // ControlPosition.TOP_RIGHT
+            style: 1,    // MapTypeControlStyle.DROPDOWN_MENU
           },
           streetViewControl: false,
           fullscreenControl: true,
           zoomControl: true,
           zoomControlOptions: {
-            position: 6, // google.maps.ControlPosition.RIGHT_CENTER
+            position: 6, // ControlPosition.RIGHT_CENTER
           },
           styles: [
             // Subtle styling to match enterprise dashboard feel
@@ -161,19 +160,19 @@ export default function FleetMap({ height = '320px', className = '' }) {
         mapRef.current = map;
 
         // Shared InfoWindow (only one open at a time)
-        const infoWindow = new google.maps.InfoWindow();
+        const infoWindow = new InfoWindow();
 
         // ─── Add BTS Site Markers ───
         BTS_SITES.forEach((site) => {
           const color = STATUS_COLORS[site.status] || STATUS_COLORS.active;
-          const marker = new google.maps.Marker({
+          const marker = new Marker({
             position: { lat: site.lat, lng: site.lng },
             map,
             title: `${site.id} — ${site.name}`,
             icon: {
               url: btsSvgIcon(color),
-              scaledSize: new google.maps.Size(18, 18),
-              anchor: new google.maps.Point(9, 9),
+              scaledSize: new Size(18, 18),
+              anchor: new Point(9, 9),
             },
             optimized: true,
           });
@@ -187,15 +186,15 @@ export default function FleetMap({ height = '320px', className = '' }) {
           marker.addListener('mouseover', () => {
             marker.setIcon({
               url: btsSvgIcon(color),
-              scaledSize: new google.maps.Size(24, 24),
-              anchor: new google.maps.Point(12, 12),
+              scaledSize: new Size(24, 24),
+              anchor: new Point(12, 12),
             });
           });
           marker.addListener('mouseout', () => {
             marker.setIcon({
               url: btsSvgIcon(color),
-              scaledSize: new google.maps.Size(18, 18),
-              anchor: new google.maps.Point(9, 9),
+              scaledSize: new Size(18, 18),
+              anchor: new Point(9, 9),
             });
           });
         });
@@ -203,14 +202,14 @@ export default function FleetMap({ height = '320px', className = '' }) {
         // ─── Add Fleet Vehicle Markers ───
         FLEET_VEHICLES.forEach((vehicle) => {
           const color = STATUS_COLORS[vehicle.status] || STATUS_COLORS.idle;
-          const marker = new google.maps.Marker({
+          const marker = new Marker({
             position: { lat: vehicle.lat, lng: vehicle.lng },
             map,
             title: `${vehicle.driver} — ${vehicle.plate}`,
             icon: {
               url: truckSvgIcon(color),
-              scaledSize: new google.maps.Size(30, 30),
-              anchor: new google.maps.Point(15, 15),
+              scaledSize: new Size(30, 30),
+              anchor: new Point(15, 15),
             },
             optimized: true,
             zIndex: 100,
@@ -224,15 +223,15 @@ export default function FleetMap({ height = '320px', className = '' }) {
           marker.addListener('mouseover', () => {
             marker.setIcon({
               url: truckSvgIcon(color),
-              scaledSize: new google.maps.Size(36, 36),
-              anchor: new google.maps.Point(18, 18),
+              scaledSize: new Size(36, 36),
+              anchor: new Point(18, 18),
             });
           });
           marker.addListener('mouseout', () => {
             marker.setIcon({
               url: truckSvgIcon(color),
-              scaledSize: new google.maps.Size(30, 30),
-              anchor: new google.maps.Point(15, 15),
+              scaledSize: new Size(30, 30),
+              anchor: new Point(15, 15),
             });
           });
         });
