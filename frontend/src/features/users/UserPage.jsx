@@ -135,6 +135,21 @@ export default function UserPage() {
       .slice(0, 2);
   };
 
+  const getRoleBadgeClass = (role) => {
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+      case 'dispatcher':
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'driver':
+        return 'bg-teal-100 text-teal-800 border border-teal-200';
+      case 'data_entry':
+        return 'bg-purple-100 text-purple-800 border border-purple-200';
+      default:
+        return 'bg-slate-100 text-slate-800 border border-slate-200';
+    }
+  };
+
   // Stats calculation
   const totalCount = users.length;
   const activeCount = users.filter((u) => u.is_active).length;
@@ -236,7 +251,7 @@ export default function UserPage() {
                       </div>
                     </td>
                     <td className="px-lg py-md capitalize">
-                      <span className="px-sm py-1 bg-primary-fixed-dim/20 text-primary-fixed-dim border border-primary-fixed-dim/30 rounded text-label-sm font-semibold">
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getRoleBadgeClass(user.role)}`}>
                         {user.role.replace('_', ' ')}
                       </span>
                     </td>
@@ -254,16 +269,18 @@ export default function UserPage() {
                       </p>
                     </td>
                     <td className="px-lg py-md text-right">
-                      <div className="flex justify-end gap-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-sm">
                         <button 
                           onClick={() => handleEditClick(user)}
-                          className="p-xs hover:text-primary transition-colors"
+                          className="p-xs text-secondary hover:text-primary transition-colors"
+                          title="Edit User"
                         >
                           <span className="material-symbols-outlined text-[20px]">edit</span>
                         </button>
                         <button 
                           onClick={() => toggleUserStatus(user)}
-                          className={`p-xs ${user.is_active ? 'hover:text-error' : 'hover:text-success'} transition-colors`}
+                          className={`p-xs text-secondary ${user.is_active ? 'hover:text-error' : 'hover:text-success'} transition-colors`}
+                          title={user.is_active ? 'Nonaktifkan User' : 'Aktifkan User'}
                         >
                           <span className="material-symbols-outlined text-[20px]">
                             {user.is_active ? 'block' : 'check_circle'}
