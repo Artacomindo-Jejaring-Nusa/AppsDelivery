@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 // ─── Google Maps API Key ───
-const GOOGLE_MAPS_API_KEY = 'AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCP9cX0PB6oA2MkereZlEzuYJd98bTrMOM';
 
 setOptions({
   apiKey: GOOGLE_MAPS_API_KEY,
@@ -48,8 +48,8 @@ const STATUS_COLORS = {
 // ─── SVG Marker Icon Builders ───
 function btsSvgIcon(color) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
-      <circle cx="10" cy="10" r="8" fill="${color}" stroke="white" stroke-width="2.5"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ef4444" stroke="white" stroke-width="1.5"/>
     </svg>
   `)}`;
 }
@@ -171,8 +171,8 @@ export default function FleetMap({ height = '320px', className = '' }) {
             title: `${site.id} — ${site.name}`,
             icon: {
               url: btsSvgIcon(color),
-              scaledSize: new Size(18, 18),
-              anchor: new Point(9, 9),
+              scaledSize: new Size(36, 36),
+              anchor: new Point(18, 36),
             },
             optimized: true,
           });

@@ -54,8 +54,8 @@ const STATUS_COLORS = {
 // ─── SVG Marker Icon Builders ───
 function btsSvgIcon(color) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2">
-      <path d="M12 2c-.55 0-1 .45-1 1v1.17c-2.48.51-4.5 2.52-5 5L4.83 20H19.2l-1.2-10.83c-.5-2.48-2.52-4.49-5-5V3c0-.55-.45-1-1-1zm0 5c2.76 0 5 2.24 5 5 0 1.5-.67 2.85-1.72 3.78l-1.42-1.42c.7-.56 1.14-1.42 1.14-2.36 0-1.66-1.34-3-3-3s-3 1.34-3 3c0 .94.44 1.8 1.14 2.36l-1.42 1.42C7.67 14.85 7 13.5 7 12c0-2.76 2.24-5 5-5zm0 3c1.1 0 2 .9 2 2 0 .42-.13.8-.35 1.12l-1.12-1.12v-1.5c.26 0 .47.21.47.47v.53l.75.75c.16-.23.25-.5.25-.78 0-1.1-.9-2-2-2s-2 .9-2 2c0 .28.09.55.25.78l.75-.75v-.53c0-.26.21-.47.47-.47v1.5l-1.12 1.12c-.22-.32-.35-.7-.35-1.12 0-1.1.9-2 2-2z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ef4444" stroke="white" stroke-width="1.5"/>
     </svg>
   `)}`;
 }
@@ -116,9 +116,9 @@ export default function TrackingMap() {
           title: site.name,
           icon: {
             url: btsSvgIcon(STATUS_COLORS[site.status]),
-            scaledSize: new Size(30, 30),
+            scaledSize: new Size(36, 36),
             origin: new Point(0, 0),
-            anchor: new Point(15, 15),
+            anchor: new Point(18, 36),
           },
         });
 
