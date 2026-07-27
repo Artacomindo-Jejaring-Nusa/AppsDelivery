@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import api from '../../services/api';
+import FleetMap from '../../components/shared/FleetMap';
 
 // ─── Countdown Timer Hook ───
 function useCountdownTimers(dispatches) {
@@ -538,45 +539,9 @@ export default function DashboardPage() {
 
       {/* ─── Bottom Layout: Route Map & Alerts ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-        {/* Live Fleet Map */}
-        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden h-80 relative group">
-          <div className="absolute top-md left-md z-10 flex flex-col gap-xs">
-            <div className="bg-surface-container-lowest/90 backdrop-blur shadow p-xs px-md rounded flex items-center gap-sm">
-              <span className="w-3 h-3 rounded-full bg-primary"></span>
-              <span className="font-label-sm text-label-sm">
-                Live Fleet Location
-              </span>
-            </div>
-          </div>
-          <div className="w-full h-full bg-surface-variant relative overflow-hidden flex items-center justify-center">
-            {/* Map Placeholder with stylized grid */}
-            <div className="absolute inset-0 opacity-10"
-                 style={{
-                   backgroundImage:
-                     'linear-gradient(rgba(0,35,111,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,35,111,0.3) 1px, transparent 1px)',
-                   backgroundSize: '40px 40px',
-                 }}
-            ></div>
-            <div className="text-center z-10">
-              <span className="material-symbols-outlined text-[64px] text-primary/30">
-                map
-              </span>
-              <p className="font-label-md text-label-md text-on-surface-variant mt-sm">
-                Fleet GPS Tracking Map
-              </p>
-              <p className="font-body-sm text-body-sm text-outline">
-                Kalimantan Region — 4,600 BTS Sites
-              </p>
-            </div>
-            {/* Simulated fleet dots */}
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute top-1/4 left-1/3 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_#1e3a8a] animate-pulse"></div>
-              <div className="absolute top-1/2 left-2/3 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_#1e3a8a] animate-pulse"></div>
-              <div className="absolute top-1/3 left-1/2 w-2 h-2 bg-error rounded-full shadow-[0_0_10px_#ba1a1a] animate-pulse"></div>
-              <div className="absolute top-2/3 left-1/4 w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981] animate-pulse"></div>
-              <div className="absolute top-[40%] left-[45%] w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_#1e3a8a] animate-pulse"></div>
-            </div>
-          </div>
+        {/* Live Fleet Map (MapLibre GL JS + CARTO Voyager Tiles) */}
+        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+          <FleetMap height="320px" />
         </div>
 
         {/* Critical Alerts */}
