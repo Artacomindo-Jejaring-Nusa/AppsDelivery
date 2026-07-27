@@ -47,7 +47,7 @@ export default function LoginPage() {
             {/* Header Identity */}
             <div className="mb-xl">
               <div className="font-headline-sm text-headline-sm text-secondary tracking-tight mb-xs">
-                PT. AKS X ARTACOM
+                AKS X ARTACOM
               </div>
               <h2 className="font-headline-lg text-headline-lg text-on-surface">
                 Employee Login
@@ -186,10 +186,10 @@ export default function LoginPage() {
       {/* Global Footer */}
       <footer className="w-full py-lg px-margin flex flex-col md:flex-row justify-between items-center gap-md bg-surface-container-lowest border-t border-outline-variant">
         <div className="font-label-md text-label-md font-semibold text-on-surface">
-          PT. AKS X ARTACOM <span class="font-normal text-secondary ml-xs">LogisticsPro</span>
+          AKS X ARTACOM <span className="font-normal text-secondary ml-xs">LogisticsPro</span>
         </div>
         <div className="text-secondary font-body-sm text-body-sm">
-          © 2026 LogisticsPro Enterprise Solutions. All rights reserved.
+          © 2026 Logistics Pro Enterprise Solutions. All rights reserved.
         </div>
         <nav className="flex gap-md">
           <a href="#" onClick={(e) => e.preventDefault()} className="font-body-sm text-body-sm text-secondary hover:text-primary underline transition-all">

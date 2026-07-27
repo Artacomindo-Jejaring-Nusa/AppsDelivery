@@ -1,9 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Map as MapLibreMap, Marker, Popup, NavigationControl, AttributionControl } from 'maplibre-gl';
+import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+// ─── Fix Vite Worker: Use CSP worker to avoid MIME type errors ───
+import MaplibreWorker from 'maplibre-gl/dist/maplibre-gl-csp-worker?worker';
+maplibregl.workerClass = MaplibreWorker;
+
 // ─── CARTO Voyager (Google Maps-like, free, no API key) ───
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
+const MAP_STYLE =
+  'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 
 // ─── Kalimantan Center Coordinates ───
 const KALIMANTAN_CENTER = [116.0, -1.5];
@@ -34,54 +39,69 @@ const FLEET_VEHICLES = [
 
 // ─── Status Color Palette ───
 const STATUS_COLORS = {
-  active: '#1e3a8a',    // primary-container blue
-  warning: '#d97706',   // amber
-  error: '#ba1a1a',     // error red
-  on_route: '#059669',  // emerald
-  idle: '#6b7280',      // gray
+  active: '#1e3a8a',
+  warning: '#d97706',
+  error: '#ba1a1a',
+  on_route: '#059669',
+  idle: '#6b7280',
 };
 
 export default function FleetMap({ height = '320px', className = '' }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState(null);
 
   useEffect(() => {
-    if (mapRef.current) return; // prevent double init
+    if (mapRef.current || !mapContainerRef.current) return;
 
-    const map = new MapLibreMap({
-      container: mapContainerRef.current,
-      style: MAP_STYLE,
-      center: KALIMANTAN_CENTER,
-      zoom: DEFAULT_ZOOM,
-      attributionControl: false,
-      maxZoom: 18,
-      minZoom: 3,
-    });
+    let map;
+    try {
+      map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: MAP_STYLE,
+        center: KALIMANTAN_CENTER,
+        zoom: DEFAULT_ZOOM,
+        attributionControl: false,
+        maxZoom: 18,
+        minZoom: 3,
+      });
+    } catch (err) {
+      console.error('MapLibre GL init error:', err);
+      setMapError('WebGL not available. Please use a modern browser.');
+      return;
+    }
 
-    // Add compact attribution
+    // Compact attribution
     map.addControl(
-      new AttributionControl({ compact: true }),
+      new maplibregl.AttributionControl({ compact: true }),
       'bottom-right'
     );
 
-    // Add navigation controls (zoom +/-)
-    map.addControl(new NavigationControl(), 'top-right');
+    // Zoom controls
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    // Handle WebGL context lost
+    const canvas = map.getCanvas();
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn('WebGL context lost, will attempt restore...');
+    });
+    canvas.addEventListener('webglcontextrestored', () => {
+      console.info('WebGL context restored');
+    });
 
     // ─── On Map Load: Add markers ───
     map.on('load', () => {
       setMapLoaded(true);
 
-      // Add BTS Site markers
+      // BTS Site markers
       BTS_SITES.forEach((site) => {
         const color = STATUS_COLORS[site.status] || STATUS_COLORS.active;
 
-        // Create custom BTS marker element
         const el = document.createElement('div');
-        el.className = 'bts-marker';
         el.style.cssText = `
-          width: 16px;
-          height: 16px;
+          width: 16px; height: 16px;
           background: ${color};
           border: 2.5px solid white;
           border-radius: 50%;
@@ -89,15 +109,10 @@ export default function FleetMap({ height = '320px', className = '' }) {
           cursor: pointer;
           transition: transform 0.15s;
         `;
-        el.addEventListener('mouseenter', () => {
-          el.style.transform = 'scale(1.4)';
-        });
-        el.addEventListener('mouseleave', () => {
-          el.style.transform = 'scale(1)';
-        });
+        el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.4)'; });
+        el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
 
-        // Popup content
-        const popup = new Popup({
+        const popup = new maplibregl.Popup({
           offset: 12,
           closeButton: false,
           maxWidth: '220px',
@@ -115,43 +130,34 @@ export default function FleetMap({ height = '320px', className = '' }) {
           </div>
         `);
 
-        new Marker({ element: el })
+        new maplibregl.Marker({ element: el })
           .setLngLat([site.lng, site.lat])
           .setPopup(popup)
           .addTo(map);
       });
 
-      // Add Fleet Vehicle markers (truck icons)
+      // Fleet Vehicle markers (truck icons)
       FLEET_VEHICLES.forEach((vehicle) => {
         const color = STATUS_COLORS[vehicle.status] || STATUS_COLORS.idle;
 
         const el = document.createElement('div');
-        el.className = 'fleet-marker';
         el.style.cssText = `
-          width: 28px;
-          height: 28px;
+          width: 28px; height: 28px;
           background: ${color};
           border: 2px solid white;
           border-radius: 6px;
           box-shadow: 0 0 12px ${color}60, 0 2px 6px rgba(0,0,0,0.25);
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 15px;
+          display: flex; align-items: center; justify-content: center;
+          color: white; font-size: 15px;
           font-family: 'Material Symbols Outlined';
           transition: transform 0.15s;
         `;
         el.textContent = 'local_shipping';
-        el.addEventListener('mouseenter', () => {
-          el.style.transform = 'scale(1.2)';
-        });
-        el.addEventListener('mouseleave', () => {
-          el.style.transform = 'scale(1)';
-        });
+        el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
+        el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
 
-        const popup = new Popup({
+        const popup = new maplibregl.Popup({
           offset: 16,
           closeButton: false,
           maxWidth: '220px',
@@ -169,23 +175,32 @@ export default function FleetMap({ height = '320px', className = '' }) {
           </div>
         `);
 
-        new Marker({ element: el })
+        new maplibregl.Marker({ element: el })
           .setLngLat([vehicle.lng, vehicle.lat])
           .setPopup(popup)
           .addTo(map);
       });
     });
 
+    map.on('error', (e) => {
+      console.error('Map error:', e.error);
+    });
+
     mapRef.current = map;
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, []);
 
   return (
-    <div className={`relative overflow-hidden rounded-xl ${className}`} style={{ height }}>
+    <div
+      className={`relative overflow-hidden rounded-xl ${className}`}
+      style={{ height }}
+    >
       {/* Map Container */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
@@ -201,28 +216,28 @@ export default function FleetMap({ height = '320px', className = '' }) {
 
       {/* Legend */}
       <div className="absolute bottom-md left-md z-10 bg-surface-container-lowest/90 backdrop-blur shadow rounded px-md py-sm pointer-events-none">
-        <div className="flex items-center gap-md">
+        <div className="flex items-center gap-md text-[11px]">
           <div className="flex items-center gap-xs">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS.active }}></span>
-            <span className="font-label-sm text-label-sm text-on-surface-variant">BTS Active</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]"></span>
+            <span className="text-on-surface-variant">BTS Active</span>
           </div>
           <div className="flex items-center gap-xs">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS.warning }}></span>
-            <span className="font-label-sm text-label-sm text-on-surface-variant">Warning</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
+            <span className="text-on-surface-variant">Warning</span>
           </div>
           <div className="flex items-center gap-xs">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS.error }}></span>
-            <span className="font-label-sm text-label-sm text-on-surface-variant">Error</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ba1a1a]"></span>
+            <span className="text-on-surface-variant">Error</span>
           </div>
           <div className="flex items-center gap-xs">
-            <span className="w-2.5 h-2.5 rounded bg-emerald-600" style={{ width: '10px', height: '10px', borderRadius: '3px' }}></span>
-            <span className="font-label-sm text-label-sm text-on-surface-variant">Fleet</span>
+            <span className="w-2.5 h-2.5 rounded bg-[#059669]"></span>
+            <span className="text-on-surface-variant">Fleet</span>
           </div>
         </div>
       </div>
 
       {/* Loading overlay */}
-      {!mapLoaded && (
+      {!mapLoaded && !mapError && (
         <div className="absolute inset-0 bg-surface-variant flex items-center justify-center z-20">
           <div className="text-center">
             <span className="material-symbols-outlined text-[40px] text-primary/40 animate-spin">
@@ -230,6 +245,20 @@ export default function FleetMap({ height = '320px', className = '' }) {
             </span>
             <p className="font-label-md text-label-md text-on-surface-variant mt-sm">
               Loading Fleet Map...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error fallback */}
+      {mapError && (
+        <div className="absolute inset-0 bg-surface-variant flex items-center justify-center z-20">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-[40px] text-error/40">
+              error
+            </span>
+            <p className="font-label-md text-label-md text-on-surface-variant mt-sm">
+              {mapError}
             </p>
           </div>
         </div>
