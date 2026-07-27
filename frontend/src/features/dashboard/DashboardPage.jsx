@@ -539,7 +539,7 @@ export default function DashboardPage() {
 
       {/* ─── Bottom Layout: Route Map & Alerts ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-        {/* Live Fleet Map (MapLibre GL JS + CARTO Voyager Tiles) */}
+        {/* Live Fleet Map (Google Maps API) */}
         <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
           <FleetMap height="320px" />
         </div>
