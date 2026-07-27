@@ -4,6 +4,8 @@ import LoginPage from './features/auth/LoginPage';
 import MainLayout from './layouts/MainLayout';
 import DashboardPage from './features/dashboard/DashboardPage';
 import DeliveryOrdersPage from './features/delivery/DeliveryOrdersPage';
+import FleetPage from './features/fleet/FleetPage';
+import AnalyticsPage from './features/analytics/AnalyticsPage';
 import { useAuthStore } from './store/authStore';
 
 // ProtectedRoute component
@@ -35,8 +37,8 @@ export default function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="delivery-orders" element={<DeliveryOrdersPage />} />
           <Route path="inventory" element={<DashboardPage />} />
-          <Route path="fleet" element={<DashboardPage />} />
-          <Route path="analytics" element={<DashboardPage />} />
+          <Route path="fleet" element={<FleetPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="compliance" element={<DashboardPage />} />
         </Route>
 
