@@ -21,6 +21,7 @@ export default function MainLayout() {
     { label: 'Fleet', path: '/fleet', icon: 'directions_bus' },
     { label: 'Analytics', path: '/analytics', icon: 'analytics' },
     { label: 'User & Accounts', path: '/user', icon: 'people' },
+    { label: 'Tracking & Monitoring', path: '/tracking', icon: 'location_searching' },
   ];
 
   const userInitials = (user?.full_name || user?.username || 'A')
@@ -208,21 +209,6 @@ export default function MainLayout() {
                     <h4 className="font-semibold text-body-md text-on-surface">Quick Settings</h4>
                   </div>
                   <div className="p-md space-y-md">
-                    {/* Theme visual toggle */}
-                    <div className="flex justify-between items-center">
-                      <span className="text-body-md text-on-surface-variant">Dark Mode</span>
-                      <button 
-                        onClick={() => {
-                          const isDark = document.documentElement.classList.toggle('dark');
-                          alert(`Tema diubah ke ${isDark ? 'Gelap' : 'Terang'}`);
-                        }}
-                        className="w-10 h-6 bg-surface-container-high rounded-full relative p-0.5 transition-colors border border-outline-variant"
-                      >
-                        <div className="w-5 h-5 bg-primary rounded-full transition-transform transform translate-x-0 dark:translate-x-4 flex items-center justify-center text-[10px] text-white">
-                          <span className="material-symbols-outlined text-[10px]">dark_mode</span>
-                        </div>
-                      </button>
-                    </div>
 
                     <div className="h-px bg-outline-variant"></div>
 

@@ -7,6 +7,7 @@ import DeliveryOrdersPage from './features/delivery/DeliveryOrdersPage';
 import FleetPage from './features/fleet/FleetPage';
 import AnalyticsPage from './features/analytics/AnalyticsPage';
 import UserPage from './features/users/UserPage';
+import TrackingPage from './features/tracking/TrackingPage';
 import { useAuthStore } from './store/authStore';
 
 // ProtectedRoute component
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="fleet" element={<FleetPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="user" element={<UserPage />} />
+          <Route path="tracking" element={<TrackingPage />} />
         </Route>
 
         {/* Catch-all redirect */}
