@@ -5,9 +5,9 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(false);
   const [reports, setReports] = useState([
     { id: 1, name: 'Weekly SLA Performance - W04', category: 'SLA Tracking', date: '2023-11-28 09:15', status: 'Completed' },
-    { id: 2, name: 'Fuel Consumption Analytics Q4', category: 'Operational Cost', date: '2023-11-27 14:20', status: 'Completed' },
-    { id: 3, name: 'Monthly Regional Growth Forecast', category: 'Strategic Planning', date: '2023-11-25 11:45', status: 'Processing' },
-    { id: 4, name: 'Fleet Maintenance Schedule Dec-23', category: 'Asset Management', date: '2023-11-24 16:30', status: 'Completed' },
+    { id: 2, name: 'SLA Breach Logs Summary Q4', category: 'SLA Tracking', date: '2023-11-27 14:20', status: 'Completed' },
+    { id: 3, name: 'Monthly Regional Dispatch Forecast', category: 'Operational Performance', date: '2023-11-25 11:45', status: 'Processing' },
+    { id: 4, name: 'Fleet SLA Resolution Timeline Dec-23', category: 'Operational Performance', date: '2023-11-24 16:30', status: 'Completed' },
   ]);
 
   const handleExport = async (type) => {
@@ -36,7 +36,7 @@ export default function AnalyticsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
         <div>
           <h2 className="font-headline-md text-headline-md text-on-surface">Analytics</h2>
-          <p className="text-on-surface-variant text-body-md mt-xs">Analisis performa SLA, konsumsi bahan bakar, efisiensi rute, dan pertumbuhan operasional.</p>
+          <p className="text-on-surface-variant text-body-md mt-xs">Analisis performa SLA, kepatuhan waktu pengiriman, tingkat risiko keterlambatan, dan logistik wilayah.</p>
         </div>
         <div className="flex gap-sm">
           <button 
@@ -56,7 +56,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* ─── Expanded Summary Bento Grid ─── */}
+      {/* ─── Expanded Summary Bento Grid (SLA-Focused) ─── */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-md">
         {/* Total Shipments */}
         <div className="bg-surface-container-lowest p-md border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow">
@@ -80,51 +80,49 @@ export default function AnalyticsPage() {
           <div className="mt-xs text-on-surface-variant font-label-sm">Target: 92%</div>
         </div>
 
-        {/* Fuel Efficiency */}
+        {/* SLA Breach Risk */}
         <div className="bg-surface-container-lowest p-md border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-sm">
-            <span className="text-on-surface-variant font-label-md">Fuel Efficiency</span>
-            <span className="material-symbols-outlined text-primary text-[20px]">gas_meter</span>
+            <span className="text-on-surface-variant font-label-md">SLA Breach Risk</span>
+            <span className="material-symbols-outlined text-amber-600 text-[20px]">warning</span>
           </div>
-          <div className="font-headline-md text-on-background text-headline-md font-bold">
-            6.8 <span className="text-body-sm font-normal text-secondary">Km/L</span>
-          </div>
-          <div className="mt-xs text-error font-label-sm flex items-center gap-xs font-semibold">
-            <span className="material-symbols-outlined text-[14px]">trending_down</span> -2.4%
+          <div className="font-headline-md text-on-background text-headline-md font-bold text-amber-600">42</div>
+          <div className="mt-xs text-amber-600 font-label-sm font-semibold flex items-center gap-xs">
+            <span>●</span> High Warning
           </div>
         </div>
 
-        {/* Revenue */}
+        {/* SLA Breached / Overdue */}
         <div className="bg-surface-container-lowest p-md border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-sm">
-            <span className="text-on-surface-variant font-label-md">Revenue (M)</span>
-            <span className="material-symbols-outlined text-primary text-[20px]">payments</span>
+            <span className="text-on-surface-variant font-label-md">SLA Breached</span>
+            <span className="material-symbols-outlined text-error text-[20px]">error_outline</span>
           </div>
-          <div className="font-headline-md text-on-background text-headline-md font-bold">IDR 842.5</div>
+          <div className="font-headline-md text-on-background text-headline-md font-bold text-error">15</div>
+          <div className="mt-xs text-error font-label-sm font-semibold flex items-center gap-xs">
+            <span className="material-symbols-outlined text-[14px]">trending_up</span> +3% bln ini
+          </div>
+        </div>
+
+        {/* Active Inbound Sessions */}
+        <div className="bg-surface-container-lowest p-md border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start mb-sm">
+            <span className="text-on-surface-variant font-label-md">Active Inbound</span>
+            <span className="material-symbols-outlined text-primary text-[20px]">barcode_scanner</span>
+          </div>
+          <div className="font-headline-md text-on-background text-headline-md font-bold">05</div>
+          <div className="mt-xs text-on-surface-variant font-label-sm">Scan Processing</div>
+        </div>
+
+        {/* Avg Resolution Time */}
+        <div className="bg-surface-container-lowest p-md border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start mb-sm">
+            <span className="text-on-surface-variant font-label-md">Avg Resolution</span>
+            <span className="material-symbols-outlined text-primary text-[20px]">schedule</span>
+          </div>
+          <div className="font-headline-md text-on-background text-headline-md font-bold">4.2 <span className="text-body-sm font-normal text-secondary">Hours</span></div>
           <div className="mt-xs text-green-600 font-label-sm flex items-center gap-xs font-semibold">
-            <span className="material-symbols-outlined text-[14px]">trending_up</span> +12%
-          </div>
-        </div>
-
-        {/* Logistics Cost */}
-        <div className="bg-surface-container-lowest p-md border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-sm">
-            <span className="text-on-surface-variant font-label-md">Logistics Cost</span>
-            <span className="material-symbols-outlined text-primary text-[20px]">account_balance_wallet</span>
-          </div>
-          <div className="font-headline-md text-on-background text-headline-md font-bold">IDR 4,120</div>
-          <div className="mt-xs text-on-surface-variant font-label-sm">Per Unit Avg.</div>
-        </div>
-
-        {/* Fleet Util. % */}
-        <div className="bg-surface-container-lowest p-md border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-sm">
-            <span className="text-on-surface-variant font-label-md">Fleet Util. %</span>
-            <span className="material-symbols-outlined text-primary text-[20px]">group_work</span>
-          </div>
-          <div className="font-headline-md text-on-background text-headline-md font-bold">88.4%</div>
-          <div className="mt-xs text-primary font-label-sm flex items-center gap-xs font-semibold">
-            <span className="material-symbols-outlined text-[14px]">check_circle</span> Optimized
+            <span className="material-symbols-outlined text-[14px]">trending_down</span> -12%
           </div>
         </div>
       </div>
@@ -136,15 +134,15 @@ export default function AnalyticsPage() {
           <div className="bg-surface-container-lowest p-lg border border-outline-variant rounded-xl shadow-sm h-full">
             <div className="flex justify-between items-center mb-lg">
               <div>
-                <h3 className="font-headline-sm text-on-background text-headline-sm font-bold">Monthly Shipment Volume & SLA Trend</h3>
-                <p className="font-body-sm text-on-surface-variant text-body-sm">Core performance metrics over the last 30 days</p>
+                <h3 className="font-headline-sm text-on-background text-headline-sm font-bold">Monthly SLA Achievement Trend</h3>
+                <p className="font-body-sm text-on-surface-variant text-body-sm">Pencapaian ketepatan waktu pengiriman dalam 30 hari terakhir</p>
               </div>
               <div className="flex gap-md">
                 <div className="flex items-center gap-xs text-label-sm">
-                  <span className="w-3 h-3 bg-primary rounded-full"></span> Shipments
+                  <span className="w-3 h-3 bg-primary rounded-full"></span> On-Time
                 </div>
                 <div className="flex items-center gap-xs text-label-sm">
-                  <span className="w-3 h-0.5 bg-error border-dashed"></span> SLA Target (92%)
+                  <span className="w-3 h-0.5 bg-error border-dashed"></span> SLA Limit Target (92%)
                 </div>
               </div>
             </div>
@@ -176,68 +174,68 @@ export default function AnalyticsPage() {
 
         {/* Operational Clusters & Region Stats */}
         <div className="col-span-12 lg:col-span-4 space-y-lg flex flex-col justify-between">
-          {/* Operational Clusters Doughnut */}
+          {/* SLA Distribution */}
           <div className="bg-surface-container-lowest p-lg border border-outline-variant rounded-xl shadow-sm">
-            <h3 className="font-headline-sm text-on-background text-headline-sm font-bold mb-lg">Operational Clusters</h3>
+            <h3 className="font-headline-sm text-on-background text-headline-sm font-bold mb-lg">SLA Status Distribution</h3>
             <div className="flex items-center gap-lg">
               <div className="relative w-32 h-32 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#eceef0" strokeWidth="4"></circle>
-                  <circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#1e3a8a" strokeDasharray="42 100" strokeWidth="4"></circle>
-                  <circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#505f76" strokeDasharray="28 100" strokeDashoffset="-42" strokeWidth="4"></circle>
-                  <circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#d0e1fb" strokeDasharray="30 100" strokeDashoffset="-70" strokeWidth="4"></circle>
+                  <circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#059669" strokeDasharray="72 100" strokeWidth="4"></circle>
+                  <circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#d97706" strokeDasharray="18 100" strokeDashoffset="-72" strokeWidth="4"></circle>
+                  <circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#ba1a1a" strokeDasharray="10 100" strokeDashoffset="-90" strokeWidth="4"></circle>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="font-bold text-headline-sm text-headline-sm">12k</span>
-                  <span className="text-[10px] text-on-surface-variant uppercase font-medium">Units</span>
+                  <span className="font-bold text-headline-sm text-headline-sm">SLA</span>
+                  <span className="text-[10px] text-on-surface-variant uppercase font-medium">Status</span>
                 </div>
               </div>
               <div className="flex-grow space-y-sm">
                 <div className="flex items-center justify-between font-label-md text-body-sm font-semibold">
-                  <span className="flex items-center gap-xs"><span className="w-2.5 h-2.5 bg-primary rounded-full"></span> Jakarta</span>
-                  <span>42%</span>
+                  <span className="flex items-center gap-xs"><span className="w-2.5 h-2.5 bg-emerald-600 rounded-full"></span> Aman (Green)</span>
+                  <span>72%</span>
                 </div>
                 <div className="flex items-center justify-between font-label-md text-body-sm font-semibold">
-                  <span className="flex items-center gap-xs"><span className="w-2.5 h-2.5 bg-secondary rounded-full"></span> Tangerang</span>
-                  <span>28%</span>
+                  <span className="flex items-center gap-xs"><span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span> Warning (Yellow)</span>
+                  <span>18%</span>
                 </div>
                 <div className="flex items-center justify-between font-label-md text-body-sm font-semibold">
-                  <span className="flex items-center gap-xs"><span className="w-2.5 h-2.5 bg-secondary-container rounded-full border border-outline-variant"></span> Bekasi</span>
-                  <span>30%</span>
+                  <span className="flex items-center gap-xs"><span className="w-2.5 h-2.5 bg-red-600 rounded-full"></span> Overdue (Red)</span>
+                  <span>10%</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Regional Fleet Efficiency */}
+          {/* Regional SLA Compliance */}
           <div className="bg-surface-container-lowest p-lg border border-outline-variant rounded-xl shadow-sm">
-            <h3 className="font-headline-sm text-on-background text-headline-sm font-bold mb-lg">Fleet Efficiency by Region</h3>
+            <h3 className="font-headline-sm text-on-background text-headline-sm font-bold mb-lg">SLA Compliance by Region</h3>
             <div className="space-y-md">
               <div className="space-y-xs">
                 <div className="flex justify-between font-label-sm text-body-sm">
-                  <span>West Region</span>
-                  <span className="font-bold font-data-mono">8.2 Km/L</span>
+                  <span>West Kalimantan Region</span>
+                  <span className="font-bold font-data-mono">95.4% SLA</span>
                 </div>
                 <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full w-[85%] rounded-full"></div>
+                  <div className="bg-emerald-600 h-full w-[95.4%] rounded-full"></div>
                 </div>
               </div>
               <div className="space-y-xs">
                 <div className="flex justify-between font-label-sm text-body-sm">
-                  <span>Central Hub</span>
-                  <span className="font-bold font-data-mono">6.1 Km/L</span>
+                  <span>Central Kalimantan Region</span>
+                  <span className="font-bold font-data-mono">91.2% SLA</span>
                 </div>
                 <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                  <div className="bg-secondary h-full w-[60%] rounded-full"></div>
+                  <div className="bg-amber-500 h-full w-[91.2%] rounded-full"></div>
                 </div>
               </div>
               <div className="space-y-xs">
                 <div className="flex justify-between font-label-sm text-body-sm">
-                  <span>East Corridor</span>
-                  <span className="font-bold font-data-mono">7.4 Km/L</span>
+                  <span>East Kalimantan Region</span>
+                  <span className="font-bold font-data-mono">93.8% SLA</span>
                 </div>
                 <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary/60 h-full w-[75%] rounded-full"></div>
+                  <div className="bg-emerald-600 h-full w-[93.8%] rounded-full"></div>
                 </div>
               </div>
             </div>
@@ -248,7 +246,7 @@ export default function AnalyticsPage() {
       {/* ─── Recent Performance Reports Table ─── */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
         <div className="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low/30">
-          <h3 className="font-headline-sm text-on-background text-headline-sm font-bold">Recent Performance Reports</h3>
+          <h3 className="font-headline-sm text-on-background text-headline-sm font-bold">Recent SLA Reports</h3>
           <button className="text-primary font-label-md hover:underline font-semibold text-body-sm">
             View All Reports
           </button>
