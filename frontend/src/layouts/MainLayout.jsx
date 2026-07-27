@@ -16,10 +16,9 @@ export default function MainLayout() {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
     { label: 'Shipments', path: '/delivery-orders', icon: 'local_shipping' },
-    { label: 'Inventory', path: '/inventory', icon: 'inventory_2' },
     { label: 'Fleet', path: '/fleet', icon: 'directions_bus' },
     { label: 'Analytics', path: '/analytics', icon: 'analytics' },
-    { label: 'Compliance', path: '/compliance', icon: 'verified_user' },
+    { label: 'User & Accounts', path: '/user', icon: 'people' },
   ];
 
   const userInitials = (user?.full_name || user?.username || 'A')
