@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"backend-delivery/config"
+	"backend-delivery/internal/config"
 	"backend-delivery/pkg/database"
 )
 
