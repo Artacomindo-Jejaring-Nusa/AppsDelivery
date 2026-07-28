@@ -38,13 +38,13 @@ func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.Deliver
 
 func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.DeliveryOrder, error) {
 	query := `
-		SELECT do.id, do.do_number, do.bts_site_id, do.description, do.status,
-			   do.sla_days, do.sla_hours, do.sla_deadline, do.sla_status, do.origin_address, do.destination_address,
-			   do.notes, do.created_by, do.created_at, do.updated_at, do.deleted_at,
+		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.description, dord.status,
+			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status, dord.origin_address, dord.destination_address,
+			   dord.notes, dord.created_by, dord.created_at, dord.updated_at, dord.deleted_at,
 			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district
-		FROM delivery_orders do
-		LEFT JOIN bts_sites bs ON do.bts_site_id = bs.id
-		WHERE do.id = $1 AND do.deleted_at IS NULL`
+		FROM delivery_orders dord
+		LEFT JOIN bts_sites bs ON dord.bts_site_id = bs.id
+		WHERE dord.id = $1 AND dord.deleted_at IS NULL`
 
 	doEntity := &domain.DeliveryOrder{}
 	bts := &domain.BtsSite{}
