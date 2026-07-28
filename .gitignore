@@ -6,12 +6,18 @@ PRD_Delivery_Reverse_Logistics_AKS_Artacomindo.md
 .env
 *.env
 backend/.env
+frontend/.env.local
 
 # Temporary and Log files
 *.log
 tmp/
 .idea/
 .vscode/
+
+# Node / React Frontend artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
 
 # Go build & binary artifacts
 *.exe
@@ -21,6 +27,8 @@ tmp/
 *.test
 *.out
 backend/api
+/backend/cmd/seed_bts/seed_bts
+/backend/cmd/seed_bts/seed_bts.exe
 
 # Uploaded Files / Media
 uploads/barcodes/*
@@ -31,3 +39,8 @@ backend/uploads/barcodes/*
 # OS specific files
 .DS_Store
 Thumbs.db
+mobile
+
+SITE_ZTE_KAL_W25 2026.kml
+SITE_ZTE_KAL_W25 2026.xls
+scratch

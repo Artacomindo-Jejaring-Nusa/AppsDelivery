@@ -163,12 +163,17 @@ func (u *importExportUsecase) ImportDeliveryOrders(ctx context.Context, reader i
 		if len(row) > 2 {
 			description = strings.TrimSpace(row[2])
 		}
-		slaHours := u.defaultSLA
+		slaDays := 3
 		if len(row) > 3 && strings.TrimSpace(row[3]) != "" {
-			if parsedSLA, err := strconv.Atoi(strings.TrimSpace(row[3])); err == nil && parsedSLA > 0 {
-				slaHours = parsedSLA
+			if parsedVal, err := strconv.Atoi(strings.TrimSpace(row[3])); err == nil && parsedVal > 0 {
+				if parsedVal <= 30 {
+					slaDays = parsedVal
+				} else {
+					slaDays = (parsedVal + 23) / 24
+				}
 			}
 		}
+		slaHours := slaDays * 24
 		if len(row) > 4 {
 			origin = strings.TrimSpace(row[4])
 		}
@@ -188,6 +193,7 @@ func (u *importExportUsecase) ImportDeliveryOrders(ctx context.Context, reader i
 			BtsSiteID:          siteUUIDPtr,
 			Description:        description,
 			Status:             domain.DOStatusPending,
+			SLADays:            slaDays,
 			SLAHours:           slaHours,
 			SLADeadline:        &deadline,
 			SLAStatus:          domain.SLAStatusGreen,

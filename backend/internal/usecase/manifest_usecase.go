@@ -95,7 +95,22 @@ func (u *manifestUsecase) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ma
 }
 
 func (u *manifestUsecase) GetAll(ctx context.Context, pagination *domain.PaginationRequest) ([]*domain.Manifest, int64, error) {
-	return u.manifestRepo.FindAll(ctx, pagination)
+	manifests, total, err := u.manifestRepo.FindAll(ctx, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for _, m := range manifests {
+		if m.DriverID != nil {
+			if fullM, err := u.manifestRepo.FindByID(ctx, m.ID); err == nil && fullM.Driver != nil {
+				m.Driver = fullM.Driver
+			}
+		}
+		items, _ := u.manifestRepo.FindItemsByManifestID(ctx, m.ID)
+		m.Items = items
+	}
+
+	return manifests, total, nil
 }
 
 func (u *manifestUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, req *domain.UpdateManifestStatusRequest) (*domain.Manifest, error) {

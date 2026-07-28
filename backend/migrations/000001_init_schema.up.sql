@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS delivery_orders (
     bts_site_id UUID REFERENCES bts_sites(id) ON DELETE SET NULL,
     description TEXT,
     status do_status NOT NULL DEFAULT 'pending',
+    sla_days INTEGER NOT NULL DEFAULT 3,
     sla_hours INTEGER NOT NULL DEFAULT 72,
     sla_deadline TIMESTAMPTZ,
     sla_status sla_status NOT NULL DEFAULT 'green',
@@ -288,12 +289,12 @@ INSERT INTO bts_sites (id, site_id, site_name, address, province, city, district
 ON CONFLICT (id) DO NOTHING;
 
 -- Delivery Orders (with Green, Yellow, and Red SLA statuses)
-INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by, created_at) VALUES
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'DO-2026-07-001', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Material Migrasi BTS Banjarmasin Utara - Batch 1', 'in_transit', 72, NOW() + INTERVAL '48 hours', 'green', 'Gudang PT. Eriksin Banjarmasin', 'Site BTS KAL-BTS-0001', 'Prioritas tinggi', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '24 hours'),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'DO-2026-07-002', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c02', 'Material Migrasi BTS Balikpapan - Replacement Unit', 'in_transit', 72, NOW() + INTERVAL '10 hours', 'yellow', 'Gudang PT. Eriksin Balikpapan', 'Site BTS KAL-BTS-0002', 'Mendekati tenggat waktu SLA', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '62 hours'),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'DO-2026-07-003', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Material Migrasi BTS Samarinda - Antenna Expansion', 'in_transit', 72, NOW() - INTERVAL '5 hours', 'red', 'Gudang PT. Eriksin Samarinda', 'Site BTS KAL-BTS-0003', 'ESKALASI: Terlambat karena kendala cuaca', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '77 hours'),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d04', 'DO-2026-07-004', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Material Migrasi BTS Pontianak Kota - Power Cable', 'pending', 72, NOW() + INTERVAL '72 hours', 'green', 'Gudang PT. Eriksin Pontianak', 'Site BTS KAL-BTS-0004', 'Siap dikirim', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW()),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d05', 'DO-2026-07-005', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'Material Migrasi BTS Palangkaraya - Battery Replacement', 'completed', 72, NOW() + INTERVAL '20 hours', 'green', 'Gudang PT. Eriksin Palangkaraya', 'Site BTS KAL-BTS-0005', 'Selesai serah terima', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '50 hours')
+INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by, created_at) VALUES
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'DO-2026-07-001', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Material Migrasi BTS Banjarmasin Utara - Batch 1', 'in_transit', 3, 72, NOW() + INTERVAL '48 hours', 'green', 'Gudang PT. Eriksin Banjarmasin', 'Site BTS KAL-BTS-0001', 'Prioritas tinggi', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '24 hours'),
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'DO-2026-07-002', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c02', 'Material Migrasi BTS Balikpapan - Replacement Unit', 'in_transit', 3, 72, NOW() + INTERVAL '10 hours', 'yellow', 'Gudang PT. Eriksin Balikpapan', 'Site BTS KAL-BTS-0002', 'Mendekati tenggat waktu SLA', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '62 hours'),
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'DO-2026-07-003', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Material Migrasi BTS Samarinda - Antenna Expansion', 'in_transit', 3, 72, NOW() - INTERVAL '5 hours', 'red', 'Gudang PT. Eriksin Samarinda', 'Site BTS KAL-BTS-0003', 'ESKALASI: Terlambat karena kendala cuaca', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '77 hours'),
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d04', 'DO-2026-07-004', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Material Migrasi BTS Pontianak Kota - Power Cable', 'pending', 3, 72, NOW() + INTERVAL '72 hours', 'green', 'Gudang PT. Eriksin Pontianak', 'Site BTS KAL-BTS-0004', 'Siap dikirim', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW()),
+('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d05', 'DO-2026-07-005', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'Material Migrasi BTS Palangkaraya - Battery Replacement', 'completed', 2, 48, NOW() + INTERVAL '20 hours', 'green', 'Gudang PT. Eriksin Palangkaraya', 'Site BTS KAL-BTS-0005', 'Selesai serah terima', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '50 hours')
 ON CONFLICT (id) DO NOTHING;
 
 -- Manifests

@@ -98,8 +98,13 @@ func main() {
 	}
 
 	// ============================================
-	// 4. Initialize Packages
+	// 4. Initialize Redis Client & Packages
 	// ============================================
+	rdb, err := database.InitRedis(&cfg.Redis)
+	if err != nil {
+		log.Printf("Warning: Redis initialization failed: %v. Continuing with in-memory fallback.", err)
+	}
+
 	jwtManager := jwtPkg.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
 	barcodeGen := barcodePkg.NewGenerator(cfg.Barcode.ImageDir, cfg.Barcode.ImageSize)
 
@@ -116,6 +121,7 @@ func main() {
 	slaRepo := repository.NewSLARepository(db)
 	dashboardRepo := repository.NewDashboardRepository(db)
 	locRepo := repository.NewDriverLocationRepository(db)
+	auditRepo := repository.NewAuditLogRepository(db)
 
 	// ============================================
 	// 6. Initialize Usecases
@@ -135,7 +141,7 @@ func main() {
 	// ============================================
 	// 7. Initialize HTTP Handlers
 	// ============================================
-	authHandler := handler.NewAuthHandler(authUsecase)
+	authHandler := handler.NewAuthHandler(authUsecase, rdb)
 	btsSiteHandler := handler.NewBtsSiteHandler(btsSiteUsecase)
 	driverHandler := handler.NewDriverHandler(driverUsecase)
 	doHandler := handler.NewDeliveryOrderHandler(doUsecase)
@@ -147,6 +153,7 @@ func main() {
 	uploadHandler := handler.NewUploadHandler("./uploads")
 	importExportHandler := handler.NewImportExportHandler(importExportUsecase)
 	locHandler := handler.NewDriverLocationHandler(locUsecase)
+	timelineHandler := handler.NewTimelineHandler(doRepo, manifestRepo, assetRepo, btsSiteRepo)
 
 	// ============================================
 	// 8. Setup Router
@@ -162,7 +169,7 @@ func main() {
 		authHandler, btsSiteHandler, driverHandler, doHandler,
 		manifestHandler, assetHandler, barcodeHandler, slaHandler,
 		dashboardHandler, uploadHandler, importExportHandler, locHandler,
-		jwtManager,
+		timelineHandler, jwtManager, rdb, auditRepo,
 	)
 	router.Setup(engine)
 

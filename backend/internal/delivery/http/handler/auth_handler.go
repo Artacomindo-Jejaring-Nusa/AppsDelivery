@@ -2,22 +2,29 @@ package handler
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"backend-delivery/internal/domain"
 	"backend-delivery/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 // AuthHandler handles authentication-related HTTP requests.
 type AuthHandler struct {
 	authUsecase domain.AuthUsecase
+	rdb         *redis.Client
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(authUsecase domain.AuthUsecase) *AuthHandler {
-	return &AuthHandler{authUsecase: authUsecase}
+func NewAuthHandler(authUsecase domain.AuthUsecase, rdb *redis.Client) *AuthHandler {
+	return &AuthHandler{
+		authUsecase: authUsecase,
+		rdb:         rdb,
+	}
 }
 
 // Login handles POST /api/v1/auth/login
@@ -121,4 +128,16 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "User updated successfully", user)
+}
+
+// Logout handles POST /api/v1/auth/logout
+func (h *AuthHandler) Logout(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" && h.rdb != nil {
+		token := parts[1]
+		_ = h.rdb.Set(c.Request.Context(), "blacklist:"+token, "revoked", 24*time.Hour).Err()
+	}
+
+	response.Success(c, http.StatusOK, "Logout successful", nil)
 }

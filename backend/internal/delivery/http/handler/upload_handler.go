@@ -56,6 +56,34 @@ func (h *UploadHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
+	// Security Inspection: Validate file Magic Bytes (binary header)
+	src, err := file.Open()
+	if err != nil {
+		response.BadRequest(c, "Failed to open file for security inspection", err.Error())
+		return
+	}
+	defer src.Close()
+
+	buffer := make([]byte, 512)
+	n, err := src.Read(buffer)
+	if err != nil && n == 0 {
+		response.BadRequest(c, "Failed to read file bytes for security inspection", err.Error())
+		return
+	}
+
+	detectedContentType := http.DetectContentType(buffer[:n])
+	allowedMimeTypes := map[string]bool{
+		"image/jpeg": true, "image/png": true, "image/webp": true,
+		"application/pdf": true, "application/zip": true, "text/plain": true,
+		"application/x-zip-compressed": true,
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+	}
+
+	if !allowedMimeTypes[detectedContentType] {
+		response.BadRequest(c, fmt.Sprintf("Security Error: File content type '%s' is not allowed", detectedContentType), nil)
+		return
+	}
+
 	// Generate unique filename
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("%s_%s%s", timestamp, uuid.New().String()[:8], ext)
