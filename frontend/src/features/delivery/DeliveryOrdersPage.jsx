@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import QRCode from 'qrcode';
 import api from '../../services/api';
 
 export default function DeliveryOrdersPage() {
@@ -237,14 +238,43 @@ export default function DeliveryOrdersPage() {
     }
   };
 
-  // Helper: normalize backend image_path to a usable URL
-  const normalizeBarcodeImageUrl = (imagePath) => {
-    if (!imagePath) return '';
-    // Remove leading ./ if present
-    let cleaned = imagePath.replace(/^\.[\/\\]/, '');
-    // Ensure leading /
-    if (!cleaned.startsWith('/')) cleaned = '/' + cleaned;
-    return cleaned;
+  // Generate QR Code data URL client-side
+  const generateQRDataUrl = async (text) => {
+    try {
+      return await QRCode.toDataURL(text, {
+        width: 256,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'M',
+      });
+    } catch (err) {
+      console.error('QR generation failed:', err);
+      return null;
+    }
+  };
+
+  // QRCodeCard: renders a single barcode card with client-generated QR
+  const QRCodeCard = ({ barcode }) => {
+    const [qrDataUrl, setQrDataUrl] = useState(null);
+    useEffect(() => {
+      if (barcode?.barcode_data) {
+        generateQRDataUrl(barcode.barcode_data).then(setQrDataUrl);
+      }
+    }, [barcode?.barcode_data]);
+
+    return (
+      <div className="border border-outline-variant p-md rounded-lg flex flex-col items-center justify-center bg-white space-y-sm text-center shadow-xs">
+        <span className="font-label-md text-label-md text-primary font-bold tracking-wide">{barcode.barcode_data}</span>
+        {qrDataUrl ? (
+          <img src={qrDataUrl} alt={barcode.barcode_data} className="h-36 w-36 object-contain" />
+        ) : (
+          <div className="h-36 w-36 flex items-center justify-center bg-surface-container rounded-lg">
+            <span className="material-symbols-outlined text-secondary animate-spin">progress_activity</span>
+          </div>
+        )}
+        <div className="text-[11px] text-secondary font-data-mono font-bold">PT. AKS X ARTACOMINDO</div>
+      </div>
+    );
   };
 
   // Submit scan data & generate barcodes
@@ -809,8 +839,8 @@ export default function DeliveryOrdersPage() {
           <div className="bg-surface-container-lowest p-xl rounded-xl border border-outline-variant max-w-2xl w-full space-y-lg shadow-xl max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center border-b border-outline-variant pb-md flex-shrink-0">
               <h3 className="font-headline-sm text-headline-sm text-primary flex items-center gap-sm">
-                <span className="material-symbols-outlined">print</span>
-                <span>Print Barcode Label Inbound</span>
+                <span className="material-symbols-outlined">qr_code_2</span>
+                <span>Print QR Code Label Inbound</span>
               </h3>
               <button onClick={() => setShowBarcodeModal(false)} className="text-secondary hover:text-on-surface">
                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -819,30 +849,12 @@ export default function DeliveryOrdersPage() {
 
             <div className="flex-1 overflow-y-auto py-md space-y-md">
               <p className="text-body-md text-secondary">
-                Barcode label berikut telah berhasil digenerate untuk material dismantle {selectedDO?.do_number}. Silakan print label ini untuk ditempelkan pada unit fisik.
+                QR Code label berikut telah berhasil digenerate untuk material dismantle {selectedDO?.do_number}. Silakan print label ini untuk ditempelkan pada unit fisik. QR Code dapat di-scan oleh driver menggunakan kamera HP.
               </p>
               <div className="grid grid-cols-2 gap-md" id="print-area">
-                {generatedBarcodes.map((barcode) => {
-                  const imgUrl = normalizeBarcodeImageUrl(barcode.image_path);
-                  return (
-                    <div key={barcode.id} className="border border-outline-variant p-md rounded-lg flex flex-col items-center justify-center bg-white space-y-sm text-center shadow-xs">
-                      <span className="font-label-md text-label-md text-primary font-bold">{barcode.barcode_data}</span>
-                      {imgUrl ? (
-                        <img 
-                          src={imgUrl} 
-                          alt={barcode.barcode_data}
-                          className="h-28 w-auto object-contain my-xs"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      ) : (
-                        <div className="h-28 flex items-center justify-center text-secondary text-body-sm">QR Code Loading...</div>
-                      )}
-                      <div className="text-[11px] text-secondary font-data-mono font-bold">
-                        PT. AKS X ARTACOMINDO
-                      </div>
-                    </div>
-                  );
-                })}
+                {generatedBarcodes.map((barcode) => (
+                  <QRCodeCard key={barcode.id} barcode={barcode} />
+                ))}
               </div>
             </div>
 
@@ -856,15 +868,19 @@ export default function DeliveryOrdersPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const origin = window.location.origin;
-                  const cardsHtml = generatedBarcodes.map(b => {
-                    const rawPath = (b.image_path || '').replace(/^\.[\\/\\]/, '');
-                    const cleanPath = rawPath.startsWith('/') ? rawPath : '/' + rawPath;
-                    const absUrl = origin + cleanPath;
+                onClick={async () => {
+                  // Generate all QR codes as data URLs for print
+                  const qrEntries = await Promise.all(
+                    generatedBarcodes.map(async (b) => {
+                      const dataUrl = await generateQRDataUrl(b.barcode_data);
+                      return { barcode_data: b.barcode_data, dataUrl };
+                    })
+                  );
+
+                  const cardsHtml = qrEntries.map(entry => {
                     return '<div class="barcode-card">' +
-                      '<div class="title">' + (b.barcode_data || '') + '</div>' +
-                      '<img src="' + absUrl + '" onerror="this.style.display=\'none\'" />' +
+                      '<div class="title">' + (entry.barcode_data || '') + '</div>' +
+                      (entry.dataUrl ? '<img src="' + entry.dataUrl + '" />' : '<p>QR Error</p>') +
                       '<div class="footer">PT. AKS X ARTACOMINDO</div>' +
                     '</div>';
                   }).join('');
@@ -872,18 +888,20 @@ export default function DeliveryOrdersPage() {
                   const printWindow = window.open('', '_blank');
                   printWindow.document.write(
                     '<html><head>' +
-                    '<title>Print Barcodes - ' + (selectedDO?.do_number || '') + '</title>' +
+                    '<title>Print QR Codes - ' + (selectedDO?.do_number || '') + '</title>' +
                     '<style>' +
-                    'body { font-family: sans-serif; padding: 20px; }' +
-                    '.print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }' +
-                    '.barcode-card { border: 1px solid #ccc; padding: 15px; text-align: center; border-radius: 8px; background: white; page-break-inside: avoid; }' +
-                    'img { height: 120px; max-width: 100%; margin: 10px 0; object-fit: contain; }' +
-                    '.title { font-weight: bold; font-size: 13px; color: #00236f; margin-bottom: 5px; }' +
-                    '.footer { font-size: 10px; color: #666; font-weight: bold; margin-top: 5px; }' +
+                    '@page { margin: 10mm; }' +
+                    'body { font-family: "Segoe UI", Arial, sans-serif; padding: 15px; color: #333; }' +
+                    'h3 { color: #00236f; margin-bottom: 15px; border-bottom: 2px solid #00236f; padding-bottom: 8px; }' +
+                    '.print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }' +
+                    '.barcode-card { border: 1.5px solid #ddd; padding: 12px; text-align: center; border-radius: 8px; background: white; page-break-inside: avoid; }' +
+                    'img { width: 160px; height: 160px; margin: 8px auto; display: block; }' +
+                    '.title { font-weight: bold; font-size: 11px; color: #00236f; margin-bottom: 5px; font-family: monospace; word-break: break-all; }' +
+                    '.footer { font-size: 9px; color: #888; font-weight: bold; margin-top: 5px; letter-spacing: 1px; }' +
                     '</style></head><body>' +
-                    '<h3>Material Dismantle Barcodes: ' + (selectedDO?.do_number || '') + '</h3>' +
+                    '<h3>Material Dismantle QR Codes: ' + (selectedDO?.do_number || '') + '</h3>' +
                     '<div class="print-grid">' + cardsHtml + '</div>' +
-                    '<script>window.onload = function() { window.print(); }<\/script>' +
+                    '<script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }<\/script>' +
                     '</body></html>'
                   );
                   printWindow.document.close();
