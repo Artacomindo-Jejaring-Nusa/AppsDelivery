@@ -8,7 +8,11 @@ export default function BtsSitePage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedSite, setSelectedSite] = useState(null);
+  const [importCsvText, setImportCsvText] = useState('');
+  const [importProgress, setImportProgress] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -132,6 +136,97 @@ export default function BtsSitePage() {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const csvHeader = 'site_id,site_name,address,province,city,district,latitude,longitude\n';
+    const sampleRows = [
+      'BTS-KAL-101,Site Telkomsel Balikpapan Selatan,Jl. Jendral Sudirman No. 45,Kalimantan Timur,Balikpapan,Balikpapan Selatan,-1.2345,116.8901',
+      'BTS-KAL-102,Site Telkomsel Banjarmasin Hub,Jl. A. Yani Km 6,Kalimantan Selatan,Banjarmasin,Banjarmasin Timur,-3.3194,114.5908',
+      'BTS-KAL-103,Site Telkomsel Samarinda Seberang,Jl. Cipto Mangunkusumo No. 12,Kalimantan Timur,Samarinda,Samarinda Seberang,-0.5021,117.1536'
+    ].join('\n');
+
+    const blob = new Blob([csvHeader + sampleRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'Template_Import_BTS_Sites.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImportCsvText(event.target.result);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleProcessImport = async () => {
+    if (!importCsvText.trim()) {
+      alert('Silakan upload file CSV atau tempel teks data CSV terlebih dahulu.');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportProgress('Membaca baris data...');
+
+    const lines = importCsvText.trim().split('\n');
+    if (lines.length <= 1) {
+      alert('Teks CSV tidak berisi baris data.');
+      setIsImporting(false);
+      return;
+    }
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
+      const rowObj = {};
+      headers.forEach((h, idx) => {
+        rowObj[h] = cols[idx] || '';
+      });
+
+      if (!rowObj.site_id || !rowObj.site_name) {
+        failCount++;
+        continue;
+      }
+
+      setImportProgress(`Mengimpor baris ${i}/${lines.length - 1}: ${rowObj.site_id}...`);
+
+      try {
+        await api.post('/bts-sites', {
+          site_id: rowObj.site_id,
+          site_name: rowObj.site_name,
+          address: rowObj.address || '',
+          province: rowObj.province || 'Kalimantan Timur',
+          city: rowObj.city || 'Balikpapan',
+          district: rowObj.district || '',
+          latitude: rowObj.latitude ? parseFloat(rowObj.latitude) : null,
+          longitude: rowObj.longitude ? parseFloat(rowObj.longitude) : null,
+        });
+        successCount++;
+      } catch (err) {
+        console.warn(`Gagal mengimpor site ${rowObj.site_id}:`, err);
+        failCount++;
+      }
+    }
+
+    setIsImporting(false);
+    setShowImportModal(false);
+    setImportCsvText('');
+    setImportProgress('');
+    alert(`Bulk Import Selesai!\nBerhasil: ${successCount} sites\nGagal: ${failCount} sites`);
+    fetchSites();
+  };
+
   // Filtering Logic
   const filteredSites = sites.filter((site) => {
     const matchesSearch =
@@ -167,13 +262,29 @@ export default function BtsSitePage() {
             <h1 className="font-headline-lg text-headline-lg text-primary font-bold">BTS Sites Inventory</h1>
             <p className="text-body-md text-secondary mt-xs">Real-time status and operational metrics across national clusters.</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-sm bg-primary text-on-primary px-lg py-sm rounded-lg font-semibold hover:shadow-lg transition-all active:scale-95 shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[20px]">add</span>
-            <span>Add New Site</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-sm">
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-xs bg-surface-container-high text-on-surface px-md py-sm rounded-lg font-semibold border border-outline-variant hover:bg-surface-container transition-all text-label-md"
+            >
+              <span className="material-symbols-outlined text-[18px]">download</span>
+              <span>Unduh Template CSV</span>
+            </button>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-xs bg-secondary text-on-secondary px-md py-sm rounded-lg font-semibold hover:opacity-90 transition-all text-label-md shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[18px]">upload_file</span>
+              <span>Import Bulk CSV / Excel</span>
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-xs bg-primary text-on-primary px-md py-sm rounded-lg font-semibold hover:shadow-lg transition-all text-label-md shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span>Add New Site</span>
+            </button>
+          </div>
         </div>
 
         {/* KPI Bento Grid */}
@@ -637,6 +748,86 @@ export default function BtsSitePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bulk Import Modal ─── */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-xs flex items-center justify-center p-md z-50 animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest p-xl rounded-xl border border-outline-variant max-w-xl w-full space-y-lg shadow-xl">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-md">
+              <div>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface">Bulk Import BTS Sites</h3>
+                <p className="text-body-sm text-secondary">Unggah file CSV/Excel atau tempel teks data CSV untuk menambahkan ribuan site sekaligus.</p>
+              </div>
+              <button onClick={() => setShowImportModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-md">
+              <div className="p-md bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                <div className="text-body-sm text-blue-900 font-medium">
+                  Belum punya format file import? Unduh template resmi Excel/CSV.
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="px-sm py-xs bg-blue-700 text-white text-xs font-bold rounded hover:bg-blue-800 shrink-0 ml-md"
+                >
+                  Unduh Template
+                </button>
+              </div>
+
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Option A: Upload File (.csv)</label>
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleFileUpload}
+                  className="w-full text-body-sm text-secondary file:mr-md file:py-xs file:px-md file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-on-primary hover:file:opacity-90 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Option B: Tempel Teks CSV</label>
+                <textarea
+                  rows={6}
+                  placeholder={`site_id,site_name,address,province,city,district,latitude,longitude\nBTS-KAL-101,Site Telkomsel Balikpapan Selatan,Jl. Sudirman,Kalimantan Timur,Balikpapan,Balikpapan Selatan,-1.2345,116.8901`}
+                  value={importCsvText}
+                  onChange={(e) => setImportCsvText(e.target.value)}
+                  className="w-full p-md bg-surface border border-outline-variant rounded-lg font-data-mono text-xs outline-none focus:border-primary"
+                />
+              </div>
+
+              {importProgress && (
+                <div className="p-sm bg-emerald-50 text-emerald-800 text-xs font-bold rounded border border-emerald-200 flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                  <span>{importProgress}</span>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-md pt-md border-t border-outline-variant">
+                <button
+                  type="button"
+                  disabled={isImporting}
+                  onClick={() => setShowImportModal(false)}
+                  className="px-md py-sm bg-surface-container text-secondary font-label-md rounded-lg hover:bg-surface-container-high"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={isImporting}
+                  onClick={handleProcessImport}
+                  className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container shadow-sm flex items-center gap-xs"
+                >
+                  <span className="material-symbols-outlined text-[18px]">upload</span>
+                  <span>{isImporting ? 'Mengimpor...' : 'Proses Import Bulk'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

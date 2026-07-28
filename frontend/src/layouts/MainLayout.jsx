@@ -178,7 +178,7 @@ export default function MainLayout() {
                       </div>
                       <div>
                         <p className="text-body-sm font-semibold text-on-surface">New Dispatch Assigned</p>
-                        <p className="text-body-sm text-on-surface-variant">Budi Kurir assigned to DO-2026-07-004</p>
+                        <p className="text-body-sm text-on-surface-variant">Budi Driver assigned to DO-2026-07-004</p>
                         <span className="text-label-sm text-secondary font-data-mono mt-xs block">30 mins ago</span>
                       </div>
                     </div>

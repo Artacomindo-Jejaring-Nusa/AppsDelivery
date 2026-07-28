@@ -1219,8 +1219,8 @@ export default function DeliveryOrdersPage() {
           <div className="bg-surface-container-lowest p-xl rounded-xl border border-outline-variant max-w-3xl w-full space-y-lg shadow-xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center border-b border-outline-variant pb-md">
               <div>
-                <h3 className="font-headline-sm text-headline-sm text-on-surface">Manifest Penugasan Kurir</h3>
-                <p className="text-body-sm text-secondary">Kelola daftar Manifest dan terbitkan penugasan pengiriman baru ke Kurir</p>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface">Manifest Penugasan Driver</h3>
+                <p className="text-body-sm text-secondary">Kelola daftar Manifest dan terbitkan penugasan pengiriman baru ke Driver</p>
               </div>
               <button onClick={() => setShowManifestModal(false)} className="text-secondary hover:text-on-surface">
                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -1232,14 +1232,14 @@ export default function DeliveryOrdersPage() {
               <h4 className="font-label-lg text-label-lg text-primary font-bold">Terbitkan Manifest Baru</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div>
-                  <label className="font-label-sm text-label-sm text-secondary block mb-xs">Pilih Kurir / Driver</label>
+                  <label className="font-label-sm text-label-sm text-secondary block mb-xs">Pilih Driver</label>
                   <select
                     required
                     value={selectedDriverId}
                     onChange={(e) => setSelectedDriverId(e.target.value)}
                     className="w-full h-10 bg-surface-container-lowest px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary"
                   >
-                    <option value="">-- Pilih Kurir Standby --</option>
+                    <option value="">-- Pilih Driver Standby --</option>
                     {driversList.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.full_name} ({d.vehicle_plate || 'No Plate'})
@@ -1317,7 +1317,7 @@ export default function DeliveryOrdersPage() {
                           <span className="font-data-mono font-bold text-primary">{m.manifest_number}</span>
                           <span className="px-xs py-[2px] rounded text-[11px] font-bold bg-blue-100 text-blue-800 uppercase">{m.status}</span>
                         </div>
-                        <p className="text-body-sm text-secondary mt-xs">Kurir: {m.driver?.full_name || 'Assigned Driver'} | {m.notes || 'Rute standar'}</p>
+                        <p className="text-body-sm text-secondary mt-xs">Driver: {m.driver?.full_name || 'Assigned Driver'} | {m.notes || 'Rute standar'}</p>
                       </div>
                       <div className="flex items-center gap-md w-full sm:w-auto justify-between sm:justify-end">
                         <span className="text-label-sm text-outline block">{m.items?.length || 0} Items DO</span>
