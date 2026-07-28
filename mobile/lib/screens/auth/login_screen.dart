@@ -390,32 +390,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       )
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () async {
-                        final token = PushNotificationService().fcmToken;
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text("Firebase FCM Token"),
-                            content: SelectableText(
-                              token ?? "Token not generated yet. Ensure Google Play Services & Internet are active.",
-                              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text("CLOSE"),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.notifications_active, size: 16, color: StitchColors.primary),
-                      label: const Text("View FCM Push Token", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.primary)),
-                    ),
-                  ),
                 ],
               ),
             ),

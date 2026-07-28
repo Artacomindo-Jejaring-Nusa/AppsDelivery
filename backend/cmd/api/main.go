@@ -19,6 +19,7 @@ import (
 	"backend-delivery/internal/usecase"
 	barcodePkg "backend-delivery/pkg/barcode"
 	"backend-delivery/pkg/database"
+	fcmPkg "backend-delivery/pkg/fcm"
 	jwtPkg "backend-delivery/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
@@ -108,6 +109,13 @@ func main() {
 	jwtManager := jwtPkg.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
 	barcodeGen := barcodePkg.NewGenerator(cfg.Barcode.ImageDir, cfg.Barcode.ImageSize)
 
+	// Initialize FCM Service
+	if err := fcmPkg.Init("firebase-service-account.json"); err != nil {
+		log.Printf("Warning: FCM Service initialization failed: %v", err)
+	} else {
+		log.Println("Firebase Cloud Messaging (FCM) Service initialized successfully")
+	}
+
 	// ============================================
 	// 5. Initialize Repositories
 	// ============================================
@@ -130,7 +138,7 @@ func main() {
 	btsSiteUsecase := usecase.NewBtsSiteUsecase(btsSiteRepo)
 	driverUsecase := usecase.NewDriverUsecase(driverRepo)
 	doUsecase := usecase.NewDeliveryOrderUsecase(doRepo, cfg.SLA.DefaultHours)
-	manifestUsecase := usecase.NewManifestUsecase(manifestRepo, doRepo)
+	manifestUsecase := usecase.NewManifestUsecase(manifestRepo, doRepo, rdb)
 	assetUsecase := usecase.NewDismantleAssetUsecase(assetRepo, doRepo)
 	barcodeUsecase := usecase.NewBarcodeUsecase(barcodeRepo, assetRepo, doRepo, barcodeGen)
 	slaEngine := usecase.NewSLAEngineUsecase(doRepo, slaRepo, cfg.SLA.WarningHours)

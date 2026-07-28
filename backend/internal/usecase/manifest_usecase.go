@@ -4,24 +4,29 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"backend-delivery/internal/domain"
+	"backend-delivery/pkg/fcm"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/redis/go-redis/v9"
 )
 
 type manifestUsecase struct {
 	manifestRepo domain.ManifestRepository
 	doRepo       domain.DeliveryOrderRepository
+	rdb          *redis.Client
 }
 
 // NewManifestUsecase creates a new ManifestUsecase implementation.
-func NewManifestUsecase(manifestRepo domain.ManifestRepository, doRepo domain.DeliveryOrderRepository) domain.ManifestUsecase {
+func NewManifestUsecase(manifestRepo domain.ManifestRepository, doRepo domain.DeliveryOrderRepository, rdb *redis.Client) domain.ManifestUsecase {
 	return &manifestUsecase{
 		manifestRepo: manifestRepo,
 		doRepo:       doRepo,
+		rdb:          rdb,
 	}
 }
 
@@ -67,6 +72,39 @@ func (u *manifestUsecase) Create(ctx context.Context, req *domain.CreateManifest
 			return nil, err
 		}
 	}
+
+	// Trigger FCM Push Notification asynchronously to Driver HP
+	go func(manifestNum string, driverID uuid.UUID) {
+		title := "🚚 Penugasan Manifest Baru"
+		body := fmt.Sprintf("Manifest %s telah ditugaskan kepada Anda. Cek sekarang!", manifestNum)
+
+		if u.rdb != nil {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+
+			// 1. Check driverID key
+			token, err := u.rdb.Get(bgCtx, "fcm:"+driverID.String()).Result()
+			if err == nil && token != "" {
+				if err := fcm.SendPushNotification(bgCtx, token, title, body); err == nil {
+					log.Printf("[FCM] Push notification sent successfully to driver %s", driverID)
+					return
+				}
+			}
+
+			// 2. Fallback: Broadcast to all registered FCM Tokens in Redis
+			keys, err := u.rdb.Keys(bgCtx, "fcm:*").Result()
+			if err == nil && len(keys) > 0 {
+				for _, k := range keys {
+					t, e := u.rdb.Get(bgCtx, k).Result()
+					if e == nil && t != "" {
+						if err := fcm.SendPushNotification(bgCtx, t, title, body); err == nil {
+							log.Printf("[FCM] Fallback push notification sent successfully to token %s...", t[:10])
+						}
+					}
+				}
+			}
+		}
+	}(manifest.ManifestNumber, req.DriverID)
 
 	// Load items for response
 	items, _ := u.manifestRepo.FindItemsByManifestID(ctx, manifest.ID)
