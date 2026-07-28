@@ -808,24 +808,22 @@ export default function DeliveryOrdersPage() {
                 Barcode label berikut telah berhasil digenerate untuk material dismantle {selectedDO?.do_number}. Silakan print label ini untuk ditempelkan pada unit fisik.
               </p>
               <div className="grid grid-cols-2 gap-md" id="print-area">
-                {generatedBarcodes.map((barcode) => (
-                  <div key={barcode.id} className="border border-outline-variant p-md rounded-lg flex flex-col items-center justify-center bg-white space-y-sm text-center">
-                    <span className="font-label-md text-label-md text-primary font-bold">{barcode.barcode_data}</span>
-                    <img 
-                      src={`http://localhost:8080${barcode.image_path}`} 
-                      alt={barcode.barcode_data}
-                      className="h-16 object-contain"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        // Fallback placeholder image just in case
-                        e.target.src = 'https://via.placeholder.com/150x50?text=BARCODE';
-                      }}
-                    />
-                    <div className="text-[11px] text-secondary font-data-mono">
-                      AKS X ARTACOMINDO
+                {generatedBarcodes.map((barcode) => {
+                  const imgUrl = barcode.image_path?.startsWith('/') ? barcode.image_path : '/' + (barcode.image_path || '');
+                  return (
+                    <div key={barcode.id} className="border border-outline-variant p-md rounded-lg flex flex-col items-center justify-center bg-white space-y-sm text-center shadow-xs">
+                      <span className="font-label-md text-label-md text-primary font-bold">{barcode.barcode_data}</span>
+                      <img 
+                        src={imgUrl} 
+                        alt={barcode.barcode_data}
+                        className="h-28 w-auto object-contain my-xs"
+                      />
+                      <div className="text-[11px] text-secondary font-data-mono font-bold">
+                        PT. AKS X ARTACOMINDO
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -840,8 +838,6 @@ export default function DeliveryOrdersPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const printContents = document.getElementById('print-area').innerHTML;
-                  const originalContents = document.body.innerHTML;
                   const printWindow = window.open('', '_blank');
                   printWindow.document.write(`
                     <html>
@@ -850,22 +846,25 @@ export default function DeliveryOrdersPage() {
                         <style>
                           body { font-family: sans-serif; padding: 20px; }
                           .print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-                          .barcode-card { border: 1px solid #ccc; padding: 15px; text-align: center; border-radius: 8px; }
-                          img { height: 60px; max-width: 100%; margin: 10px 0; }
-                          .title { font-weight: bold; font-size: 14px; }
-                          .footer { font-size: 10px; color: #666; }
+                          .barcode-card { border: 1px solid #ccc; padding: 15px; text-align: center; border-radius: 8px; background: white; }
+                          img { height: 90px; max-width: 100%; margin: 10px 0; object-contain: contain; }
+                          .title { font-weight: bold; font-size: 13px; color: #00236f; }
+                          .footer { font-size: 10px; color: #666; font-weight: bold; }
                         </style>
                       </head>
                       <body>
                         <h3>Material Dismantle Barcodes: ${selectedDO?.do_number}</h3>
                         <div class="print-grid">
-                          ${generatedBarcodes.map(b => `
-                            <div class="barcode-card">
-                              <div class="title">${b.barcode_data}</div>
-                              <img src="http://localhost:8080${b.image_path}" />
-                              <div class="footer">PT. AKS X ARTACOM</div>
-                            </div>
-                          `).join('')}
+                          ${generatedBarcodes.map(b => {
+                            const bUrl = b.image_path?.startsWith('/') ? b.image_path : '/' + (b.image_path || '');
+                            return `
+                              <div class="barcode-card">
+                                <div class="title">${b.barcode_data}</div>
+                                <img src="${bUrl}" />
+                                <div class="footer">PT. AKS X ARTACOM</div>
+                              </div>
+                            `;
+                          }).join('')}
                         </div>
                         <script>
                           window.onload = function() { window.print(); window.close(); }
