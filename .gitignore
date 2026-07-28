@@ -27,6 +27,8 @@ frontend/.vite/
 *.test
 *.out
 backend/api
+/backend/cmd/seed_bts/seed_bts
+/backend/cmd/seed_bts/seed_bts.exe
 
 # Uploaded Files / Media
 uploads/barcodes/*
@@ -38,3 +40,7 @@ backend/uploads/barcodes/*
 .DS_Store
 Thumbs.db
 mobile
+
+SITE_ZTE_KAL_W25 2026.kml
+SITE_ZTE_KAL_W25 2026.xls
+scratch

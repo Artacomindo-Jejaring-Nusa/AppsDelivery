@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -28,7 +29,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	db, err := database.NewPostgresDB(cfg)
+	db, err := database.NewPostgresConnection(&cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -48,6 +49,7 @@ func main() {
 	fmt.Printf("Loaded %d ZTE BTS sites from JSON. Seeding database...\n", len(items))
 
 	inserted := 0
+	ctx := context.Background()
 	for _, s := range items {
 		query := `
 			INSERT INTO bts_sites (site_id, site_name, address, province, city, district, latitude, longitude, is_active)
@@ -58,7 +60,7 @@ func main() {
 				longitude = EXCLUDED.longitude,
 				updated_at = NOW()
 		`
-		_, err := db.Exec(query, s.SiteID, s.SiteName, s.Tech, "Kalimantan", s.City, "", s.Lat, s.Lng, s.IsActive)
+		_, err := db.Exec(ctx, query, s.SiteID, s.SiteName, s.Tech, "Kalimantan", s.City, "", s.Lat, s.Lng, s.IsActive)
 		if err == nil {
 			inserted++
 		}
