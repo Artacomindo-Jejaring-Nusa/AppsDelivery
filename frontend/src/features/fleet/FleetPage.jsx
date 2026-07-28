@@ -276,7 +276,6 @@ export default function FleetPage() {
                 <th className="px-lg py-md">Tipe Kendaraan</th>
                 <th className="px-lg py-md">Pengemudi</th>
                 <th className="px-lg py-md">Status</th>
-                <th className="px-lg py-md">Bahan Bakar</th>
                 <th className="px-lg py-md">Lokasi Terakhir</th>
                 <th className="px-lg py-md text-right">Aksi</th>
               </tr>
@@ -284,7 +283,7 @@ export default function FleetPage() {
             <tbody className="divide-y divide-outline-variant font-body-md text-body-md">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-xl text-center text-secondary">
+                  <td colSpan={6} className="py-xl text-center text-secondary">
                     <div className="flex justify-center items-center gap-sm">
                       <span className="material-symbols-outlined animate-spin">progress_activity</span>
                       <span>Memuat data armada...</span>
@@ -293,7 +292,6 @@ export default function FleetPage() {
                 </tr>
               ) : filteredDrivers.length > 0 ? (
                 filteredDrivers.map((driver) => {
-                  const fuel = getFuelPercentage(driver.vehicle_plate);
                   return (
                     <tr key={driver.id} className="hover:bg-surface-container-low/50 transition-colors">
                       <td className="px-lg py-md font-data-mono text-primary font-bold">
@@ -313,17 +311,6 @@ export default function FleetPage() {
                       <td className="px-lg py-md">
                         {getStatusBadge(driver)}
                       </td>
-                      <td className="px-lg py-md w-40">
-                        <div className="flex items-center space-x-2">
-                          <div className="flex-grow bg-surface-container h-2 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${getFuelColor(fuel)}`} 
-                              style={{ width: `${fuel}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-label-sm font-data-mono">{fuel}%</span>
-                        </div>
-                      </td>
                       <td className="px-lg py-md text-on-surface-variant">
                         {getLastLocation(driver)}
                       </td>
@@ -340,7 +327,7 @@ export default function FleetPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-xl text-center text-secondary">
+                  <td colSpan={6} className="py-xl text-center text-secondary">
                     Tidak ada data kendaraan yang cocok dengan filter.
                   </td>
                 </tr>
