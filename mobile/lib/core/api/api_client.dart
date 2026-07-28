@@ -18,6 +18,8 @@ class ApiClient {
       ),
     );
 
+    _loadSavedBaseUrl();
+
     // Auth Token Interceptor
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -30,14 +32,23 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          // Log errors or handle token expiration if needed
           return handler.next(e);
         },
       ),
     );
   }
 
-  void setBaseUrl(String newUrl) {
+  Future<void> _loadSavedBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString('base_url');
+    if (savedUrl != null && savedUrl.isNotEmpty) {
+      dio.options.baseUrl = savedUrl;
+    }
+  }
+
+  Future<void> setBaseUrl(String newUrl) async {
     dio.options.baseUrl = newUrl;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('base_url', newUrl);
   }
 }

@@ -5,9 +5,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-        android:label="driver_portal"
+        android:label="AKS Driver Portal"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

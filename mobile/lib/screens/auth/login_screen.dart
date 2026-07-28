@@ -49,12 +49,14 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text("CANCEL"),
             ),
             ElevatedButton(
-              onPressed: () {
-                authProv.apiClient.setBaseUrl(urlController.text.trim());
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Base URL updated to: ${urlController.text.trim()}")),
-                );
+              onPressed: () async {
+                await authProv.apiClient.setBaseUrl(urlController.text.trim());
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Base URL updated to: ${urlController.text.trim()}")),
+                  );
+                }
               },
               child: const Text("SAVE"),
             ),

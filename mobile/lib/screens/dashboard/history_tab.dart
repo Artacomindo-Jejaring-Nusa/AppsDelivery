@@ -46,17 +46,21 @@ class _HistoryTabState extends State<HistoryTab> {
         if (response.statusCode == 200) {
           final list = response.data['data'] as List;
           setState(() {
-            _completedManifests = list
-                .where((item) =>
-                    item['driver_id'] == locProv.driverId &&
-                    item['status'] == 'completed')
-                .toList();
+            _completedManifests = list.where((item) {
+              final mDriverId = item['driver_id'] ?? '';
+              final mStatus = item['status'] ?? '';
+              final isDriverMatch = locProv.driverId == null ||
+                  locProv.driverId!.isEmpty ||
+                  mDriverId == locProv.driverId;
+              final isFinished = mStatus == 'completed' || mStatus == 'delivered';
+              return isDriverMatch && isFinished;
+            }).toList();
           });
         }
       } else {
         // Offline cache fallback
         final cached = await manifestProv.dbHelper.getCachedManifest();
-        if (cached != null && cached['status'] == 'completed') {
+        if (cached != null && (cached['status'] == 'completed' || cached['status'] == 'delivered')) {
           setState(() {
             _completedManifests = [cached];
           });
