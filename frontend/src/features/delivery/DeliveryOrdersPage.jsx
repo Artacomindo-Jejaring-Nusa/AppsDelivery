@@ -92,21 +92,38 @@ export default function DeliveryOrdersPage() {
     const vehicleType = manifestData.driver?.vehicle_type || 'Box Truck';
     const items = manifestData.items || [];
 
-    const itemsHtml = items.length > 0
-      ? items.map((item, idx) => {
-          const doData = item.delivery_order || item;
+    // Generate main Manifest QR Code data URL
+    const mainManifestQR = await generateQRDataUrl(manifestData.manifest_number);
+
+    // Generate QR Code data URLs for each attached DO item
+    const itemQRs = await Promise.all(
+      items.map(async (item) => {
+        const doData = item.delivery_order || item;
+        const doNum = doData.do_number || item.do_number || '-';
+        const qrUrl = await generateQRDataUrl(doNum);
+        return { ...doData, qrUrl, doNum };
+      })
+    );
+
+    const itemsHtml = itemQRs.length > 0
+      ? itemQRs.map((doData, idx) => {
           return `
             <tr>
               <td style="text-align:center;">${idx + 1}</td>
-              <td style="font-family:monospace;font-weight:bold;color:#00236f;">${doData.do_number || item.do_number || '-'}</td>
+              <td style="font-family:monospace;font-weight:bold;color:#00236f;white-space:nowrap;">
+                ${doData.doNum}
+              </td>
+              <td style="text-align:center;">
+                ${doData.qrUrl ? `<img src="${doData.qrUrl}" style="width:55px;height:55px;object-fit:contain;display:block;margin:0 auto;" />` : '-'}
+              </td>
               <td>${doData.description || 'Material Logistics'}</td>
               <td>${doData.origin_address || 'Warehouse Hub'}</td>
               <td>${doData.destination_address || 'BTS Site'}</td>
-              <td style="text-align:center;">${doData.sla_status || 'Green'}</td>
+              <td style="text-align:center;font-weight:bold;color:#00236f;">${doData.sla_status || 'Green'}</td>
             </tr>
           `;
         }).join('')
-      : `<tr><td colspan="6" style="text-align:center;color:#64748b;">DO item details attached in manifest document</td></tr>`;
+      : `<tr><td colspan="7" style="text-align:center;color:#64748b;">DO item details attached in manifest document</td></tr>`;
 
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -114,26 +131,29 @@ export default function DeliveryOrdersPage() {
         <head>
           <title>Surat Jalan & Manifest - ${manifest.manifest_number}</title>
           <style>
-            @page { size: A4 portrait; margin: 15mm; }
+            @page { size: A4 portrait; margin: 12mm; }
             * { box-sizing: border-box; }
-            body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #0f172a; padding: 10px; }
-            .header-table { width: 100%; border-bottom: 2px solid #00236f; padding-bottom: 10px; margin-bottom: 15px; }
-            .logo-title { color: #00236f; font-size: 16pt; font-weight: bold; margin: 0; }
-            .logo-sub { font-size: 9pt; color: #64748b; font-weight: bold; letter-spacing: 1px; }
-            .doc-title { text-align: center; margin: 15px 0; }
-            .doc-title h2 { color: #00236f; margin: 0; font-size: 14pt; text-transform: uppercase; text-decoration: underline; }
-            .doc-title p { margin: 3px 0 0 0; font-family: monospace; font-weight: bold; font-size: 11pt; }
-            .grid-info { display: table; width: 100%; margin-bottom: 15px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; }
+            body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #0f172a; padding: 5px; }
+            .header-table { width: 100%; border-bottom: 2px solid #00236f; padding-bottom: 10px; margin-bottom: 12px; }
+            .logo-title { color: #00236f; font-size: 15pt; font-weight: bold; margin: 0; }
+            .logo-sub { font-size: 8.5pt; color: #64748b; font-weight: bold; letter-spacing: 0.5px; }
+            .doc-header-box { display: flex; align-items: center; justify-content: space-between; border: 1.5px solid #00236f; background: #f8fafc; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
+            .doc-title-text h2 { color: #00236f; margin: 0; font-size: 13pt; text-transform: uppercase; letter-spacing: 0.5px; }
+            .doc-title-text p { margin: 4px 0 0 0; font-family: monospace; font-weight: bold; font-size: 12pt; color: #00236f; }
+            .main-qr-box { text-align: center; }
+            .main-qr-box img { width: 75px; height: 75px; display: block; margin: 0 auto; }
+            .main-qr-box span { font-size: 7.5pt; color: #64748b; font-style: italic; font-weight: bold; }
+            .grid-info { display: table; width: 100%; margin-bottom: 15px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; }
             .grid-col { display: table-cell; width: 50%; vertical-align: top; }
             .info-row { margin-bottom: 5px; font-size: 9.5pt; }
-            .info-label { color: #64748b; font-size: 8.5pt; font-weight: bold; text-transform: uppercase; display: block; }
+            .info-label { color: #64748b; font-size: 8pt; font-weight: bold; text-transform: uppercase; display: block; }
             .info-val { font-weight: bold; color: #0f172a; }
             table.items-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
-            table.items-table th { background: #00236f; color: white; padding: 8px; font-size: 9.5pt; text-align: left; border: 1px solid #00236f; }
-            table.items-table td { border: 1px solid #cbd5e1; padding: 8px; font-size: 9pt; }
-            .sig-section { display: table; width: 100%; margin-top: 40px; page-break-inside: avoid; }
+            table.items-table th { background: #00236f; color: white; padding: 7px; font-size: 9pt; text-align: left; border: 1px solid #00236f; }
+            table.items-table td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 8.5pt; vertical-align: middle; }
+            .sig-section { display: table; width: 100%; margin-top: 30px; page-break-inside: avoid; }
             .sig-box { display: table-cell; width: 33.33%; text-align: center; vertical-align: top; }
-            .sig-line { margin-top: 50px; border-top: 1px solid #475569; width: 80%; margin-left: auto; margin-right: auto; padding-top: 4px; font-weight: bold; font-size: 9pt; }
+            .sig-line { margin-top: 45px; border-top: 1px solid #475569; width: 80%; margin-left: auto; margin-right: auto; padding-top: 4px; font-weight: bold; font-size: 8.5pt; }
           </style>
         </head>
         <body>
@@ -144,15 +164,21 @@ export default function DeliveryOrdersPage() {
                 <div class="logo-sub">PT. AKS X PT. ARTACOMINDO JEJARING NUSA</div>
               </td>
               <td style="text-align:right;">
-                <div style="font-size:9pt;color:#64748b;">Dokumen Resmi Surat Jalan</div>
+                <div style="font-size:8.5pt;color:#64748b;">Dokumen Resmi Surat Jalan</div>
                 <div style="font-family:monospace;font-size:10pt;font-weight:bold;">${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
               </td>
             </tr>
           </table>
 
-          <div class="doc-title">
-            <h2>SURAT JALAN & MANIFEST PENUGASAN KURIR</h2>
-            <p>NO: ${manifest.manifest_number}</p>
+          <div class="doc-header-box">
+            <div class="doc-title-text">
+              <h2>SURAT JALAN & MANIFEST PENUGASAN KURIR</h2>
+              <p>NO: ${manifestData.manifest_number}</p>
+            </div>
+            <div class="main-qr-box">
+              ${mainManifestQR ? `<img src="${mainManifestQR}" />` : ''}
+              <span>Scan QR Manifest</span>
+            </div>
           </div>
 
           <div class="grid-info">
@@ -169,25 +195,26 @@ export default function DeliveryOrdersPage() {
             <div class="grid-col">
               <div class="info-row">
                 <span class="info-label">Status Manifest</span>
-                <span class="info-val" style="text-transform:uppercase;color:#00236f;">${manifest.status}</span>
+                <span class="info-val" style="text-transform:uppercase;color:#00236f;">${manifestData.status}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Catatan Rute / Instruksi</span>
-                <span class="info-val">${manifest.notes || 'Rute standar pengiriman'}</span>
+                <span class="info-val">${manifestData.notes || 'Rute standar pengiriman'}</span>
               </div>
             </div>
           </div>
 
-          <p style="font-weight:bold;margin-bottom:5px;font-size:10pt;">Daftar Surat Jalan (Delivery Orders) yang Diberangkatkan:</p>
+          <p style="font-weight:bold;margin-bottom:5px;font-size:9.5pt;">Daftar Surat Jalan (Delivery Orders) & QR Code Material:</p>
           <table class="items-table">
             <thead>
               <tr>
-                <th style="width:30px;text-align:center;">No</th>
+                <th style="width:25px;text-align:center;">No</th>
                 <th>No. Surat Jalan (DO)</th>
+                <th style="width:70px;text-align:center;">QR Code</th>
                 <th>Deskripsi Material</th>
                 <th>Asal Pengiriman</th>
                 <th>Tujuan Site / Gudang</th>
-                <th style="text-align:center;">SLA</th>
+                <th style="width:40px;text-align:center;">SLA</th>
               </tr>
             </thead>
             <tbody>
@@ -195,21 +222,21 @@ export default function DeliveryOrdersPage() {
             </tbody>
           </table>
 
-          <p style="font-size:8.5pt;color:#64748b;font-style:italic;margin-top:10px;">
-            * Surat Jalan ini diterbitkan secara otomatis oleh Sistem Operations Center Artacomindo dan menjadi bukti sah serah terima barang di lapangan.
+          <p style="font-size:8pt;color:#64748b;font-style:italic;margin-top:5px;">
+            * Surat Jalan & QR Code ini diterbitkan secara otomatis oleh Sistem Operations Center Artacomindo dan dapat di-scan oleh driver/petugas site sebagai bukti sah serah terima di lapangan.
           </p>
 
           <div class="sig-section">
             <div class="sig-box">
-              <p style="margin:0;font-size:9pt;color:#475569;">Diserahkan oleh (Gudang Hub)</p>
+              <p style="margin:0;font-size:8.5pt;color:#475569;">Diserahkan oleh (Gudang Hub)</p>
               <div class="sig-line">Petugas Gudang Hub</div>
             </div>
             <div class="sig-box">
-              <p style="margin:0;font-size:9pt;color:#475569;">Diberangkatkan oleh (Kurir)</p>
+              <p style="margin:0;font-size:8.5pt;color:#475569;">Diberangkatkan oleh (Kurir)</p>
               <div class="sig-line">${driverName}</div>
             </div>
             <div class="sig-box">
-              <p style="margin:0;font-size:9pt;color:#475569;">Diterima oleh (Site / Ericsson)</p>
+              <p style="margin:0;font-size:8.5pt;color:#475569;">Diterima oleh (Site / Ericsson)</p>
               <div class="sig-line">Penerima Site</div>
             </div>
           </div>
