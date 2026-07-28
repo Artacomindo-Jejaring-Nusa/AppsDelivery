@@ -123,6 +123,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 
 		// ---- Auth / Users ----
 		protected.GET("/users/me", r.authHandler.GetProfile)
+		protected.POST("/users/fcm-token", r.authHandler.SaveFCMToken)
 		protected.POST("/auth/logout", r.authHandler.Logout)
 		protected.POST("/auth/register", middleware.RoleMiddleware(domain.RoleAdmin), r.authHandler.Register)
 		protected.GET("/users", middleware.RoleMiddleware(domain.RoleAdmin), r.authHandler.GetAllUsers)

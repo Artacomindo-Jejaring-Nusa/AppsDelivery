@@ -1,0 +1,2 @@
+ALTER TABLE users DROP COLUMN IF EXISTS fcm_token;
+ALTER TABLE drivers DROP COLUMN IF EXISTS fcm_token;

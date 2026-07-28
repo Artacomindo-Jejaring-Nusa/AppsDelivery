@@ -141,3 +141,34 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Logout successful", nil)
 }
+
+type SaveFCMTokenRequest struct {
+	FCMToken string `json:"fcm_token" binding:"required"`
+}
+
+// SaveFCMToken handles POST /api/v1/users/fcm-token
+func (h *AuthHandler) SaveFCMToken(c *gin.Context) {
+	var req SaveFCMTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "FCM token is required", err.Error())
+		return
+	}
+
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Save FCM Token in Redis session
+	if h.rdb != nil {
+		h.rdb.Set(c.Request.Context(), "fcm:"+userID.String(), req.FCMToken, 30*24*time.Hour)
+	}
+
+	response.Success(c, http.StatusOK, "FCM token registered successfully", gin.H{
+		"user_id":   userID,
+		"fcm_token": req.FCMToken,
+	})
+}
+

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'core/api/api_client.dart';
 import 'core/database/database_helper.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/theme/colors.dart';
 import 'providers/auth_provider.dart';
 import 'providers/location_provider.dart';
@@ -10,12 +11,18 @@ import 'providers/manifest_provider.dart';
 import 'providers/sync_provider.dart';
 import 'screens/auth/login_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Core Services
+  // Initialize Firebase Push Notifications & Core Services
   final apiClient = ApiClient();
   final dbHelper = DatabaseHelper();
+  
+  try {
+    await PushNotificationService().initialize();
+  } catch (e) {
+    debugPrint("Firebase init error: $e");
+  }
 
   runApp(
     MultiProvider(
