@@ -127,7 +127,6 @@ export default function DeliveryOrdersPage() {
   const startScanSession = async (doItem) => {
     setSelectedDO(doItem);
     setViewMode('scan');
-    setGeneratedBarcodes([]);
     
     // Fetch any existing assets for this DO
     try {
@@ -323,8 +322,25 @@ export default function DeliveryOrdersPage() {
       setGeneratedBarcodes(validBarcodes);
       setShowBarcodeModal(true);
 
-      // Refresh data - reload from server to get correct IDs
-      startScanSession(selectedDO);
+      // Refresh scan rows (reload assets from server) without clearing barcodes
+      try {
+        const refreshRes = await api.get(`/delivery-orders/${selectedDO.id}/assets`);
+        const existingAssets = refreshRes.data.data || [];
+        if (existingAssets.length > 0) {
+          const mappedRows = existingAssets.map((asset, index) => ({
+            id: asset.id,
+            serialNumber: asset.serial_number || '',
+            category: asset.category || 'Router/Switch',
+            quantity: asset.quantity || 1,
+            unit: asset.unit || 'PCS',
+            status: 'scanned',
+          }));
+          setScanRows([...mappedRows, createEmptyRow(mappedRows.length + 1)]);
+          setScannedCount(mappedRows.length);
+        }
+      } catch (refreshErr) {
+        console.error('Failed to refresh assets after barcode generation', refreshErr);
+      }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save scanned assets.');
     } finally {
