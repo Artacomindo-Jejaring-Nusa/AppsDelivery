@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  static const String defaultBaseUrl = 'http://10.0.2.2:8080';
+  static const String defaultBaseUrl = 'http://2.2.2.50:8080';
   late Dio dio;
 
   ApiClient() {
