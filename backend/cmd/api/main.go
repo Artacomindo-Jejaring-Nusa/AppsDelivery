@@ -154,6 +154,7 @@ func main() {
 	importExportHandler := handler.NewImportExportHandler(importExportUsecase)
 	locHandler := handler.NewDriverLocationHandler(locUsecase)
 	timelineHandler := handler.NewTimelineHandler(doRepo, manifestRepo, assetRepo, btsSiteRepo)
+	trackingHandler := handler.NewTrackingHandler(doRepo, manifestRepo, assetRepo, btsSiteRepo, driverRepo, locRepo, barcodeRepo)
 
 	// ============================================
 	// 8. Setup Router
@@ -169,7 +170,7 @@ func main() {
 		authHandler, btsSiteHandler, driverHandler, doHandler,
 		manifestHandler, assetHandler, barcodeHandler, slaHandler,
 		dashboardHandler, uploadHandler, importExportHandler, locHandler,
-		timelineHandler, jwtManager, rdb, auditRepo,
+		timelineHandler, trackingHandler, jwtManager, rdb, auditRepo,
 	)
 	router.Setup(engine)
 

@@ -29,6 +29,7 @@ type Router struct {
 	importExportHandler *handler.ImportExportHandler
 	locHandler          *handler.DriverLocationHandler
 	timelineHandler     *handler.TimelineHandler
+	trackingHandler     *handler.TrackingHandler
 	jwtManager          *jwtPkg.JWTManager
 	rdb                 *redis.Client
 	auditRepo           domain.AuditLogRepository
@@ -49,6 +50,7 @@ func NewRouter(
 	importExportHandler *handler.ImportExportHandler,
 	locHandler *handler.DriverLocationHandler,
 	timelineHandler *handler.TimelineHandler,
+	trackingHandler *handler.TrackingHandler,
 	jwtManager *jwtPkg.JWTManager,
 	rdb *redis.Client,
 	auditRepo domain.AuditLogRepository,
@@ -67,6 +69,7 @@ func NewRouter(
 		importExportHandler: importExportHandler,
 		locHandler:          locHandler,
 		timelineHandler:     timelineHandler,
+		trackingHandler:     trackingHandler,
 		jwtManager:          jwtManager,
 		rdb:                 rdb,
 		auditRepo:           auditRepo,
@@ -103,6 +106,9 @@ func (r *Router) Setup(engine *gin.Engine) {
 	{
 		auth.POST("/login", middleware.RateLimiter(r.rdb, 5, 1*time.Minute, "rate:login"), r.authHandler.Login)
 	}
+
+	// ---- Public Tracking Route (Unauthenticated) ----
+	v1.GET("/track/:tracking_number", r.trackingHandler.PublicTrack)
 
 	// ---- Protected Routes ----
 	protected := v1.Group("")

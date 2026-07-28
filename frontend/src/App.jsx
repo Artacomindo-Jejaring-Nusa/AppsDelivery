@@ -8,6 +8,7 @@ import FleetPage from './features/fleet/FleetPage';
 import AnalyticsPage from './features/analytics/AnalyticsPage';
 import UserPage from './features/users/UserPage';
 import TrackingPage from './features/tracking/TrackingPage';
+import PublicTrackingPage from './features/tracking/PublicTrackingPage';
 import BtsSitePage from './features/bts/BtsSitePage';
 import TimelinePage from './features/timeline/TimelinePage';
 import { useAuthStore } from './store/authStore';
@@ -25,8 +26,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Login Route */}
+        {/* Public Routes (No Login Required) */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/track" element={<PublicTrackingPage />} />
+        <Route path="/track/:trackingNumber" element={<PublicTrackingPage />} />
 
         {/* Protected Dashboard & App Routes */}
         <Route
