@@ -73,9 +73,11 @@ export default {
         "base": "4px"
       },
       fontFamily: {
+        "sans": ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        "mono": ["JetBrains Mono", "monospace"],
         "body-lg": ["Inter", "sans-serif"],
         "headline-md": ["Inter", "sans-serif"],
-        "data-mono": ["JetBrains Mono", "monospace"],
+        "data-mono": ["Inter", "sans-serif"],
         "headline-sm": ["Inter", "sans-serif"],
         "headline-lg": ["Inter", "sans-serif"],
         "body-sm": ["Inter", "sans-serif"],
@@ -86,7 +88,7 @@ export default {
       fontSize: {
         "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
         "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
-        "data-mono": ["13px", { lineHeight: "20px", fontWeight: "400" }],
+        "data-mono": ["13px", { lineHeight: "20px", fontWeight: "600" }],
         "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
         "headline-lg": ["30px", { lineHeight: "38px", letterSpacing: "-0.02em", fontWeight: "700" }],
         "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }],
