@@ -22,9 +22,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-background text-on-surface min-h-screen flex flex-col overflow-x-hidden">
+    <div className="bg-background text-on-surface h-screen flex flex-col overflow-hidden">
       {/* TopAppBar Fragment */}
-      <header className="fixed top-0 w-full z-50 flex justify-between items-center px-margin h-16 bg-surface border-b border-outline-variant">
+      <header className="w-full z-50 flex justify-between items-center px-margin h-14 bg-surface border-b border-outline-variant shrink-0">
         <div className="font-headline-md text-headline-md font-bold text-primary flex items-center gap-xs">
           Logistics<span className="text-primary-container">Pro</span>
         </div>
@@ -41,11 +41,11 @@ export default function LoginPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow flex pt-16 h-screen">
-        <section className="w-full flex items-center justify-center bg-background p-margin">
-          <div className="w-full max-w-md animate-in fade-in slide-in-from-right-4 duration-700">
+      <main className="flex-1 flex items-center justify-center p-md overflow-y-auto">
+        <section className="w-full flex items-center justify-center bg-background">
+          <div className="w-full max-w-md animate-in fade-in slide-in-from-right-4 duration-500">
             {/* Header Identity */}
-            <div className="mb-xl">
+            <div className="mb-md">
               <div className="font-headline-sm text-headline-sm text-secondary tracking-tight mb-xs">
                 AKS X ARTACOM
               </div>
@@ -59,7 +59,7 @@ export default function LoginPage() {
 
             {/* Error Alert */}
             {error && (
-              <div className="mb-lg p-md bg-error-container text-on-error-container rounded-lg border border-error/30 flex items-center justify-between text-body-sm animate-in fade-in duration-300">
+              <div className="mb-md p-sm bg-error-container text-on-error-container rounded-lg border border-error/30 flex items-center justify-between text-body-sm animate-in fade-in duration-300">
                 <div className="flex items-center gap-sm">
                   <span className="material-symbols-outlined text-error">error</span>
                   <span>{error}</span>
@@ -71,7 +71,7 @@ export default function LoginPage() {
             )}
 
             {/* Form */}
-            <form className="space-y-lg" onSubmit={handleSubmit}>
+            <form className="space-y-md" onSubmit={handleSubmit}>
               {/* Employee ID / Username Field */}
               <div className="space-y-xs">
                 <label className="font-label-sm text-label-sm text-on-surface-variant" htmlFor="employee-id">
@@ -86,7 +86,7 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="E.g. EMP-9921 or admin"
-                    className="w-full h-12 bg-surface px-md border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md rounded-lg"
+                    className="w-full h-10 bg-surface px-md border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md rounded-lg"
                   />
                   <span className="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">
                     person
@@ -113,7 +113,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full h-12 bg-surface px-md border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md rounded-lg"
+                    className="w-full h-10 bg-surface px-md border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md rounded-lg"
                   />
                   <button
                     type="button"
@@ -146,7 +146,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 bg-primary text-on-primary font-label-md text-label-md uppercase tracking-widest rounded-lg shadow-sm hover:bg-primary-container active:opacity-80 transition-all transform active:scale-[0.98] flex items-center justify-center gap-md disabled:opacity-50"
+                className="w-full h-11 bg-primary text-on-primary font-label-md text-label-md uppercase tracking-widest rounded-lg shadow-sm hover:bg-primary-container active:opacity-80 transition-all transform active:scale-[0.98] flex items-center justify-center gap-md disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
@@ -163,18 +163,18 @@ export default function LoginPage() {
             </form>
 
             {/* Footer Fragment for Internal Compliance */}
-            <div className="mt-xl pt-lg border-t border-outline-variant">
-              <p className="font-label-sm text-label-sm text-outline mb-md leading-relaxed">
+            <div className="mt-md pt-xs border-t border-outline-variant">
+              <p className="font-label-sm text-xs text-outline mb-xs leading-relaxed">
                 Authorized personnel only. All access and activity is logged in accordance with Corporate Security Policy ISO 27001.
               </p>
               <div className="flex flex-wrap gap-md">
-                <a href="#" onClick={(e) => e.preventDefault()} className="font-label-sm text-label-sm text-secondary hover:text-primary transition-colors underline">
+                <a href="#" onClick={(e) => e.preventDefault()} className="font-label-sm text-xs text-secondary hover:text-primary transition-colors underline">
                   Security Policy
                 </a>
-                <a href="#" onClick={(e) => e.preventDefault()} className="font-label-sm text-label-sm text-secondary hover:text-primary transition-colors underline">
+                <a href="#" onClick={(e) => e.preventDefault()} className="font-label-sm text-xs text-secondary hover:text-primary transition-colors underline">
                   System Status
                 </a>
-                <a href="#" onClick={(e) => e.preventDefault()} className="font-label-sm text-label-sm text-secondary hover:text-primary transition-colors underline">
+                <a href="#" onClick={(e) => e.preventDefault()} className="font-label-sm text-xs text-secondary hover:text-primary transition-colors underline">
                   Contact IT Support
                 </a>
               </div>
@@ -184,18 +184,18 @@ export default function LoginPage() {
       </main>
 
       {/* Global Footer */}
-      <footer className="w-full py-lg px-margin flex flex-col md:flex-row justify-between items-center gap-md bg-surface-container-lowest border-t border-outline-variant">
-        <div className="font-label-md text-label-md font-semibold text-on-surface">
+      <footer className="w-full py-xs px-margin flex flex-col md:flex-row justify-between items-center gap-xs bg-surface-container-lowest border-t border-outline-variant shrink-0 text-xs">
+        <div className="font-label-md font-semibold text-on-surface">
           AKS X ARTACOM <span className="font-normal text-secondary ml-xs">LogisticsPro</span>
         </div>
-        <div className="text-secondary font-body-sm text-body-sm">
+        <div className="text-secondary font-body-sm">
           © 2026 Logistics Pro Enterprise Solutions. All rights reserved.
         </div>
         <nav className="flex gap-md">
-          <a href="#" onClick={(e) => e.preventDefault()} className="font-body-sm text-body-sm text-secondary hover:text-primary underline transition-all">
+          <a href="#" onClick={(e) => e.preventDefault()} className="font-body-sm text-secondary hover:text-primary underline transition-all">
             Privacy Policy
           </a>
-          <a href="#" onClick={(e) => e.preventDefault()} className="font-body-sm text-body-sm text-secondary hover:text-primary underline transition-all">
+          <a href="#" onClick={(e) => e.preventDefault()} className="font-body-sm text-secondary hover:text-primary underline transition-all">
             Terms of Service
           </a>
         </nav>
