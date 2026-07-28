@@ -76,6 +76,145 @@ export default function DeliveryOrdersPage() {
     setShowManifestModal(true);
   };
 
+  const handlePrintManifest = (manifest) => {
+    const driverName = manifest.driver?.full_name || 'Driver AKS';
+    const vehiclePlate = manifest.driver?.vehicle_plate || '-';
+    const vehicleType = manifest.driver?.vehicle_type || 'Box Truck';
+    const items = manifest.items || [];
+
+    const itemsHtml = items.length > 0
+      ? items.map((item, idx) => {
+          const doData = item.delivery_order || item;
+          return `
+            <tr>
+              <td style="text-align:center;">${idx + 1}</td>
+              <td style="font-family:monospace;font-weight:bold;color:#00236f;">${doData.do_number || item.do_number || '-'}</td>
+              <td>${doData.description || 'Material Logistics'}</td>
+              <td>${doData.origin_address || 'Warehouse Hub'}</td>
+              <td>${doData.destination_address || 'BTS Site'}</td>
+              <td style="text-align:center;">${doData.sla_status || 'Green'}</td>
+            </tr>
+          `;
+        }).join('')
+      : `<tr><td colspan="6" style="text-align:center;color:#64748b;">DO item details attached in manifest document</td></tr>`;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Surat Jalan & Manifest - ${manifest.manifest_number}</title>
+          <style>
+            @page { size: A4 portrait; margin: 15mm; }
+            * { box-sizing: border-box; }
+            body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #0f172a; padding: 10px; }
+            .header-table { width: 100%; border-bottom: 2px solid #00236f; padding-bottom: 10px; margin-bottom: 15px; }
+            .logo-title { color: #00236f; font-size: 16pt; font-weight: bold; margin: 0; }
+            .logo-sub { font-size: 9pt; color: #64748b; font-weight: bold; letter-spacing: 1px; }
+            .doc-title { text-align: center; margin: 15px 0; }
+            .doc-title h2 { color: #00236f; margin: 0; font-size: 14pt; text-transform: uppercase; text-decoration: underline; }
+            .doc-title p { margin: 3px 0 0 0; font-family: monospace; font-weight: bold; font-size: 11pt; }
+            .grid-info { display: table; width: 100%; margin-bottom: 15px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; }
+            .grid-col { display: table-cell; width: 50%; vertical-align: top; }
+            .info-row { margin-bottom: 5px; font-size: 9.5pt; }
+            .info-label { color: #64748b; font-size: 8.5pt; font-weight: bold; text-transform: uppercase; display: block; }
+            .info-val { font-weight: bold; color: #0f172a; }
+            table.items-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+            table.items-table th { background: #00236f; color: white; padding: 8px; font-size: 9.5pt; text-align: left; border: 1px solid #00236f; }
+            table.items-table td { border: 1px solid #cbd5e1; padding: 8px; font-size: 9pt; }
+            .sig-section { display: table; width: 100%; margin-top: 40px; page-break-inside: avoid; }
+            .sig-box { display: table-cell; width: 33.33%; text-align: center; vertical-align: top; }
+            .sig-line { margin-top: 50px; border-top: 1px solid #475569; width: 80%; margin-left: auto; margin-right: auto; padding-top: 4px; font-weight: bold; font-size: 9pt; }
+          </style>
+        </head>
+        <body>
+          <table class="header-table">
+            <tr>
+              <td>
+                <div class="logo-title">OPERATIONS CENTER LOGISTICS</div>
+                <div class="logo-sub">PT. AKS X PT. ARTACOMINDO JEJARING NUSA</div>
+              </td>
+              <td style="text-align:right;">
+                <div style="font-size:9pt;color:#64748b;">Dokumen Resmi Surat Jalan</div>
+                <div style="font-family:monospace;font-size:10pt;font-weight:bold;">${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+              </td>
+            </tr>
+          </table>
+
+          <div class="doc-title">
+            <h2>SURAT JALAN & MANIFEST PENUGASAN KURIR</h2>
+            <p>NO: ${manifest.manifest_number}</p>
+          </div>
+
+          <div class="grid-info">
+            <div class="grid-col">
+              <div class="info-row">
+                <span class="info-label">Pengemudi / Kurir (PT AKS)</span>
+                <span class="info-val">${driverName}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Kendaraan & Plat Nomor</span>
+                <span class="info-val">${vehicleType} (${vehiclePlate})</span>
+              </div>
+            </div>
+            <div class="grid-col">
+              <div class="info-row">
+                <span class="info-label">Status Manifest</span>
+                <span class="info-val" style="text-transform:uppercase;color:#00236f;">${manifest.status}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Catatan Rute / Instruksi</span>
+                <span class="info-val">${manifest.notes || 'Rute standar pengiriman'}</span>
+              </div>
+            </div>
+          </div>
+
+          <p style="font-weight:bold;margin-bottom:5px;font-size:10pt;">Daftar Surat Jalan (Delivery Orders) yang Diberangkatkan:</p>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width:30px;text-align:center;">No</th>
+                <th>No. Surat Jalan (DO)</th>
+                <th>Deskripsi Material</th>
+                <th>Asal Pengiriman</th>
+                <th>Tujuan Site / Gudang</th>
+                <th style="text-align:center;">SLA</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <p style="font-size:8.5pt;color:#64748b;font-style:italic;margin-top:10px;">
+            * Surat Jalan ini diterbitkan secara otomatis oleh Sistem Operations Center Artacomindo dan menjadi bukti sah serah terima barang di lapangan.
+          </p>
+
+          <div class="sig-section">
+            <div class="sig-box">
+              <p style="margin:0;font-size:9pt;color:#475569;">Diserahkan oleh (Gudang Hub)</p>
+              <div class="sig-line">Petugas Gudang Hub</div>
+            </div>
+            <div class="sig-box">
+              <p style="margin:0;font-size:9pt;color:#475569;">Diberangkatkan oleh (Kurir)</p>
+              <div class="sig-line">${driverName}</div>
+            </div>
+            <div class="sig-box">
+              <p style="margin:0;font-size:9pt;color:#475569;">Diterima oleh (Site / Ericsson)</p>
+              <div class="sig-line">Penerima Site</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              setTimeout(function() { window.print(); }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleCreateManifestSubmit = async (e) => {
     e.preventDefault();
     if (!selectedDriverId) {
@@ -96,6 +235,7 @@ export default function DeliveryOrdersPage() {
       setSelectedDOIds([]);
       setManifestNotes('');
       fetchManifestsAndDrivers();
+      fetchOrders();
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal menerbitkan Manifest');
     }
@@ -996,26 +1136,37 @@ export default function DeliveryOrdersPage() {
               </div>
 
               <div>
-                <label className="font-label-sm text-label-sm text-secondary block mb-xs">Pilih Surat Jalan (Delivery Orders) untuk dimasukkan:</label>
+                <div className="flex justify-between items-center mb-xs">
+                  <label className="font-label-sm text-label-sm text-secondary block">Pilih Surat Jalan (Delivery Orders) untuk dimasukkan:</label>
+                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-xs py-0.5 rounded">
+                    {orders.filter(d => d.status === 'pending').length} Tersedia
+                  </span>
+                </div>
                 <div className="max-h-40 overflow-y-auto space-y-xs border border-outline-variant rounded-lg p-sm bg-surface-container-lowest">
-                  {orders.map((doItem) => (
-                    <label key={doItem.id} className="flex items-center gap-sm p-xs hover:bg-surface rounded cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedDOIds.includes(doItem.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedDOIds([...selectedDOIds, doItem.id]);
-                          } else {
-                            setSelectedDOIds(selectedDOIds.filter(id => id !== doItem.id));
-                          }
-                        }}
-                        className="h-4 w-4 text-primary rounded border-outline-variant"
-                      />
-                      <span className="font-data-mono text-body-sm font-bold text-primary">{doItem.do_number}</span>
-                      <span className="text-body-sm text-on-surface truncate">{doItem.description}</span>
-                    </label>
-                  ))}
+                  {orders.filter(d => d.status === 'pending').length > 0 ? (
+                    orders.filter(d => d.status === 'pending').map((doItem) => (
+                      <label key={doItem.id} className="flex items-center gap-sm p-xs hover:bg-surface rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedDOIds.includes(doItem.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedDOIds([...selectedDOIds, doItem.id]);
+                            } else {
+                              setSelectedDOIds(selectedDOIds.filter(id => id !== doItem.id));
+                            }
+                          }}
+                          className="h-4 w-4 text-primary rounded border-outline-variant"
+                        />
+                        <span className="font-data-mono text-body-sm font-bold text-primary">{doItem.do_number}</span>
+                        <span className="text-body-sm text-on-surface truncate">{doItem.description}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-body-sm text-secondary py-md text-center italic">
+                      Semua Surat Jalan (DO) sudah dimasukkan ke dalam Manifest / Berstatus Assigned.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1036,7 +1187,7 @@ export default function DeliveryOrdersPage() {
               <div className="space-y-sm">
                 {manifests.length > 0 ? (
                   manifests.map((m) => (
-                    <div key={m.id} className="p-md bg-surface border border-outline-variant rounded-lg flex justify-between items-center">
+                    <div key={m.id} className="p-md bg-surface border border-outline-variant rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
                       <div>
                         <div className="flex items-center gap-sm">
                           <span className="font-data-mono font-bold text-primary">{m.manifest_number}</span>
@@ -1044,8 +1195,16 @@ export default function DeliveryOrdersPage() {
                         </div>
                         <p className="text-body-sm text-secondary mt-xs">Kurir: {m.driver?.full_name || 'Assigned Driver'} | {m.notes || 'Rute standar'}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="flex items-center gap-md w-full sm:w-auto justify-between sm:justify-end">
                         <span className="text-label-sm text-outline block">{m.items?.length || 0} Items DO</span>
+                        <button
+                          type="button"
+                          onClick={() => handlePrintManifest(m)}
+                          className="px-md py-xs bg-primary text-on-primary font-label-sm rounded-lg hover:bg-primary-container flex items-center gap-xs text-[12px] shadow-xs"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">print</span>
+                          <span>Print Surat Jalan</span>
+                        </button>
                       </div>
                     </div>
                   ))
