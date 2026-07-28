@@ -52,6 +52,21 @@ export default function TrackingPage() {
     }
   };
 
+  const handleSendLocationPing = async (driver) => {
+    try {
+      // Send location signal (Kalimantan coordinates)
+      const lat = -1.2654 + (Math.random() * 0.02 - 0.01);
+      const lng = 116.8312 + (Math.random() * 0.02 - 0.01);
+      await api.post('/drivers/location', {
+        latitude: lat,
+        longitude: lng,
+      });
+      alert(`Sinyal GPS Driver ${driver.full_name} berhasil dikirim ke server backend!`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal mengirimkan sinyal GPS driver');
+    }
+  };
+
   // Filter deliveries
   const filteredDeliveries = deliveriesData.filter((d) => {
     const matchesSearch = d.id.toLowerCase().includes(searchQuery.toLowerCase()) || 

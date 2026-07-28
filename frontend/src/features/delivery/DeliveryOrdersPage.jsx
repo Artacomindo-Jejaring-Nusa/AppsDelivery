@@ -28,6 +28,12 @@ export default function DeliveryOrdersPage() {
   const [isSubmittingScan, setIsSubmittingScan] = useState(false);
   const [generatedBarcodes, setGeneratedBarcodes] = useState([]);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showManifestModal, setShowManifestModal] = useState(false);
+  const [manifests, setManifests] = useState([]);
+  const [driversList, setDriversList] = useState([]);
+  const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [selectedDOIds, setSelectedDOIds] = useState([]);
+  const [manifestNotes, setManifestNotes] = useState('');
 
   const tableEndRef = useRef(null);
 
@@ -48,6 +54,49 @@ export default function DeliveryOrdersPage() {
       console.error('Failed to fetch delivery orders', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchManifestsAndDrivers = async () => {
+    try {
+      const [mRes, dRes] = await Promise.all([
+        api.get('/manifests'),
+        api.get('/drivers'),
+      ]);
+      setManifests(mRes.data.data || []);
+      setDriversList(dRes.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch manifests/drivers', err);
+    }
+  };
+
+  const handleOpenManifestModal = () => {
+    fetchManifestsAndDrivers();
+    setShowManifestModal(true);
+  };
+
+  const handleCreateManifestSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedDriverId) {
+      alert('Pilih Driver terlebih dahulu');
+      return;
+    }
+    if (selectedDOIds.length === 0) {
+      alert('Pilih minimal 1 Delivery Order untuk dibuatkan Manifest');
+      return;
+    }
+    try {
+      await api.post('/manifests', {
+        driver_id: selectedDriverId,
+        delivery_order_ids: selectedDOIds,
+        notes: manifestNotes,
+      });
+      alert('Manifest Surat Jalan berhasil diterbitkan!');
+      setSelectedDOIds([]);
+      setManifestNotes('');
+      fetchManifestsAndDrivers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menerbitkan Manifest');
     }
   };
 
@@ -258,13 +307,22 @@ export default function DeliveryOrdersPage() {
                 Manajemen Surat Jalan, Pengelompokan Material & Target SLA Harian
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-xs px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg shadow-sm hover:bg-primary-container transition-all"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>Buat DO Baru</span>
-            </button>
+            <div className="flex items-center gap-sm">
+              <button
+                onClick={handleOpenManifestModal}
+                className="flex items-center gap-xs px-md py-sm bg-secondary text-on-secondary font-label-md text-label-md rounded-lg shadow-sm hover:opacity-90 transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">assignment</span>
+                <span>Manifest Surat Jalan</span>
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-xs px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg shadow-sm hover:bg-primary-container transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                <span>Buat DO Baru</span>
+              </button>
+            </div>
           </div>
 
           {/* Filter & Search Bar */}
@@ -822,6 +880,115 @@ export default function DeliveryOrdersPage() {
                 <span className="material-symbols-outlined text-[18px]">print</span>
                 <span>Print Labels</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Manifest Management Modal ─── */}
+      {showManifestModal && (
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-xs flex items-center justify-center p-md z-50 animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest p-xl rounded-xl border border-outline-variant max-w-3xl w-full space-y-lg shadow-xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-md">
+              <div>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface">Manifest Penugasan Kurir</h3>
+                <p className="text-body-sm text-secondary">Kelola daftar Manifest dan terbitkan penugasan pengiriman baru ke Kurir</p>
+              </div>
+              <button onClick={() => setShowManifestModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Create Manifest Form */}
+            <form onSubmit={handleCreateManifestSubmit} className="bg-surface p-md rounded-lg border border-outline-variant space-y-md">
+              <h4 className="font-label-lg text-label-lg text-primary font-bold">Terbitkan Manifest Baru</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div>
+                  <label className="font-label-sm text-label-sm text-secondary block mb-xs">Pilih Kurir / Driver</label>
+                  <select
+                    required
+                    value={selectedDriverId}
+                    onChange={(e) => setSelectedDriverId(e.target.value)}
+                    className="w-full h-10 bg-surface-container-lowest px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary"
+                  >
+                    <option value="">-- Pilih Kurir Standby --</option>
+                    {driversList.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.full_name} ({d.vehicle_plate || 'No Plate'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-label-sm text-label-sm text-secondary block mb-xs">Catatan Rute / Petunjuk</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Rute pengiriman Banjarmasin - Balikpapan"
+                    value={manifestNotes}
+                    onChange={(e) => setManifestNotes(e.target.value)}
+                    className="w-full h-10 bg-surface-container-lowest px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-label-sm text-label-sm text-secondary block mb-xs">Pilih Surat Jalan (Delivery Orders) untuk dimasukkan:</label>
+                <div className="max-h-40 overflow-y-auto space-y-xs border border-outline-variant rounded-lg p-sm bg-surface-container-lowest">
+                  {orders.map((doItem) => (
+                    <label key={doItem.id} className="flex items-center gap-sm p-xs hover:bg-surface rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedDOIds.includes(doItem.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedDOIds([...selectedDOIds, doItem.id]);
+                          } else {
+                            setSelectedDOIds(selectedDOIds.filter(id => id !== doItem.id));
+                          }
+                        }}
+                        className="h-4 w-4 text-primary rounded border-outline-variant"
+                      />
+                      <span className="font-data-mono text-body-sm font-bold text-primary">{doItem.do_number}</span>
+                      <span className="text-body-sm text-on-surface truncate">{doItem.description}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container shadow-sm flex items-center gap-xs"
+                >
+                  <span className="material-symbols-outlined text-[18px]">local_shipping</span>
+                  <span>Terbitkan Manifest</span>
+                </button>
+              </div>
+            </form>
+
+            {/* List Manifests */}
+            <div>
+              <h4 className="font-label-lg text-label-lg text-on-surface font-bold mb-sm">Daftar Manifest Aktif</h4>
+              <div className="space-y-sm">
+                {manifests.length > 0 ? (
+                  manifests.map((m) => (
+                    <div key={m.id} className="p-md bg-surface border border-outline-variant rounded-lg flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-sm">
+                          <span className="font-data-mono font-bold text-primary">{m.manifest_number}</span>
+                          <span className="px-xs py-[2px] rounded text-[11px] font-bold bg-blue-100 text-blue-800 uppercase">{m.status}</span>
+                        </div>
+                        <p className="text-body-sm text-secondary mt-xs">Kurir: {m.driver?.full_name || 'Assigned Driver'} | {m.notes || 'Rute standar'}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-label-sm text-outline block">{m.items?.length || 0} Items DO</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-body-md text-secondary py-md text-center">Belum ada Manifest diterbitkan.</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
