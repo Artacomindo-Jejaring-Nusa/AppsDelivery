@@ -70,7 +70,7 @@ function courierSvgIcon(color) {
   `)}`;
 }
 
-export default function TrackingMap() {
+export default function TrackingMap({ driverLat, driverLng, driverName }) {
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -84,10 +84,15 @@ export default function TrackingMap() {
       const Marker = window.google.maps.Marker;
       const InfoWindow = window.google.maps.InfoWindow;
 
+      const hasCustomLocation = driverLat != null && driverLng != null;
+      const centerPos = hasCustomLocation 
+        ? { lat: Number(driverLat), lng: Number(driverLng) }
+        : KALIMANTAN_CENTER;
+
       // ─── Map Options ───
       const mapOptions = {
-        center: KALIMANTAN_CENTER,
-        zoom: DEFAULT_ZOOM,
+        center: centerPos,
+        zoom: hasCustomLocation ? 11 : DEFAULT_ZOOM,
         mapId: 'DEMO_MAP_ID', // Required for advanced styling features
         mapTypeId: 'terrain',
         disableDefaultUI: true, // Clean look matching custom controls
@@ -97,6 +102,36 @@ export default function TrackingMap() {
       activeMap = new window.google.maps.Map(mapRef.current, mapOptions);
 
       const infoWindow = new InfoWindow();
+
+      // ─── Plot Real-time Live Driver Location (if passed) ───
+      if (hasCustomLocation) {
+        const liveMarker = new Marker({
+          position: centerPos,
+          map: activeMap,
+          title: driverName || 'Live Driver Location',
+          icon: {
+            url: truckSvgIcon('#00236f'),
+            scaledSize: new Size(42, 42),
+            origin: new Point(0, 0),
+            anchor: new Point(21, 21),
+          },
+        });
+
+        const liveInfoWindow = new InfoWindow({
+          content: `
+            <div style="font-family: 'Inter', sans-serif; padding: 6px; text-align: center;">
+              <h4 style="margin: 0; font-weight: 700; color: #00236f;">${driverName || 'Driver Transport'}</h4>
+              <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: bold; color: #10b981;">
+                ● LIVE GPS SYNCED
+              </p>
+              <p style="margin: 2px 0 0 0; font-size: 10px; font-family: monospace; color: #475569;">
+                Lat: ${driverLat}, Lng: ${driverLng}
+              </p>
+            </div>
+          `,
+        });
+        liveInfoWindow.open(activeMap, liveMarker);
+      }
 
       // ─── Plot BTS Sites ───
       BTS_SITES.forEach((site) => {

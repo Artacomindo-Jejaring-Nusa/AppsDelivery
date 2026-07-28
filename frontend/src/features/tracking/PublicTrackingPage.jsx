@@ -340,7 +340,11 @@ export default function PublicTrackingPage() {
                     </div>
 
                     <div className="aspect-video relative border-2 border-[#c5c5d3] overflow-hidden rounded">
-                      <TrackingMap />
+                      <TrackingMap 
+                        driverLat={trackingData.driver?.current_lat || trackingData.site?.latitude || -1.2654}
+                        driverLng={trackingData.driver?.current_lng || trackingData.site?.longitude || 116.8312}
+                        driverName={trackingData.driver?.full_name || 'Driver Transport AKS'}
+                      />
                       
                       {/* Map Overlay Badge */}
                       <div className="absolute top-3 right-3 bg-white border-2 border-[#00236f] p-3 space-y-2 shadow-xl z-10 text-xs">

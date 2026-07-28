@@ -90,8 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
           _loadingMessage = "Connecting GPS & loading active manifest...";
         });
 
-        // 1. Initial GPS ping to resolve driver_id
+        // 1. Initial GPS ping to resolve driver_id and start live tracking
         await locProv.pingLocation();
+        locProv.startTracking();
 
         if (mounted) {
           setState(() {
