@@ -39,7 +39,6 @@ backend/uploads/barcodes/*
 # OS specific files
 .DS_Store
 Thumbs.db
-mobile
 
 SITE_ZTE_KAL_W25 2026.kml
 SITE_ZTE_KAL_W25 2026.xls

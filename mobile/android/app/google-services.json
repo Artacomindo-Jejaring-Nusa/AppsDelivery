@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "175314673581",
+    "project_id": "appsdelivery-logistics",
+    "storage_bucket": "appsdelivery-logistics.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:175314673581:android:5b288c18413801b5d50b24",
+        "android_client_info": {
+          "package_name": "com.aksartacomindo.driver_portal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4dhdCOI6LfxPFyIAAzckgjsVgABEDiKs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
