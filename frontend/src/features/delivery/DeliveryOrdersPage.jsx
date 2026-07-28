@@ -237,11 +237,25 @@ export default function DeliveryOrdersPage() {
     }
   };
 
+  // Helper: normalize backend image_path to a usable URL
+  const normalizeBarcodeImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    // Remove leading ./ if present
+    let cleaned = imagePath.replace(/^\.[\/\\]/, '');
+    // Ensure leading /
+    if (!cleaned.startsWith('/')) cleaned = '/' + cleaned;
+    return cleaned;
+  };
+
   // Submit scan data & generate barcodes
   const handleProcessShipment = async () => {
-    const validAssets = scanRows.filter(r => r.serialNumber.trim() !== '');
-    if (validAssets.length === 0) {
-      alert('Please scan/enter at least one asset with a valid Serial Number.');
+    // Only submit NEW rows (temp IDs), skip already-persisted ones
+    const newAssets = scanRows.filter(r => 
+      r.serialNumber.trim() !== '' && 
+      String(r.id).startsWith('temp-')
+    );
+    if (newAssets.length === 0) {
+      alert('Tidak ada item baru untuk disimpan. Semua data sudah tersimpan.');
       return;
     }
 
@@ -249,7 +263,7 @@ export default function DeliveryOrdersPage() {
     try {
       // 1. Submit batch assets to backend
       const payload = {
-        assets: validAssets.map(r => ({
+        assets: newAssets.map(r => ({
           category: r.category,
           item_name: `${r.category} - ${r.serialNumber}`,
           serial_number: r.serialNumber,
@@ -279,7 +293,7 @@ export default function DeliveryOrdersPage() {
       setGeneratedBarcodes(validBarcodes);
       setShowBarcodeModal(true);
 
-      // Refresh data
+      // Refresh data - reload from server to get correct IDs
       startScanSession(selectedDO);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save scanned assets.');
@@ -809,15 +823,20 @@ export default function DeliveryOrdersPage() {
               </p>
               <div className="grid grid-cols-2 gap-md" id="print-area">
                 {generatedBarcodes.map((barcode) => {
-                  const imgUrl = barcode.image_path?.startsWith('/') ? barcode.image_path : '/' + (barcode.image_path || '');
+                  const imgUrl = normalizeBarcodeImageUrl(barcode.image_path);
                   return (
                     <div key={barcode.id} className="border border-outline-variant p-md rounded-lg flex flex-col items-center justify-center bg-white space-y-sm text-center shadow-xs">
                       <span className="font-label-md text-label-md text-primary font-bold">{barcode.barcode_data}</span>
-                      <img 
-                        src={imgUrl} 
-                        alt={barcode.barcode_data}
-                        className="h-28 w-auto object-contain my-xs"
-                      />
+                      {imgUrl ? (
+                        <img 
+                          src={imgUrl} 
+                          alt={barcode.barcode_data}
+                          className="h-28 w-auto object-contain my-xs"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="h-28 flex items-center justify-center text-secondary text-body-sm">QR Code Loading...</div>
+                      )}
                       <div className="text-[11px] text-secondary font-data-mono font-bold">
                         PT. AKS X ARTACOMINDO
                       </div>
@@ -838,40 +857,35 @@ export default function DeliveryOrdersPage() {
               <button
                 type="button"
                 onClick={() => {
+                  const origin = window.location.origin;
+                  const cardsHtml = generatedBarcodes.map(b => {
+                    const rawPath = (b.image_path || '').replace(/^\.[\\/\\]/, '');
+                    const cleanPath = rawPath.startsWith('/') ? rawPath : '/' + rawPath;
+                    const absUrl = origin + cleanPath;
+                    return '<div class="barcode-card">' +
+                      '<div class="title">' + (b.barcode_data || '') + '</div>' +
+                      '<img src="' + absUrl + '" onerror="this.style.display=\'none\'" />' +
+                      '<div class="footer">PT. AKS X ARTACOMINDO</div>' +
+                    '</div>';
+                  }).join('');
+
                   const printWindow = window.open('', '_blank');
-                  printWindow.document.write(`
-                    <html>
-                      <head>
-                        <title>Print Barcodes - ${selectedDO?.do_number}</title>
-                        <style>
-                          body { font-family: sans-serif; padding: 20px; }
-                          .print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-                          .barcode-card { border: 1px solid #ccc; padding: 15px; text-align: center; border-radius: 8px; background: white; }
-                          img { height: 90px; max-width: 100%; margin: 10px 0; object-contain: contain; }
-                          .title { font-weight: bold; font-size: 13px; color: #00236f; }
-                          .footer { font-size: 10px; color: #666; font-weight: bold; }
-                        </style>
-                      </head>
-                      <body>
-                        <h3>Material Dismantle Barcodes: ${selectedDO?.do_number}</h3>
-                        <div class="print-grid">
-                          ${generatedBarcodes.map(b => {
-                            const bUrl = b.image_path?.startsWith('/') ? b.image_path : '/' + (b.image_path || '');
-                            return `
-                              <div class="barcode-card">
-                                <div class="title">${b.barcode_data}</div>
-                                <img src="${bUrl}" />
-                                <div class="footer">PT. AKS X ARTACOM</div>
-                              </div>
-                            `;
-                          }).join('')}
-                        </div>
-                        <script>
-                          window.onload = function() { window.print(); window.close(); }
-                        </script>
-                      </body>
-                    </html>
-                  `);
+                  printWindow.document.write(
+                    '<html><head>' +
+                    '<title>Print Barcodes - ' + (selectedDO?.do_number || '') + '</title>' +
+                    '<style>' +
+                    'body { font-family: sans-serif; padding: 20px; }' +
+                    '.print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }' +
+                    '.barcode-card { border: 1px solid #ccc; padding: 15px; text-align: center; border-radius: 8px; background: white; page-break-inside: avoid; }' +
+                    'img { height: 120px; max-width: 100%; margin: 10px 0; object-fit: contain; }' +
+                    '.title { font-weight: bold; font-size: 13px; color: #00236f; margin-bottom: 5px; }' +
+                    '.footer { font-size: 10px; color: #666; font-weight: bold; margin-top: 5px; }' +
+                    '</style></head><body>' +
+                    '<h3>Material Dismantle Barcodes: ' + (selectedDO?.do_number || '') + '</h3>' +
+                    '<div class="print-grid">' + cardsHtml + '</div>' +
+                    '<script>window.onload = function() { window.print(); }<\/script>' +
+                    '</body></html>'
+                  );
                   printWindow.document.close();
                 }}
                 className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container flex items-center gap-xs"
