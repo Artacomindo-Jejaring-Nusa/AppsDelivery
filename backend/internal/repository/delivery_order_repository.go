@@ -136,35 +136,40 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 	}
 
 	dataQuery := `
-		SELECT id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status,
-			   origin_address, destination_address, notes, created_by, created_at, updated_at
-		FROM delivery_orders WHERE deleted_at IS NULL`
+		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.description, dord.status,
+			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status,
+			   dord.origin_address, dord.destination_address, dord.notes,
+			   dord.created_by, dord.created_at, dord.updated_at,
+			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district
+		FROM delivery_orders dord
+		LEFT JOIN bts_sites bs ON dord.bts_site_id = bs.id
+		WHERE dord.deleted_at IS NULL`
 
 	dataArgs := []interface{}{}
 	dataArgIndex := 1
 
 	if filter.Search != "" {
-		dataQuery += fmt.Sprintf(` AND (do_number ILIKE $%d OR description ILIKE $%d)`, dataArgIndex, dataArgIndex)
+		dataQuery += fmt.Sprintf(` AND (dord.do_number ILIKE $%d OR dord.description ILIKE $%d OR bs.site_id ILIKE $%d OR bs.site_name ILIKE $%d)`, dataArgIndex, dataArgIndex, dataArgIndex, dataArgIndex)
 		dataArgs = append(dataArgs, "%"+filter.Search+"%")
 		dataArgIndex++
 	}
 	if filter.Status != "" {
-		dataQuery += fmt.Sprintf(` AND status = $%d`, dataArgIndex)
+		dataQuery += fmt.Sprintf(` AND dord.status = $%d`, dataArgIndex)
 		dataArgs = append(dataArgs, filter.Status)
 		dataArgIndex++
 	}
 	if filter.SLAStatus != "" {
-		dataQuery += fmt.Sprintf(` AND sla_status = $%d`, dataArgIndex)
+		dataQuery += fmt.Sprintf(` AND dord.sla_status = $%d`, dataArgIndex)
 		dataArgs = append(dataArgs, filter.SLAStatus)
 		dataArgIndex++
 	}
 	if filter.BtsSiteID != "" {
-		dataQuery += fmt.Sprintf(` AND bts_site_id = $%d`, dataArgIndex)
+		dataQuery += fmt.Sprintf(` AND dord.bts_site_id = $%d`, dataArgIndex)
 		dataArgs = append(dataArgs, filter.BtsSiteID)
 		dataArgIndex++
 	}
 
-	dataQuery += fmt.Sprintf(` ORDER BY %s %s LIMIT $%d OFFSET $%d`,
+	dataQuery += fmt.Sprintf(` ORDER BY dord.%s %s LIMIT $%d OFFSET $%d`,
 		sanitizeSortColumn(filter.SortBy, "created_at"),
 		sanitizeOrder(filter.Order),
 		dataArgIndex, dataArgIndex+1)
@@ -179,14 +184,43 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 	var orders []*domain.DeliveryOrder
 	for rows.Next() {
 		do := &domain.DeliveryOrder{}
+		bts := &domain.BtsSite{}
+		var btsUUID *uuid.UUID
+		var btsSiteID, btsSiteName, btsAddress, btsProvince, btsCity, btsDistrict *string
+
 		if err := rows.Scan(
 			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
 			&do.Status, &do.SLADays, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
 			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,
+			&btsUUID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
 		); err != nil {
 			return nil, 0, err
 		}
+
+		if btsUUID != nil {
+			bts.ID = *btsUUID
+			if btsSiteID != nil {
+				bts.SiteID = *btsSiteID
+			}
+			if btsSiteName != nil {
+				bts.SiteName = *btsSiteName
+			}
+			if btsAddress != nil {
+				bts.Address = *btsAddress
+			}
+			if btsProvince != nil {
+				bts.Province = *btsProvince
+			}
+			if btsCity != nil {
+				bts.City = *btsCity
+			}
+			if btsDistrict != nil {
+				bts.District = *btsDistrict
+			}
+			do.BtsSite = bts
+		}
+
 		orders = append(orders, do)
 	}
 

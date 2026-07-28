@@ -14,12 +14,15 @@ export default function DeliveryOrdersPage() {
   // New DO Form State
   const [formData, setFormData] = useState({
     do_number: '',
+    bts_site_id: '',
     description: '',
     sla_days: 3,
-    origin_address: 'Gudang PT. Eriksin Banjarmasin',
+    origin_address: 'Gudang PT. AKS',
     destination_address: 'Site BTS Telkomsel Kalimantan',
     notes: '',
   });
+
+  const [btsSitesList, setBtsSitesList] = useState([]);
 
   // Active Inbound Scan Session State
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'scan'
@@ -40,7 +43,17 @@ export default function DeliveryOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
+    fetchBtsSites();
   }, [slaFilter]);
+
+  const fetchBtsSites = async () => {
+    try {
+      const res = await api.get('/bts-sites?per_page=200');
+      setBtsSitesList(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch BTS Sites:', err);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -69,6 +82,46 @@ export default function DeliveryOrdersPage() {
     } catch (err) {
       console.error('Failed to fetch manifests/drivers', err);
     }
+  };
+
+  const generateAutoDONumber = (existingOrders = []) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `DO-${year}-${month}-`;
+    
+    let maxSeq = 0;
+    existingOrders.forEach(o => {
+      if (o.do_number && o.do_number.startsWith(prefix)) {
+        const parts = o.do_number.split('-');
+        const seqNum = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(seqNum) && seqNum > maxSeq) {
+          maxSeq = seqNum;
+        }
+      }
+    });
+
+    if (maxSeq === 0) {
+      maxSeq = existingOrders.length;
+    }
+    
+    const nextSeq = String(maxSeq + 1).padStart(3, '0');
+    return `${prefix}${nextSeq}`;
+  };
+
+  const handleOpenCreateModal = () => {
+    const autoNumber = generateAutoDONumber(orders);
+    const defaultSite = btsSitesList.length > 0 ? btsSitesList[0] : null;
+    setFormData({
+      do_number: autoNumber,
+      bts_site_id: defaultSite ? defaultSite.id : '',
+      description: '',
+      sla_days: 3,
+      origin_address: 'Gudang PT. AKS Banjarmasin',
+      destination_address: defaultSite ? `${defaultSite.site_name || defaultSite.name} (${defaultSite.city || defaultSite.province || 'Kalimantan'})` : 'Site BTS Telkomsel Kalimantan',
+      notes: '',
+    });
+    setShowCreateModal(true);
   };
 
   const handleOpenManifestModal = () => {
@@ -281,16 +334,21 @@ export default function DeliveryOrdersPage() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/delivery-orders', {
+      const payload = {
         ...formData,
         sla_days: parseInt(formData.sla_days),
-      });
+      };
+      if (!payload.bts_site_id) {
+        delete payload.bts_site_id;
+      }
+      await api.post('/delivery-orders', payload);
       setShowCreateModal(false);
       setFormData({
         do_number: '',
+        bts_site_id: '',
         description: '',
         sla_days: 3,
-        origin_address: 'Gudang PT. Eriksin Banjarmasin',
+        origin_address: 'Gudang PT. AKS Banjarmasin',
         destination_address: 'Site BTS Telkomsel Kalimantan',
         notes: '',
       });
@@ -564,7 +622,7 @@ export default function DeliveryOrdersPage() {
                 <span>Manifest Surat Jalan</span>
               </button>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={handleOpenCreateModal}
                 className="flex items-center gap-xs px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg shadow-sm hover:bg-primary-container transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">add</span>
@@ -667,11 +725,11 @@ export default function DeliveryOrdersPage() {
                               {item.do_number}
                             </td>
                             <td className="py-md px-lg">
-                              <span className="font-semibold text-on-surface">
-                                {item.bts_site?.site_id || 'BTS-KAL-001'}
+                              <span className="font-semibold text-on-surface font-data-mono block">
+                                {item.bts_site?.site_id || item.bts_site_id?.substring(0,8) || 'Site BTS'}
                               </span>
-                              <p className="font-body-sm text-body-sm text-secondary">
-                                {item.bts_site?.site_name || 'Site Kalimantan'}
+                              <p className="font-body-sm text-body-sm text-secondary truncate max-w-[200px]" title={item.bts_site?.site_name || item.destination_address}>
+                                {item.bts_site?.site_name || item.destination_address || 'Site Kalimantan'}
                               </p>
                             </td>
                             <td className="py-md px-lg text-secondary max-w-xs truncate">
@@ -970,15 +1028,44 @@ export default function DeliveryOrdersPage() {
 
             <form onSubmit={handleCreateSubmit} className="space-y-md">
               <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">No. Surat Jalan (DO Number)</label>
+                <div className="flex justify-between items-center mb-xs">
+                  <label className="font-label-sm text-label-sm text-on-surface-variant block">No. Surat Jalan (DO Number)</label>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-xs py-0.5 rounded border border-emerald-200 flex items-center gap-xs">
+                    <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                    <span>Otomatis Tergenerasi</span>
+                  </span>
+                </div>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: DO-2026-07-999"
+                  placeholder="Contoh: DO-2026-07-006"
                   value={formData.do_number}
                   onChange={(e) => setFormData({ ...formData, do_number: e.target.value })}
-                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary"
+                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-data-mono text-primary font-bold outline-none focus:border-primary"
                 />
+              </div>
+
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Pilih Site BTS Tujuan (Master 4,600+ Sites)</label>
+                <select
+                  value={formData.bts_site_id}
+                  onChange={(e) => {
+                    const selectedSite = btsSitesList.find(s => s.id === e.target.value);
+                    setFormData({
+                      ...formData,
+                      bts_site_id: e.target.value,
+                      destination_address: selectedSite ? `${selectedSite.site_name || selectedSite.name} (${selectedSite.city || selectedSite.province || 'Kalimantan'})` : formData.destination_address
+                    });
+                  }}
+                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary text-on-surface font-semibold"
+                >
+                  <option value="">-- Pilih Site BTS --</option>
+                  {btsSitesList.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.site_id} - {site.site_name || site.name} ({site.city || site.province || 'Kalimantan'})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
