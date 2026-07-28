@@ -49,22 +49,22 @@ class ManifestProvider extends ChangeNotifier {
         final list = response.data['data'] as List;
         debugPrint("FETCHED MANIFESTS LIST COUNT: ${list.length}");
 
-        // 2. Filter manifests for this driver with status in_transit or dispatched
+        // 2. Filter manifests for this driver with active status (dispatched, in_transit, draft, assigned)
         String? targetManifestId;
         for (final item in list) {
           final mStatus = item['status'];
-          final isStatusActive = mStatus == 'in_transit' || mStatus == 'dispatched';
+          final isStatusActive = mStatus == 'in_transit' || mStatus == 'dispatched' || mStatus == 'draft' || mStatus == 'assigned';
           if (isStatusActive && (driverId == null || item['driver_id'] == driverId)) {
             targetManifestId = item['id'];
             break;
           }
         }
 
-        // Fallback: If not found with exact driverId, pick first active in_transit manifest
+        // Fallback: If not found with exact driverId, pick first active manifest
         if (targetManifestId == null) {
           for (final item in list) {
             final mStatus = item['status'];
-            if (mStatus == 'in_transit' || mStatus == 'dispatched') {
+            if (mStatus == 'in_transit' || mStatus == 'dispatched' || mStatus == 'draft' || mStatus == 'assigned') {
               targetManifestId = item['id'];
               break;
             }

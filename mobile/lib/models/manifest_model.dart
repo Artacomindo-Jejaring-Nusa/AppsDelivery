@@ -28,10 +28,20 @@ class ManifestModel {
   });
 
   factory ManifestModel.fromJson(Map<String, dynamic> json) {
-    var list = json['delivery_orders'] as List?;
-    List<DeliveryOrderModel> orders = list != null
-        ? list.map((i) => DeliveryOrderModel.fromJson(i)).toList()
-        : [];
+    List<DeliveryOrderModel> orders = [];
+    if (json['items'] != null && json['items'] is List) {
+      for (final item in json['items']) {
+        if (item is Map<String, dynamic> && item['delivery_order'] != null) {
+          orders.add(DeliveryOrderModel.fromJson(item['delivery_order']));
+        }
+      }
+    } else if (json['delivery_orders'] != null && json['delivery_orders'] is List) {
+      for (final i in json['delivery_orders']) {
+        if (i is Map<String, dynamic>) {
+          orders.add(DeliveryOrderModel.fromJson(i));
+        }
+      }
+    }
 
     final driverObj = json['driver'] as Map<String, dynamic>?;
 

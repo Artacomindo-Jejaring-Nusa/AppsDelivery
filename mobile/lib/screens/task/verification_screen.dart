@@ -188,178 +188,241 @@ class _VerificationScreenState extends State<VerificationScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. QR Code Scan
-              const Text(
-                "SCAN BARCODE / QR CODE",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
-              ),
-              const SizedBox(height: 8),
-              Row(
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _barcodeController,
-                      readOnly: true,
-                      validator: (value) => value == null || value.isEmpty ? "Barcode verification required" : null,
-                      decoration: InputDecoration(
-                        hintText: "Scan barcode stickers...",
-                        prefixIcon: const Icon(Icons.qr_code_2),
-                        filled: true,
-                        fillColor: StitchColors.surfaceContainerLowest,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: StitchColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                    ),
-                    onPressed: _simulateBarcodeScan,
-                    child: const Icon(Icons.photo_camera),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // 2. Photo Proof
-              const Text(
-                "CAMERA PROOF (PHOTO OF DELIVERED UNIT)",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _takePhoto,
-                child: Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: StitchColors.surfaceContainerLowest,
-                    border: Border.all(color: StitchColors.outlineVariant),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: _imageFile != null
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.file(_imageFile!, fit: BoxFit.cover),
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.black54,
-                                child: IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.white),
-                                  onPressed: _takePhoto,
-                                ),
-                              ),
-                            )
-                          ],
-                        )
-                      : const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_a_photo_outlined, size: 40, color: StitchColors.outline),
-                            SizedBox(height: 8),
-                            Text("TAP TO TAKE PHOTO", style: TextStyle(color: StitchColors.secondary, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 3. Signature
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                  // 1. QR Code Scan
                   const Text(
-                    "RECEIVER SIGNATURE",
+                    "SCAN BARCODE / QR CODE",
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
                   ),
-                  TextButton(
-                    onPressed: () => _sigController.clear(),
-                    child: const Text("CLEAR", style: TextStyle(color: StitchColors.error, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _barcodeController,
+                          readOnly: true,
+                          validator: (value) => value == null || value.isEmpty ? "Barcode verification required" : null,
+                          decoration: InputDecoration(
+                            hintText: "Scan barcode stickers...",
+                            prefixIcon: const Icon(Icons.qr_code_2),
+                            filled: true,
+                            fillColor: StitchColors.surfaceContainerLowest,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: StitchColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.all(16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                        ),
+                        onPressed: _isSaving ? null : _simulateBarcodeScan,
+                        child: const Icon(Icons.photo_camera),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 2. Photo Proof
+                  const Text(
+                    "CAMERA PROOF (PHOTO OF DELIVERED UNIT)",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: _isSaving ? null : _takePhoto,
+                    child: Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: StitchColors.surfaceContainerLowest,
+                        border: Border.all(color: StitchColors.outlineVariant),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: _imageFile != null
+                          ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.file(_imageFile!, fit: BoxFit.cover),
+                                Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: CircleAvatar(
+                                    backgroundColor: Colors.black54,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.white),
+                                      onPressed: _takePhoto,
+                                    ),
+                                  ),
+                                )
+                              ],
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo_outlined, size: 40, color: StitchColors.outline),
+                                SizedBox(height: 8),
+                                Text("TAP TO TAKE PHOTO", style: TextStyle(color: StitchColors.secondary, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 3. Signature
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "RECEIVER SIGNATURE",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
+                      ),
+                      TextButton(
+                        onPressed: _isSaving ? null : () => _sigController.clear(),
+                        child: const Text("CLEAR", style: TextStyle(color: StitchColors.error, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: StitchColors.outlineVariant),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Signature(
+                      controller: _sigController,
+                      height: 150,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 4. Receiver Name
+                  const Text(
+                    "RECEIVER NAME",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _receiverNameController,
+                    enabled: !_isSaving,
+                    validator: (value) => value == null || value.isEmpty ? "Receiver name is required" : null,
+                    decoration: InputDecoration(
+                      hintText: "Enter name of recipient",
+                      filled: true,
+                      fillColor: StitchColors.surfaceContainerLowest,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 5. Notes
+                  const Text(
+                    "NOTES / REMARKS",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _notesController,
+                    enabled: !_isSaving,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: "Optional notes...",
+                      filled: true,
+                      fillColor: StitchColors.surfaceContainerLowest,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[700],
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      onPressed: _isSaving ? null : _submitVerification,
+                      child: _isSaving
+                          ? const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                ),
+                                SizedBox(width: 12),
+                                Text("SUBMITTING PROOF...", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            )
+                          : const Text("SUBMIT PROOF OF DELIVERY", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ],
               ),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: StitchColors.outlineVariant),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Signature(
-                  controller: _sigController,
-                  height: 150,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 4. Receiver Name
-              const Text(
-                "RECEIVER NAME",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _receiverNameController,
-                validator: (value) => value == null || value.isEmpty ? "Receiver name is required" : null,
-                decoration: InputDecoration(
-                  hintText: "Enter name of recipient",
-                  filled: true,
-                  fillColor: StitchColors.surfaceContainerLowest,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 5. Notes
-              const Text(
-                "NOTES / REMARKS",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _notesController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  hintText: "Optional notes...",
-                  filled: true,
-                  fillColor: StitchColors.surfaceContainerLowest,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700],
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                  ),
-                  onPressed: _isSaving ? null : _submitVerification,
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("SUBMIT PROOF OF DELIVERY", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+
+          // Loading Backdrop Overlay
+          if (_isSaving)
+            Container(
+              color: Colors.black.withValues(alpha: 0.45),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 4)),
+                    ],
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF2E7D32),
+                          strokeWidth: 4,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        "Submitting Proof of Delivery...",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2E7D32),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        "Uploading signature & photo proof...",
+                        style: TextStyle(fontSize: 12, color: StitchColors.secondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

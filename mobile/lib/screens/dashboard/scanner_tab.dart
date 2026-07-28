@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/theme/colors.dart';
 import '../../models/delivery_order_model.dart';
@@ -18,8 +19,33 @@ class ScannerTab extends StatefulWidget {
 class _ScannerTabState extends State<ScannerTab> {
   DeliveryOrderModel? _selectedDO;
   final List<String> _scannedSerialNumbers = [];
+  DateTime? _lastScanTime;
+  final MobileScannerController _scannerController = MobileScannerController();
 
-  void _handleSimulateScan(String mockSn) {
+  bool _isProcessingScan = false;
+
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
+  }
+
+  void _onBarcodeDetect(BarcodeCapture capture) {
+    final now = DateTime.now();
+    if (_lastScanTime != null && now.difference(_lastScanTime!).inMilliseconds < 1500) {
+      return;
+    }
+    for (final barcode in capture.barcodes) {
+      final code = barcode.rawValue;
+      if (code != null && code.trim().isNotEmpty) {
+        _lastScanTime = now;
+        _handleSimulateScan(code.trim());
+        break;
+      }
+    }
+  }
+
+  Future<void> _handleSimulateScan(String mockSn) async {
     if (_scannedSerialNumbers.contains(mockSn)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -31,15 +57,24 @@ class _ScannerTabState extends State<ScannerTab> {
     }
 
     setState(() {
-      _scannedSerialNumbers.insert(0, mockSn);
+      _isProcessingScan = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Scanned SN: $mockSn")),
-    );
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (mounted) {
+      setState(() {
+        _scannedSerialNumbers.insert(0, mockSn);
+        _isProcessingScan = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Scanned SN: $mockSn")),
+      );
+    }
   }
 
-  void _finishScanning(DeliveryOrderModel order) {
+  Future<void> _finishScanning(DeliveryOrderModel order) async {
     if (_scannedSerialNumbers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -50,22 +85,34 @@ class _ScannerTabState extends State<ScannerTab> {
       return;
     }
 
-    // Open Verification Screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => VerificationScreen(
-          order: order,
-          manifestId: Provider.of<ManifestProvider>(context, listen: false).activeManifest!.id,
-        ),
-      ),
-    ).then((_) {
-      // Clear scans on success
-      setState(() {
-        _scannedSerialNumbers.clear();
-        _selectedDO = null;
-      });
+    setState(() {
+      _isProcessingScan = true;
     });
+
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    if (mounted) {
+      setState(() {
+        _isProcessingScan = false;
+      });
+
+      // Open Verification Screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerificationScreen(
+            order: order,
+            manifestId: Provider.of<ManifestProvider>(context, listen: false).activeManifest!.id,
+          ),
+        ),
+      ).then((_) {
+        // Clear scans on success
+        setState(() {
+          _scannedSerialNumbers.clear();
+          _selectedDO = null;
+        });
+      });
+    }
   }
 
   @override
@@ -75,9 +122,9 @@ class _ScannerTabState extends State<ScannerTab> {
 
     final manifest = manifestProv.activeManifest;
 
-    // Filter DOs that are ready for scanning (in_transit status)
+    // Filter DOs that are ready for scanning
     final scanReadyDOs = manifest?.deliveryOrders
-            .where((order) => order.status == 'in_transit' || order.status == 'assigned')
+            .where((order) => order.status == 'in_transit' || order.status == 'assigned' || order.status == 'pending')
             .toList() ??
         [];
 
@@ -106,14 +153,21 @@ class _ScannerTabState extends State<ScannerTab> {
       );
     }
 
-    // Auto-select first DO if none selected
-    if (_selectedDO == null && scanReadyDOs.isNotEmpty) {
-      _selectedDO = scanReadyDOs.first;
+    // Resolve active DO by ID matching
+    String? selectedDoId = _selectedDO?.id;
+    if (scanReadyDOs.isNotEmpty) {
+      if (selectedDoId == null || !scanReadyDOs.any((o) => o.id == selectedDoId)) {
+        selectedDoId = scanReadyDOs.first.id;
+        _selectedDO = scanReadyDOs.first;
+      }
+    } else {
+      selectedDoId = null;
+      _selectedDO = null;
     }
 
     final activeDO = _selectedDO;
 
-    if (activeDO == null) {
+    if (activeDO == null || selectedDoId == null) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32.0),
@@ -159,17 +213,19 @@ class _ScannerTabState extends State<ScannerTab> {
                     "DELIVERY ORDER",
                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
                   ),
-                  DropdownButton<DeliveryOrderModel>(
-                    value: activeDO,
-                    onChanged: (newDO) {
-                      setState(() {
-                        _selectedDO = newDO;
-                        _scannedSerialNumbers.clear();
-                      });
+                  DropdownButton<String>(
+                    value: selectedDoId,
+                    onChanged: (newId) {
+                      if (newId != null) {
+                        setState(() {
+                          _selectedDO = scanReadyDOs.firstWhere((o) => o.id == newId);
+                          _scannedSerialNumbers.clear();
+                        });
+                      }
                     },
-                    items: scanReadyDOs.map<DropdownMenuItem<DeliveryOrderModel>>((order) {
-                      return DropdownMenuItem<DeliveryOrderModel>(
-                        value: order,
+                    items: scanReadyDOs.map<DropdownMenuItem<String>>((order) {
+                      return DropdownMenuItem<String>(
+                        value: order.id,
                         child: Text(
                           order.doNumber,
                           style: const TextStyle(fontWeight: FontWeight.bold, color: StitchColors.primary),
@@ -218,9 +274,21 @@ class _ScannerTabState extends State<ScannerTab> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Scanning Progress",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        const Text(
+                          "Scanning Progress",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        if (_isProcessingScan) ...[
+                          const SizedBox(width: 8),
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: StitchColors.primary),
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
                       "$currentScansCount / $totalExpectedScans",
@@ -235,7 +303,7 @@ class _ScannerTabState extends State<ScannerTab> {
                     value: scanProgress.clamp(0.0, 1.0),
                     minHeight: 8,
                     backgroundColor: StitchColors.surfaceContainerHigh,
-                    color: StitchColors.primary,
+                    color: _isProcessingScan ? StitchColors.primaryContainer : StitchColors.primary,
                   ),
                 )
               ],
@@ -243,51 +311,88 @@ class _ScannerTabState extends State<ScannerTab> {
           ),
           const SizedBox(height: 20),
 
-          // 3. Mock Viewfinder frame
-          GestureDetector(
-            onTap: () {
-              // Trigger a mock scan on click
-              final mockSns = ["SN-ANT-20260901", "SN-RRU-5524310", "SN-BAT-0094382"];
-              if (currentScansCount < totalExpectedScans) {
-                _handleSimulateScan(mockSns[currentScansCount]);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("All items for this DO have been scanned!")),
-                );
-              }
-            },
-            child: Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(color: StitchColors.outlineVariant),
+          // 3. Camera Viewfinder Frame
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "CAMERA SCANNER",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
               ),
+              Row(
+                children: [
+                  Icon(Icons.videocam, size: 16, color: StitchColors.primary),
+                  SizedBox(width: 4),
+                  Text(
+                    "Live Camera Ready",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: StitchColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 230,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(color: StitchColors.outlineVariant, width: 1.5),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12.0),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Laser scan line overlay
+                  MobileScanner(
+                    controller: _scannerController,
+                    onDetect: _onBarcodeDetect,
+                  ),
+                  // Scanner laser overlay line
                   Container(
                     width: double.infinity,
                     height: 2,
                     color: Colors.redAccent,
                   ),
-                  const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
-                      SizedBox(height: 12),
-                      Text(
-                        "TAP TO SIMULATE BARCODE SCAN",
-                        style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13),
+                  // Flash toggle control
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: CircleAvatar(
+                      backgroundColor: Colors.black54,
+                      radius: 18,
+                      child: IconButton(
+                        icon: const Icon(Icons.flash_on, color: Colors.white, size: 18),
+                        onPressed: () => _scannerController.toggleTorch(),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Simulates camera sticker scanner on emulator",
-                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
                       ),
-                    ],
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.qr_code_scanner, color: Colors.white, size: 14),
+                          SizedBox(width: 6),
+                          Text(
+                            "Arahkan kamera ke Barcode pengiriman",
+                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -335,18 +440,17 @@ class _ScannerTabState extends State<ScannerTab> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.check_circle, color: StitchColors.slaGreen, size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            "SN: $sn",
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'JetBrains Mono'),
-                          ),
-                        ],
+                      const Icon(Icons.check_circle, color: StitchColors.slaGreen, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "SN: $sn",
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'JetBrains Mono'),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         now,
                         style: const TextStyle(color: StitchColors.secondary, fontSize: 11),

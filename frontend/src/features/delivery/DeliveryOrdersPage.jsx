@@ -32,6 +32,7 @@ export default function DeliveryOrdersPage() {
   const [isSubmittingScan, setIsSubmittingScan] = useState(false);
   const [generatedBarcodes, setGeneratedBarcodes] = useState([]);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [isFetchingBarcodes, setIsFetchingBarcodes] = useState(null); // stores DO id while loading
   const [showManifestModal, setShowManifestModal] = useState(false);
   const [manifests, setManifests] = useState([]);
   const [driversList, setDriversList] = useState([]);
@@ -594,6 +595,49 @@ export default function DeliveryOrdersPage() {
     }
   };
 
+  // Show & Print Barcode from the DO list (fetches existing assets + their barcodes)
+  const handleShowPrintBarcode = async (doItem) => {
+    setIsFetchingBarcodes(doItem.id);
+    try {
+      // 1. Fetch assets for this DO
+      const assetsRes = await api.get(`/delivery-orders/${doItem.id}/assets`);
+      const assets = assetsRes.data.data || [];
+
+      if (assets.length === 0) {
+        alert(`Belum ada material/asset yang di-scan untuk ${doItem.do_number}. Silakan lakukan Scan Inbound terlebih dahulu.`);
+        return;
+      }
+
+      // 2. Get or generate barcode for each asset
+      const barcodePromises = assets.map(asset =>
+        api.post(`/assets/${asset.id}/barcode`)
+          .then(res => res.data.data)
+          .catch(err => {
+            console.error(`Failed to get/generate barcode for asset ${asset.id}`, err);
+            return null;
+          })
+      );
+
+      const barcodes = await Promise.all(barcodePromises);
+      const validBarcodes = barcodes.filter(b => b !== null);
+
+      if (validBarcodes.length === 0) {
+        alert('Tidak ada barcode yang ditemukan untuk DO ini.');
+        return;
+      }
+
+      // 3. Set context and show modal
+      setSelectedDO(doItem);
+      setGeneratedBarcodes(validBarcodes);
+      setShowBarcodeModal(true);
+    } catch (err) {
+      console.error('Failed to fetch barcodes', err);
+      alert(err.response?.data?.message || 'Gagal mengambil data barcode.');
+    } finally {
+      setIsFetchingBarcodes(null);
+    }
+  };
+
   const filteredOrders = orders.filter((doItem) =>
     doItem.do_number.toLowerCase().includes(search.toLowerCase()) ||
     doItem.description?.toLowerCase().includes(search.toLowerCase())
@@ -758,14 +802,28 @@ export default function DeliveryOrdersPage() {
                                 {item.status.replace('_', ' ')}
                               </span>
                             </td>
-                            <td className="py-md px-lg text-right space-x-sm">
-                              <button
-                                onClick={() => startScanSession(item)}
-                                className="px-sm py-xs bg-primary text-on-primary hover:opacity-90 font-label-md text-label-md rounded flex items-center gap-xs inline-flex"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">barcode_scanner</span>
-                                <span>Scan Inbound</span>
-                              </button>
+                            <td className="py-md px-lg text-right">
+                              <div className="flex items-center justify-end gap-xs">
+                                <button
+                                  onClick={() => handleShowPrintBarcode(item)}
+                                  disabled={isFetchingBarcodes === item.id}
+                                  className="px-sm py-xs bg-surface-container text-primary border border-primary/30 hover:bg-primary/10 font-label-md text-label-md rounded flex items-center gap-xs inline-flex disabled:opacity-50 disabled:cursor-wait"
+                                >
+                                  {isFetchingBarcodes === item.id ? (
+                                    <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined text-[16px]">qr_code_2</span>
+                                  )}
+                                  <span>{isFetchingBarcodes === item.id ? 'Loading...' : 'Print Barcode'}</span>
+                                </button>
+                                <button
+                                  onClick={() => startScanSession(item)}
+                                  className="px-sm py-xs bg-primary text-on-primary hover:opacity-90 font-label-md text-label-md rounded flex items-center gap-xs inline-flex"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">barcode_scanner</span>
+                                  <span>Scan Inbound</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );

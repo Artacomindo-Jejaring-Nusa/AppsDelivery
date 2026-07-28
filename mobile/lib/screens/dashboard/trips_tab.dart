@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/colors.dart';
 import '../../providers/location_provider.dart';
@@ -27,11 +28,40 @@ class _TripsTabState extends State<TripsTab> {
     );
   }
 
+  Future<void> _launchGoogleMapsNavigation(String destinationQuery) async {
+    final encodedQuery = Uri.encodeComponent(destinationQuery);
+    final googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$encodedQuery");
+    final geoUrl = Uri.parse("geo:0,0?q=$encodedQuery");
+
+    try {
+      if (await canLaunchUrl(googleMapsUrl)) {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(geoUrl)) {
+        await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Launching map: $destinationQuery")),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final manifestProv = Provider.of<ManifestProvider>(context);
 
     final manifest = manifestProv.activeManifest;
+    final totalOrders = manifest?.deliveryOrders.length ?? 0;
+    final greenYellowOrders = manifest?.deliveryOrders.where((o) => o.slaStatus == 'green' || o.slaStatus == 'yellow').length ?? 0;
+    final slaHealthPercent = totalOrders > 0 ? ((greenYellowOrders / totalOrders) * 100).toInt() : 100;
+    final hasRedSla = manifest?.deliveryOrders.any((o) => o.slaStatus == 'red') ?? false;
+    final remainingKm = totalOrders > 0
+        ? manifest!.deliveryOrders.fold<double>(0, (sum, o) => sum + (o.slaStatus == 'red' ? 45.2 : 28.5)).toStringAsFixed(0)
+        : "0";
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -70,7 +100,7 @@ class _TripsTabState extends State<TripsTab> {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
-                              manifest != null ? "342" : "0",
+                              remainingKm,
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -117,7 +147,7 @@ class _TripsTabState extends State<TripsTab> {
                         Row(
                           children: [
                             Text(
-                              manifest != null ? "98%" : "100%",
+                              "$slaHealthPercent%",
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -128,8 +158,10 @@ class _TripsTabState extends State<TripsTab> {
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
-                                color: StitchColors.slaYellow,
+                              decoration: BoxDecoration(
+                                color: hasRedSla
+                                    ? StitchColors.slaRed
+                                    : (slaHealthPercent < 100 ? StitchColors.slaYellow : StitchColors.slaGreen),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -476,59 +508,137 @@ class _TripsTabState extends State<TripsTab> {
                 );
               }),
 
-              // 3. Map Preview
-              Container(
-                height: 160,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: StitchColors.outlineVariant),
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Minimalist custom painted map representation
-                      CustomPaint(painter: MockMapPainter()),
-                      Positioned(
-                        bottom: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xE6FFFFFF),
-                            borderRadius: BorderRadius.circular(4.0),
-                            border: Border.all(
-                              color: StitchColors.outlineVariant,
+              // 3. Map Preview & Google Maps Navigation Card
+              Builder(
+                builder: (context) {
+                  final activeOrder = manifest.deliveryOrders.firstWhere(
+                    (o) => o.status == 'in_transit' || o.status == 'assigned',
+                    orElse: () => manifest.deliveryOrders.first,
+                  );
+                  final destination = activeOrder.destinationAddress;
+                  final siteName = activeOrder.btsSite != null
+                      ? "${activeOrder.btsSite!.siteId} - ${activeOrder.btsSite!.siteName}"
+                      : destination;
+
+                  return Container(
+                    margin: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                    decoration: BoxDecoration(
+                      color: StitchColors.surfaceContainerLowest,
+                      border: Border.all(color: StitchColors.outlineVariant),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Map Preview Container
+                        InkWell(
+                          onTap: () => _launchGoogleMapsNavigation(siteName),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
+                          child: SizedBox(
+                            height: 160,
+                            width: double.infinity,
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  CustomPaint(painter: MockMapPainter()),
+
+                                  // Route Details Chip (Origin -> Ericsson BTS Site)
+                                  Positioned(
+                                    top: 10,
+                                    left: 10,
+                                    right: 10,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.92),
+                                        borderRadius: BorderRadius.circular(8.0),
+                                        border: Border.all(color: StitchColors.outlineVariant),
+                                        boxShadow: const [
+                                          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.circle, color: Colors.green, size: 10),
+                                          const SizedBox(width: 6),
+                                          const Text(
+                                            "Warehouse Logistik",
+                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                          ),
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 6),
+                                            child: Icon(Icons.arrow_forward, size: 12, color: StitchColors.secondary),
+                                          ),
+                                          const Icon(Icons.location_on, color: Colors.red, size: 12),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              siteName,
+                                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.primary),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  // View Map Badge
+                                  Positioned(
+                                    bottom: 10,
+                                    left: 10,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: StitchColors.primary,
+                                        borderRadius: BorderRadius.circular(6.0),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.map, size: 14, color: Colors.white),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            "Google Maps Route",
+                                            style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                Icons.map,
-                                size: 14,
-                                color: StitchColors.primary,
+                        ),
+
+                        // Action Bar below Map
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 44,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1A73E8), // Google Maps Blue
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                               ),
-                              SizedBox(width: 6),
-                              Text(
-                                "View Route Map",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: StitchColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              onPressed: () => _launchGoogleMapsNavigation(siteName),
+                              icon: const Icon(Icons.navigation, size: 18),
+                              label: const Text(
+                                "NAVIGATE WITH GOOGLE MAPS",
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ],

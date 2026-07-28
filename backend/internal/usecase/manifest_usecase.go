@@ -47,7 +47,7 @@ func (u *manifestUsecase) Create(ctx context.Context, req *domain.CreateManifest
 		ID:             uuid.New(),
 		ManifestNumber: manifestNumber,
 		DriverID:       &req.DriverID,
-		Status:         domain.ManifestStatusDraft,
+		Status:         domain.ManifestStatusDispatched,
 		Notes:          req.Notes,
 		CreatedBy:      &createdBy,
 	}
@@ -61,9 +61,9 @@ func (u *manifestUsecase) Create(ctx context.Context, req *domain.CreateManifest
 		return nil, err
 	}
 
-	// Update each DO status to "assigned"
+	// Update each DO status to "in_transit"
 	for _, doID := range req.DeliveryOrderIDs {
-		if err := u.doRepo.UpdateStatus(ctx, doID, domain.DOStatusAssigned, "Assigned to manifest "+manifest.ManifestNumber); err != nil {
+		if err := u.doRepo.UpdateStatus(ctx, doID, domain.DOStatusInTransit, "Dispatched in manifest "+manifest.ManifestNumber); err != nil {
 			return nil, err
 		}
 	}
