@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import FleetMap from '../../components/shared/FleetMap';
 
 export default function FleetPage() {
+  const navigate = useNavigate();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingDriver, setEditingDriver] = useState(null);
+  const [activeActionMenu, setActiveActionMenu] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Add Vehicle Form State
+  // Add / Edit Vehicle Form State
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -52,6 +57,45 @@ export default function FleetPage() {
       fetchDrivers();
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal menambahkan kendaraan/pengemudi');
+    }
+  };
+
+  const handleEditOpen = (driver) => {
+    setEditingDriver(driver);
+    setFormData({
+      full_name: driver.full_name || '',
+      phone: driver.phone || '',
+      vehicle_plate: driver.vehicle_plate || '',
+      vehicle_type: driver.vehicle_type || 'Box Truck',
+    });
+    setShowEditModal(true);
+    setActiveActionMenu(null);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingDriver) return;
+    try {
+      await api.put(`/drivers/${editingDriver.id}`, formData);
+      setShowEditModal(false);
+      setEditingDriver(null);
+      triggerToast(`Data driver ${formData.full_name} berhasil diperbarui.`);
+      fetchDrivers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal memperbarui data pengemudi');
+    }
+  };
+
+  const handleDeleteDriver = async (driver) => {
+    setActiveActionMenu(null);
+    if (window.confirm(`Apakah Anda yakin ingin menghapus driver ${driver.full_name} (${driver.vehicle_plate || 'No Plate'})?`)) {
+      try {
+        await api.delete(`/drivers/${driver.id}`);
+        triggerToast(`Driver ${driver.full_name} berhasil dihapus.`);
+        fetchDrivers();
+      } catch (err) {
+        alert(err.response?.data?.message || 'Gagal menghapus driver.');
+      }
     }
   };
 
@@ -314,13 +358,63 @@ export default function FleetPage() {
                       <td className="px-lg py-md text-on-surface-variant">
                         {getLastLocation(driver)}
                       </td>
-                      <td className="px-lg py-md text-right">
+                      <td className="px-lg py-md text-right relative">
                         <button 
-                          onClick={() => triggerToast(`Aksi kurir ${driver.full_name} dibuka.`)}
-                          className="text-outline hover:text-primary transition-colors"
+                          onClick={() => setActiveActionMenu(activeActionMenu === driver.id ? null : driver.id)}
+                          className="p-1 text-outline hover:text-primary hover:bg-surface-container rounded-lg transition-colors"
                         >
                           <span className="material-symbols-outlined">more_vert</span>
                         </button>
+
+                        {/* Interactive Action Dropdown Popup */}
+                        {activeActionMenu === driver.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setActiveActionMenu(null)}></div>
+                            <div className="absolute right-md mt-1 w-52 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl z-50 text-left overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                              <div className="p-xs space-y-0.5">
+                                <button
+                                  onClick={() => {
+                                    setActiveActionMenu(null);
+                                    navigate(`/tracking?driver_id=${driver.id}`);
+                                  }}
+                                  className="w-full flex items-center gap-sm px-md py-sm text-body-sm font-semibold text-on-surface hover:bg-surface-container-low rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[18px] text-primary">location_searching</span>
+                                  <span>Lacak Lokasi GPS</span>
+                                </button>
+
+                                <button
+                                  onClick={() => handleEditOpen(driver)}
+                                  className="w-full flex items-center gap-sm px-md py-sm text-body-sm font-semibold text-on-surface hover:bg-surface-container-low rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[18px] text-indigo-600">edit</span>
+                                  <span>Edit Data Driver</span>
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setActiveActionMenu(null);
+                                    navigate('/delivery-orders');
+                                  }}
+                                  className="w-full flex items-center gap-sm px-md py-sm text-body-sm font-semibold text-on-surface hover:bg-surface-container-low rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[18px] text-emerald-600">local_shipping</span>
+                                  <span>Penugasan DO</span>
+                                </button>
+
+                                <div className="h-px bg-outline-variant my-xs"></div>
+
+                                <button
+                                  onClick={() => handleDeleteDriver(driver)}
+                                  className="w-full flex items-center gap-sm px-md py-sm text-body-sm font-semibold text-error hover:bg-error-container/20 rounded-lg transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                                  <span>Hapus Driver</span>
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </td>
                     </tr>
                   );
@@ -422,6 +516,88 @@ export default function FleetPage() {
                   className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container shadow-sm"
                 >
                   Simpan Kendaraan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Edit Driver / Vehicle Modal ─── */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-xs flex items-center justify-center p-md z-50 animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest p-xl rounded-xl border border-outline-variant max-w-lg w-full space-y-lg shadow-xl">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-md">
+              <h3 className="font-headline-sm text-headline-sm text-on-surface">Edit Data Kendaraan & Driver</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-md">
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Nama Lengkap Pengemudi</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Rudi Hermawan"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Nomor Telepon</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: 081299887766"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Nomor Plat Kendaraan</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: B 1234 ABC"
+                  value={formData.vehicle_plate}
+                  onChange={(e) => setFormData({ ...formData, vehicle_plate: e.target.value })}
+                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Tipe Kendaraan</label>
+                <select
+                  value={formData.vehicle_type}
+                  onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
+                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary"
+                >
+                  <option value="Heavy Truck (10W)">Heavy Truck (10W)</option>
+                  <option value="Box Truck">Box Truck</option>
+                  <option value="Cargo Van">Cargo Van</option>
+                  <option value="Pickup Truck">Pickup Truck</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-md pt-md border-t border-outline-variant">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-md py-sm bg-surface-container text-secondary font-label-md rounded-lg hover:bg-surface-container-high"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container shadow-sm"
+                >
+                  Simpan Perubahan
                 </button>
               </div>
             </form>
