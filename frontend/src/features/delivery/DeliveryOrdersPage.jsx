@@ -764,7 +764,7 @@ export default function DeliveryOrdersPage() {
                       }}
                     />
                     <div className="text-[11px] text-secondary font-data-mono">
-                      PT. AKS X ARTACOM
+                      AKS X ARTACOMINDO
                     </div>
                   </div>
                 ))}
