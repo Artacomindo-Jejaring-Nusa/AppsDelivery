@@ -9,6 +9,7 @@ import AnalyticsPage from './features/analytics/AnalyticsPage';
 import UserPage from './features/users/UserPage';
 import TrackingPage from './features/tracking/TrackingPage';
 import BtsSitePage from './features/bts/BtsSitePage';
+import TimelinePage from './features/timeline/TimelinePage';
 import { useAuthStore } from './store/authStore';
 
 // ProtectedRoute component
@@ -38,6 +39,7 @@ export default function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="timeline" element={<TimelinePage />} />
           <Route path="delivery-orders" element={<DeliveryOrdersPage />} />
           <Route path="fleet" element={<FleetPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />

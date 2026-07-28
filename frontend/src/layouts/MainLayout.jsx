@@ -17,6 +17,7 @@ export default function MainLayout() {
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
+    { label: 'Project Timeline', path: '/timeline', icon: 'account_tree' },
     { label: 'Shipments', path: '/delivery-orders', icon: 'local_shipping' },
     { label: 'Fleet', path: '/fleet', icon: 'directions_bus' },
     { label: 'Analytics', path: '/analytics', icon: 'analytics' },

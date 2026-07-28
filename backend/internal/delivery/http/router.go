@@ -28,6 +28,7 @@ type Router struct {
 	uploadHandler       *handler.UploadHandler
 	importExportHandler *handler.ImportExportHandler
 	locHandler          *handler.DriverLocationHandler
+	timelineHandler     *handler.TimelineHandler
 	jwtManager          *jwtPkg.JWTManager
 	rdb                 *redis.Client
 	auditRepo           domain.AuditLogRepository
@@ -47,6 +48,7 @@ func NewRouter(
 	uploadHandler *handler.UploadHandler,
 	importExportHandler *handler.ImportExportHandler,
 	locHandler *handler.DriverLocationHandler,
+	timelineHandler *handler.TimelineHandler,
 	jwtManager *jwtPkg.JWTManager,
 	rdb *redis.Client,
 	auditRepo domain.AuditLogRepository,
@@ -64,6 +66,7 @@ func NewRouter(
 		uploadHandler:       uploadHandler,
 		importExportHandler: importExportHandler,
 		locHandler:          locHandler,
+		timelineHandler:     timelineHandler,
 		jwtManager:          jwtManager,
 		rdb:                 rdb,
 		auditRepo:           auditRepo,
@@ -105,8 +108,9 @@ func (r *Router) Setup(engine *gin.Engine) {
 	protected := v1.Group("")
 	protected.Use(middleware.AuthMiddleware(r.jwtManager, r.rdb))
 	{
-		// ---- Dashboard Analytics ----
+		// ---- Dashboard Analytics & Project Timeline ----
 		protected.GET("/dashboard/stats", r.dashboardHandler.GetStats)
+		protected.GET("/projects/timeline", r.timelineHandler.GetTimeline)
 
 		// ---- Uploads ----
 		protected.POST("/uploads", r.uploadHandler.UploadFile)
