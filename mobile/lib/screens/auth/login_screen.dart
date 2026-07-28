@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/push_notification_service.dart';
 import '../../core/theme/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
@@ -298,24 +299,28 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             onPressed: isLoading ? null : _handleLogin,
                             child: isLoading
-                                ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2.5,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        _loadingMessage.toUpperCase(),
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                      ),
-                                    ],
-                                  )
+                                 ? Row(
+                                     mainAxisAlignment: MainAxisAlignment.center,
+                                     children: [
+                                       const SizedBox(
+                                         width: 20,
+                                         height: 20,
+                                         child: CircularProgressIndicator(
+                                           color: Colors.white,
+                                           strokeWidth: 2.5,
+                                         ),
+                                       ),
+                                       const SizedBox(width: 8),
+                                       Flexible(
+                                         child: Text(
+                                           _loadingMessage.toUpperCase(),
+                                           overflow: TextOverflow.ellipsis,
+                                           maxLines: 1,
+                                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                         ),
+                                       ),
+                                     ],
+                                   )
                                 : const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -384,7 +389,33 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       )
                     ],
-                  )
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final token = PushNotificationService().fcmToken;
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text("Firebase FCM Token"),
+                            content: SelectableText(
+                              token ?? "Token not generated yet. Ensure Google Play Services & Internet are active.",
+                              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text("CLOSE"),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.notifications_active, size: 16, color: StitchColors.primary),
+                      label: const Text("View FCM Push Token", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.primary)),
+                    ),
+                  ),
                 ],
               ),
             ),
