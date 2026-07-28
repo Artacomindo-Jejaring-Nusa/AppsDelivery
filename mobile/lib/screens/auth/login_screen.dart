@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/services/push_notification_service.dart';
 import '../../core/theme/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
