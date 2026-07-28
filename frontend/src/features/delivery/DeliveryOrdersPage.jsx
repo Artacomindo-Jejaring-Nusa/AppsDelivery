@@ -76,11 +76,21 @@ export default function DeliveryOrdersPage() {
     setShowManifestModal(true);
   };
 
-  const handlePrintManifest = (manifest) => {
-    const driverName = manifest.driver?.full_name || 'Driver AKS';
-    const vehiclePlate = manifest.driver?.vehicle_plate || '-';
-    const vehicleType = manifest.driver?.vehicle_type || 'Box Truck';
-    const items = manifest.items || [];
+  const handlePrintManifest = async (manifest) => {
+    let manifestData = manifest;
+    try {
+      const res = await api.get(`/manifests/${manifest.id}`);
+      if (res.data?.data) {
+        manifestData = res.data.data;
+      }
+    } catch (err) {
+      console.warn('Using cached manifest data:', err);
+    }
+
+    const driverName = manifestData.driver?.full_name || 'Assigned Driver';
+    const vehiclePlate = manifestData.driver?.vehicle_plate || 'Semua Armada';
+    const vehicleType = manifestData.driver?.vehicle_type || 'Box Truck';
+    const items = manifestData.items || [];
 
     const itemsHtml = items.length > 0
       ? items.map((item, idx) => {

@@ -154,7 +154,7 @@ func (r *manifestRepository) FindAll(ctx context.Context, pagination *domain.Pag
 func (r *manifestRepository) FindItemsByManifestID(ctx context.Context, manifestID uuid.UUID) ([]*domain.ManifestItem, error) {
 	query := `
 		SELECT mi.id, mi.manifest_id, mi.delivery_order_id, mi.sequence_number, mi.created_at,
-			   dord.do_number, dord.status, dord.sla_status, dord.description
+			   dord.do_number, dord.status, dord.sla_status, dord.description, dord.origin_address, dord.destination_address
 		FROM manifest_items mi
 		JOIN delivery_orders dord ON mi.delivery_order_id = dord.id
 		WHERE mi.manifest_id = $1
@@ -172,7 +172,7 @@ func (r *manifestRepository) FindItemsByManifestID(ctx context.Context, manifest
 		do := &domain.DeliveryOrder{}
 		if err := rows.Scan(
 			&item.ID, &item.ManifestID, &item.DeliveryOrderID, &item.SequenceNumber, &item.CreatedAt,
-			&do.DONumber, &do.Status, &do.SLAStatus, &do.Description,
+			&do.DONumber, &do.Status, &do.SLAStatus, &do.Description, &do.OriginAddress, &do.DestinationAddress,
 		); err != nil {
 			return nil, err
 		}
