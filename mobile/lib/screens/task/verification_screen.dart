@@ -93,7 +93,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
       // 7. Paint text
       final textPainter = TextPainter(
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
       );
 
       // Destination Site/Address text
