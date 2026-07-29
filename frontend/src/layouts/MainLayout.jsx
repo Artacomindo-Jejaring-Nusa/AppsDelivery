@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
@@ -8,6 +8,64 @@ export default function MainLayout() {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null); // 'notifications' | 'settings' | 'user' | null
+  const [newCount, setNewCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+
+  // Construct WebSocket URL dynamically
+  const getWsUrl = () => {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+    const wsProto = base.startsWith('https') ? 'wss' : 'ws';
+    return base.replace(/^https?:\/\//i, `${wsProto}://`) + '/ws';
+  };
+
+  useEffect(() => {
+    let socket;
+    let reconnectTimeout;
+
+    const connect = () => {
+      const url = getWsUrl();
+      console.log('[WS Connection] Connecting to:', url);
+      socket = new WebSocket(url);
+
+      socket.onmessage = (event) => {
+        try {
+          const newNotif = JSON.parse(event.data);
+          newNotif.id = Date.now();
+          console.log('[WS Notification Received]', newNotif);
+
+          setNotifications((prev) => [newNotif, ...prev]);
+          setNewCount((prev) => prev + 1);
+
+          // Trigger browser notification if allowed
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(newNotif.title, { body: newNotif.message });
+          }
+        } catch (err) {
+          console.error('[WS Error parsing message]', err);
+        }
+      };
+
+      socket.onerror = (err) => {
+        console.error('[WS Socket Error]', err);
+      };
+
+      socket.onclose = () => {
+        console.log('[WS Socket Closed] Reconnecting in 3s...');
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => {
+      if (socket) socket.close();
+      clearTimeout(reconnectTimeout);
+    };
+  }, []);
 
   const handleLogout = async () => {
     setActiveDropdown(null);
@@ -34,6 +92,41 @@ export default function MainLayout() {
     .toUpperCase()
     .slice(0, 2);
 
+  const getNotificationStyle = (type) => {
+    switch (type) {
+      case 'error':
+      case 'sla_breach':
+        return {
+          borderClass: 'border-error',
+          bgClass: 'bg-error-container text-error',
+          icon: 'report'
+        };
+      case 'warning':
+      case 'sla_warning':
+        return {
+          borderClass: 'border-amber-500',
+          bgClass: 'bg-amber-100 text-amber-700',
+          icon: 'warning'
+        };
+      case 'delivered':
+      case 'completed':
+      case 'success':
+        return {
+          borderClass: 'border-green-500',
+          bgClass: 'bg-green-100 text-green-700',
+          icon: 'check_circle'
+        };
+      case 'info':
+      case 'in_transit':
+      default:
+        return {
+          borderClass: 'border-blue-500',
+          bgClass: 'bg-blue-100 text-blue-700',
+          icon: 'local_shipping'
+        };
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background font-body-md text-on-surface">
       {/* ─── Sidebar Navigation ─── */}
@@ -58,52 +151,35 @@ export default function MainLayout() {
           </div>
         </div>
 
-        {/* New Shipment Button */}
-        <button
-          onClick={() => navigate('/delivery-orders')}
-          className="mb-xl w-full py-sm px-md bg-primary text-on-primary font-label-md text-label-md rounded-lg flex items-center justify-center gap-xs hover:opacity-90 transition-all"
-        >
-          <span className="material-symbols-outlined text-sm">add</span>
-          New Shipment
-        </button>
-
-        {/* Main Nav Items */}
-        <div className="flex-1 flex flex-col gap-xs">
+        {/* Navigation list */}
+        <div className="flex-1 space-y-xs overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
-            const isActive =
-              location.pathname === item.path ||
-              (item.path === '/dashboard' && location.pathname === '/');
+            const isActive = location.pathname.startsWith(item.path);
             return (
               <button
-                key={item.path}
+                key={item.label}
                 onClick={() => navigate(item.path)}
-                className={`flex items-center gap-md px-md py-sm rounded-lg transition-colors duration-200 ease-in-out w-full text-left ${
+                className={`flex items-center gap-md w-full px-md py-sm rounded-lg text-left transition-colors font-semibold text-body-md ${
                   isActive
-                    ? 'bg-secondary-container text-on-secondary-container font-semibold'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+                    ? 'bg-secondary-container text-on-secondary-container'
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
                 <span className="material-symbols-outlined">{item.icon}</span>
-                <span className="font-label-md text-label-md">{item.label}</span>
+                <span>{item.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Bottom Links */}
-        <div className="mt-auto flex flex-col gap-xs pt-md border-t border-outline-variant">
-          <button
-            className="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface transition-colors w-full text-left"
-          >
-            <span className="material-symbols-outlined">help</span>
-            <span className="font-label-md text-label-md">Support</span>
-          </button>
+        {/* Footer info/Sign out */}
+        <div className="mt-auto pt-lg border-t border-outline-variant">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface transition-colors w-full text-left"
+            className="flex items-center gap-md w-full px-md py-sm rounded-lg text-left text-error hover:bg-error/15 font-semibold text-body-md"
           >
             <span className="material-symbols-outlined">logout</span>
-            <span className="font-label-md text-label-md">Sign Out</span>
+            <span>Sign Out</span>
           </button>
         </div>
       </nav>
@@ -138,60 +214,53 @@ export default function MainLayout() {
             {/* Notifications Dropdown Container */}
             <div className="relative">
               <button 
-                onClick={() => setActiveDropdown(activeDropdown === 'notifications' ? null : 'notifications')}
+                onClick={() => {
+                  setActiveDropdown(activeDropdown === 'notifications' ? null : 'notifications');
+                  if (activeDropdown !== 'notifications') {
+                    setNewCount(0);
+                  }
+                }}
                 className={`p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full relative ${activeDropdown === 'notifications' ? 'bg-surface-container-low text-primary' : ''}`}
               >
                 <span className="material-symbols-outlined">notifications</span>
-                <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+                {newCount > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white animate-pulse"></span>
+                )}
               </button>
 
               {activeDropdown === 'notifications' && (
                 <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-md py-sm bg-surface-container-low border-b border-outline-variant flex justify-between items-center">
                     <h4 className="font-semibold text-body-md text-on-surface">System Notifications</h4>
-                    <span className="px-xs py-0.5 bg-primary/10 text-primary text-label-sm font-semibold rounded">4 New</span>
+                    {newCount > 0 && (
+                      <span className="px-xs py-0.5 bg-primary/10 text-primary text-label-sm font-semibold rounded">{newCount} New</span>
+                    )}
                   </div>
                   <div className="divide-y divide-outline-variant max-h-80 overflow-y-auto custom-scrollbar">
-                    <div className="p-md hover:bg-surface-container-low transition-colors cursor-pointer flex gap-sm border-l-4 border-error">
-                      <div className="w-8 h-8 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[18px]">report</span>
+                    {notifications.length === 0 ? (
+                      <div className="p-md text-center text-on-surface-variant text-body-sm">
+                        Belum ada notifikasi baru
                       </div>
-                      <div>
-                        <p className="text-body-sm font-semibold text-on-surface">SLA Breach Warning</p>
-                        <p className="text-body-sm text-on-surface-variant">DO-2026-07-003 has expired SLA limit</p>
-                        <span className="text-label-sm text-secondary font-data-mono mt-xs block">1 min ago</span>
-                      </div>
-                    </div>
-                    <div className="p-md hover:bg-surface-container-low transition-colors cursor-pointer flex gap-sm border-l-4 border-amber-500">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[18px]">warning</span>
-                      </div>
-                      <div>
-                        <p className="text-body-sm font-semibold text-on-surface">SLA Limit Warning</p>
-                        <p className="text-body-sm text-on-surface-variant">DO-2026-07-001 approaching SLA breach</p>
-                        <span className="text-label-sm text-secondary font-data-mono mt-xs block">10 mins ago</span>
-                      </div>
-                    </div>
-                    <div className="p-md hover:bg-surface-container-low transition-colors cursor-pointer flex gap-sm border-l-4 border-green-500">
-                      <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[18px]">local_shipping</span>
-                      </div>
-                      <div>
-                        <p className="text-body-sm font-semibold text-on-surface">New Dispatch Assigned</p>
-                        <p className="text-body-sm text-on-surface-variant">Budi Driver assigned to DO-2026-07-004</p>
-                        <span className="text-label-sm text-secondary font-data-mono mt-xs block">30 mins ago</span>
-                      </div>
-                    </div>
-                    <div className="p-md hover:bg-surface-container-low transition-colors cursor-pointer flex gap-sm border-l-4 border-green-500">
-                      <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[18px]">inventory_2</span>
-                      </div>
-                      <div>
-                        <p className="text-body-sm font-semibold text-on-surface">Inbound Sync Complete</p>
-                        <p className="text-body-sm text-on-surface-variant">48 assets scanned & sync complete</p>
-                        <span className="text-label-sm text-secondary font-data-mono mt-xs block">1 hr ago</span>
-                      </div>
-                    </div>
+                    ) : (
+                      notifications.map((notif) => {
+                        const style = getNotificationStyle(notif.type);
+                        return (
+                          <div 
+                            key={notif.id} 
+                            className={`p-md hover:bg-surface-container-low transition-colors cursor-pointer flex gap-sm border-l-4 ${style.borderClass}`}
+                          >
+                            <div className={`w-8 h-8 rounded-full ${style.bgClass} flex items-center justify-center shrink-0`}>
+                              <span className="material-symbols-outlined text-[18px]">{style.icon}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-body-sm font-semibold text-on-surface truncate">{notif.title}</p>
+                              <p className="text-body-sm text-on-surface-variant break-words">{notif.message || notif.body}</p>
+                              <span className="text-label-sm text-secondary font-data-mono mt-xs block">{notif.timestamp}</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               )}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"backend-delivery/internal/domain"
+	"backend-delivery/pkg/ws"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -110,6 +111,44 @@ func (u *deliveryOrderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, r
 
 	do.Status = req.Status
 	populateSLADetail(do)
+
+	// Broadcast WebSocket notification to Admin Dashboard
+	go func(doNum, status string) {
+		hub := ws.GetHub()
+		title := ""
+		msg := ""
+		notifType := "info"
+
+		switch status {
+		case domain.DOStatusInTransit:
+			title = "DO In Transit"
+			msg = fmt.Sprintf("Delivery Order %s is now in transit", doNum)
+			notifType = "info"
+		case domain.DOStatusDelivered:
+			title = "DO Delivered"
+			msg = fmt.Sprintf("Delivery Order %s has been successfully delivered by Driver", doNum)
+			notifType = "delivered"
+		case domain.DOStatusCompleted:
+			title = "DO Completed"
+			msg = fmt.Sprintf("Delivery Order %s has been completed and verified", doNum)
+			notifType = "completed"
+		case domain.DOStatusReturned:
+			title = "DO Returned"
+			msg = fmt.Sprintf("Delivery Order %s has been returned by Driver", doNum)
+			notifType = "warning"
+		case domain.DOStatusCancelled:
+			title = "DO Cancelled"
+			msg = fmt.Sprintf("Delivery Order %s has been cancelled", doNum)
+			notifType = "error"
+		default:
+			return
+		}
+
+		if title != "" {
+			hub.BroadcastNotification(title, msg, notifType)
+		}
+	}(do.DONumber, req.Status)
+
 	return do, nil
 }
 

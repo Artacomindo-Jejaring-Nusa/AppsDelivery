@@ -9,6 +9,7 @@ import (
 	"backend-delivery/internal/domain"
 	jwtPkg "backend-delivery/pkg/jwt"
 	"backend-delivery/pkg/response"
+	wsPkg "backend-delivery/pkg/ws"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -109,6 +110,11 @@ func (r *Router) Setup(engine *gin.Engine) {
 
 	// ---- Public Tracking Route (Unauthenticated) ----
 	v1.GET("/track/:tracking_number", r.trackingHandler.PublicTrack)
+
+	// ---- WebSocket Endpoint (Real-time Notifications) ----
+	v1.GET("/ws", func(c *gin.Context) {
+		wsPkg.HandleWS(c.Writer, c.Request)
+	})
 
 	// ---- Protected Routes ----
 	protected := v1.Group("")
