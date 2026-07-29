@@ -36,6 +36,9 @@ COPY --from=builder /build/api .
 # Copy migrations
 COPY --from=builder /build/migrations ./migrations
 
+# Copy Firebase service account credentials for FCM Push Notifications
+COPY --from=builder /build/firebase-service-account.json ./firebase-service-account.json
+
 # Create uploads directory
 RUN mkdir -p /app/uploads/barcodes
 
