@@ -8,6 +8,39 @@ export default function DeliveryOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedPOD, setSelectedPOD] = useState(null);
+  const [showPODModal, setShowPODModal] = useState(false);
+
+  const parsePODNotes = (notesStr) => {
+    if (!notesStr) return null;
+    
+    // Check if it's a POD notes string
+    const receivedByMatch = notesStr.match(/Received by:\s*([^.]+)/i);
+    const notesMatch = notesStr.match(/notes:\s*([^.[]+)/i);
+    const barcodeMatch = notesStr.match(/Barcode:\s*([^.\s[]+)/i);
+    const photoMatch = notesStr.match(/\[Proof of Delivery Photo:\s*([^\]]+)\]/i);
+    
+    if (receivedByMatch || notesMatch || photoMatch) {
+      return {
+        receivedBy: receivedByMatch ? receivedByMatch[1].trim() : 'Penerima',
+        notes: notesMatch ? notesMatch[1].trim() : '-',
+        barcode: barcodeMatch ? barcodeMatch[1].trim() : '-',
+        photoUrl: photoMatch ? photoMatch[1].trim() : null,
+        raw: notesStr
+      };
+    }
+    return null;
+  };
+
+  const getPODFileUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+    const host = base.replace(/\/api\/v1\/?$/i, '');
+    return `${host}${url}`;
+  };
 
   // Filters for DO list
   const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -813,6 +846,23 @@ export default function DeliveryOrdersPage() {
                             </td>
                             <td className="py-md px-lg text-right">
                               <div className="flex items-center justify-end gap-xs">
+                                {(item.status === 'delivered' || item.status === 'completed') && (
+                                  <button
+                                    onClick={() => {
+                                      const podData = parsePODNotes(item.notes);
+                                      if (podData) {
+                                        setSelectedPOD({ ...podData, do_number: item.do_number });
+                                        setShowPODModal(true);
+                                      } else {
+                                        alert('Catatan POD tidak ditemukan atau format tidak sesuai.');
+                                      }
+                                    }}
+                                    className="px-sm py-xs bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 font-label-md text-label-md rounded flex items-center gap-xs inline-flex shadow-xs"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                    <span>Lihat POD</span>
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleShowPrintBarcode(item)}
                                   disabled={isFetchingBarcodes === item.id}
@@ -1403,6 +1453,80 @@ export default function DeliveryOrdersPage() {
                   <p className="text-body-md text-secondary py-md text-center">Belum ada Manifest diterbitkan.</p>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ─── Proof of Delivery (POD) Modal ─── */}
+      {showPODModal && selectedPOD && (
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-xs flex items-center justify-center p-md z-50 animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest p-xl rounded-xl border border-outline-variant max-w-lg w-full space-y-lg shadow-xl">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-md">
+              <div>
+                <h3 className="font-headline-sm text-headline-sm text-primary flex items-center gap-sm">
+                  <span className="material-symbols-outlined text-primary text-xl">verified</span>
+                  <span>Bukti Pengiriman (Proof of Delivery)</span>
+                </h3>
+                <p className="text-body-sm text-secondary font-data-mono mt-xs">{selectedPOD.do_number}</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowPODModal(false);
+                  setSelectedPOD(null);
+                }} 
+                className="text-secondary hover:text-on-surface"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-md">
+              <div className="bg-surface p-md rounded-lg border border-outline-variant grid grid-cols-2 gap-sm">
+                <div>
+                  <span className="text-label-sm text-secondary uppercase block">Nama Penerima</span>
+                  <span className="font-semibold text-body-md text-on-surface block mt-xs">{selectedPOD.receivedBy}</span>
+                </div>
+                <div>
+                  <span className="text-label-sm text-secondary uppercase block">Verifikasi Barcode</span>
+                  <span className="font-semibold text-body-md text-on-surface font-data-mono block mt-xs">{selectedPOD.barcode}</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-label-sm text-secondary uppercase block mb-xs">Catatan Penerima</span>
+                <div className="bg-surface p-md rounded-lg border border-outline-variant text-body-md text-on-surface">
+                  {selectedPOD.notes || '-'}
+                </div>
+              </div>
+
+              {selectedPOD.photoUrl && (
+                <div>
+                  <span className="text-label-sm text-secondary uppercase block mb-sm">Foto Tanda Terima / Tanda Tangan (POD)</span>
+                  <div className="border border-outline-variant rounded-lg overflow-hidden bg-surface-container flex items-center justify-center max-h-64">
+                    <img 
+                      src={getPODFileUrl(selectedPOD.photoUrl)} 
+                      alt="Proof of Delivery"
+                      className="max-w-full max-h-64 object-contain"
+                      onError={(e) => {
+                        e.target.src = 'https://placehold.co/400x300?text=Gambar+POD+Tidak+Dapat+Dimuat';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-md border-t border-outline-variant">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPODModal(false);
+                  setSelectedPOD(null);
+                }}
+                className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container"
+              >
+                Selesai
+              </button>
             </div>
           </div>
         </div>
