@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/colors.dart';
 import '../../models/delivery_order_model.dart';
@@ -46,6 +49,93 @@ class _VerificationScreenState extends State<VerificationScreen> {
     super.dispose();
   }
 
+  Future<File> _addWatermark(File imageFile) async {
+    try {
+      // 1. Get GPS Location
+      String locationText = 'GPS: Belum diizinkan / tidak aktif';
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 3),
+        );
+        locationText = 'GPS: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+      } catch (e) {
+        debugPrint("Failed to get location for watermark: $e");
+      }
+
+      // 2. Get Formatted Timestamp
+      final now = DateTime.now();
+      final timeStr = DateFormat('HH:mm').format(now);
+      final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(now);
+
+      // 3. Load image bytes
+      final bytes = await imageFile.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frameInfo = await codec.getNextFrame();
+      final ui.Image image = frameInfo.image;
+
+      // 4. Create recorder and canvas
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()));
+
+      // 5. Draw original image
+      canvas.drawImage(image, Offset.zero, Paint());
+
+      // 6. Draw semi-transparent dark overlay at the bottom
+      final overlayHeight = image.height * 0.16;
+      final paint = Paint()
+        ..color = Colors.black.withOpacity(0.55)
+        ..style = PaintingStyle.fill;
+      canvas.drawRect(
+        Rect.fromLTWH(0, image.height - overlayHeight, image.width.toDouble(), overlayHeight),
+        paint,
+      );
+
+      // 7. Paint text
+      final textPainter = TextPainter(
+        textDirection: TextDirection.ltr,
+      );
+
+      // Destination Site/Address text
+      String siteText = widget.order.btsSite != null 
+          ? "Site: ${widget.order.btsSite!.siteId} - ${widget.order.btsSite!.siteName}"
+          : "Tujuan: ${widget.order.destinationAddress}";
+
+      final timeTextStyle = TextStyle(
+        color: Colors.white,
+        fontSize: (image.height * 0.035).clamp(16.0, 48.0),
+        fontWeight: FontWeight.w600,
+      );
+      
+      textPainter.text = TextSpan(
+        text: "$timeStr | $dateStr\n$locationText\n$siteText",
+        style: timeTextStyle,
+      );
+      
+      textPainter.layout(maxWidth: image.width.toDouble() - 40);
+      
+      textPainter.paint(
+        canvas,
+        Offset(20, image.height - overlayHeight + (overlayHeight - textPainter.height) / 2),
+      );
+
+      // 8. End recording and convert back to image
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(image.width, image.height);
+      final pngByteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = pngByteData!.buffer.asUint8List();
+
+      // 9. Write bytes back to file
+      final tempDir = await getTemporaryDirectory();
+      final watermarkedFile = File('${tempDir.path}/wm_${DateTime.now().millisecondsSinceEpoch}.png');
+      await watermarkedFile.writeAsBytes(pngBytes);
+      return watermarkedFile;
+    } catch (e) {
+      debugPrint("Failed to add watermark: $e");
+      return imageFile; // fallback to original
+    }
+  }
+
   Future<void> _takePhoto() async {
     final picker = ImagePicker();
     try {
@@ -57,10 +147,21 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
       if (pickedFile != null) {
         setState(() {
-          _imageFile = File(pickedFile.path);
+          _isSaving = true;
+        });
+
+        final originalFile = File(pickedFile.path);
+        final watermarkedFile = await _addWatermark(originalFile);
+
+        setState(() {
+          _imageFile = watermarkedFile;
+          _isSaving = false;
         });
       }
     } catch (e) {
+      setState(() {
+        _isSaving = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error launching camera: $e")),
