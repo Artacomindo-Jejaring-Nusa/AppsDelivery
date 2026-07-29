@@ -20,6 +20,8 @@ export default function DeliveryOrdersPage() {
     const notesMatch = notesStr.match(/notes:\s*([^.[]+)/i);
     const barcodeMatch = notesStr.match(/Barcode:\s*([^.\s[]+)/i);
     const photoMatch = notesStr.match(/\[Proof of Delivery Photo:\s*([^\]]+)\]/i);
+    const recSigMatch = notesStr.match(/\[Receiver Signature:\s*([^\]]+)\]/i);
+    const drvSigMatch = notesStr.match(/\[Driver Signature:\s*([^\]]+)\]/i);
     
     if (receivedByMatch || notesMatch || photoMatch) {
       return {
@@ -27,6 +29,8 @@ export default function DeliveryOrdersPage() {
         notes: notesMatch ? notesMatch[1].trim() : '-',
         barcode: barcodeMatch ? barcodeMatch[1].trim() : '-',
         photoUrl: photoMatch ? photoMatch[1].trim() : null,
+        receiverSignatureUrl: recSigMatch ? recSigMatch[1].trim() : null,
+        driverSignatureUrl: drvSigMatch ? drvSigMatch[1].trim() : null,
         raw: notesStr
       };
     }
@@ -77,6 +81,14 @@ export default function DeliveryOrdersPage() {
     const statusClass = item.status === 'delivered' 
       ? 'bg-green-100 text-green-800 border-green-200' 
       : 'bg-blue-100 text-blue-800 border-blue-200';
+
+    const recSigImg = podData?.receiverSignatureUrl 
+      ? `<img class="max-h-12 max-w-full object-contain" src="${getPODFileUrl(podData.receiverSignatureUrl)}" />`
+      : '<div class="text-[10px] text-gray-300 italic">Belum Tanda Tangan</div>';
+
+    const drvSigImg = podData?.driverSignatureUrl 
+      ? `<img class="max-h-12 max-w-full object-contain" src="${getPODFileUrl(podData.driverSignatureUrl)}" />`
+      : '<div class="text-[10px] text-gray-300 italic">Belum Tanda Tangan</div>';
 
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -171,33 +183,42 @@ export default function DeliveryOrdersPage() {
                       "body-md": ["Inter"]
                   },
                   "fontSize": {
-                      "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
-                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
-                      "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
-                      "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
-                      "data-mono": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
-                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
-                      "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
-                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                      "body-sm": ["11px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-lg": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["20px", {"lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-sm": ["10px", {"lineHeight": "12px", "fontWeight": "500"}],
+                      "data-mono": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "body-lg": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-md": ["11px", {"lineHeight": "14px", "fontWeight": "600"}],
+                      "body-md": ["13px", {"lineHeight": "18px", "fontWeight": "400"}]
                   }
                 },
               },
             }
           </script>
           <style>
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
             .a4-container {
                 width: 210mm;
-                min-height: 297mm;
-                margin: 40px auto;
+                height: 297mm;
+                max-height: 297mm;
+                margin: 20px auto;
                 background: #ffffff;
                 box-shadow: 0 0 20px rgba(0,0,0,0.05);
-                padding: 25.4mm;
+                padding: 15mm 20mm;
                 position: relative;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
             }
             @media print {
-                body { background: none; }
-                .a4-container { margin: 0; box-shadow: none; border: none; }
+                body { background: none; margin: 0; padding: 0; }
+                .a4-container { margin: 0; box-shadow: none; border: none; height: 297mm; max-height: 297mm; }
                 .no-print { display: none; }
             }
             .material-symbols-outlined {
@@ -219,138 +240,143 @@ export default function DeliveryOrdersPage() {
             </div>
           </header>
 
-          <main class="pt-24 pb-24">
-            <article class="a4-container border border-outline-variant flex flex-col">
-              <!-- 1. Header Branding -->
-              <div class="flex justify-between items-start border-b-2 border-primary-container pb-md mb-lg">
-                <div class="flex flex-col">
-                  <div class="flex items-center gap-sm">
-                    <span class="font-headline-md text-headline-md font-extrabold text-primary tracking-tight">ARTACOMINDO X AKS</span>
+          <main class="pt-20 pb-20">
+            <article class="a4-container border border-outline-variant flex flex-col justify-between">
+              <div>
+                <!-- 1. Header Branding -->
+                <div class="flex justify-between items-start border-b-2 border-primary-container pb-sm mb-sm">
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-sm">
+                      <span class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">ARTACOMINDO X AKS</span>
+                    </div>
+                    <p class="font-label-sm text-label-sm uppercase tracking-widest text-secondary mt-xs">Logistics & Supply Chain Operations Center</p>
                   </div>
-                  <p class="font-label-sm text-label-sm uppercase tracking-widest text-secondary mt-xs">Logistics & Supply Chain Operations Center</p>
+                  <div class="text-right">
+                    <p class="font-label-md text-label-md font-bold text-primary tracking-tighter">SISTEM INTEGRASI DIGITAL</p>
+                    <p class="font-data-mono text-data-mono text-on-surface-variant mt-xs">Ref: ${item?.do_number || ''}</p>
+                  </div>
                 </div>
-                <div class="text-right">
-                  <p class="font-label-md text-label-md font-bold text-primary tracking-tighter">SISTEM INTEGRASI DIGITAL</p>
-                  <p class="font-data-mono text-data-mono text-on-surface-variant mt-xs">Ref: ${item?.do_number || ''}</p>
+
+                <!-- 2. Title Section -->
+                <div class="mb-sm">
+                  <div class="border-2 border-primary-container bg-surface-container-lowest p-sm text-center rounded-DEFAULT">
+                    <h1 class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">BUKTI PENERIMAAN BARANG DIGITAL (POD)</h1>
+                    <div class="mt-xs flex justify-center items-center gap-xs">
+                      <span class="font-label-md text-label-md uppercase text-secondary">DO NUMBER:</span>
+                      <span class="font-data-mono text-headline-sm font-bold text-primary tracking-widest">${item?.do_number || ''}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3. Information Grid -->
+                <div class="grid grid-cols-2 gap-md mb-sm">
+                  <!-- Left Column -->
+                  <div class="border border-outline-variant rounded-lg p-sm bg-surface-container-low">
+                    <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-xs">Informasi Surat Jalan (DO)</h2>
+                    <div class="space-y-xs">
+                      <div class="flex justify-between items-center data-dotted-border pb-xs">
+                        <span class="font-body-sm text-body-sm text-secondary">No. Surat Jalan</span>
+                        <span class="font-data-mono text-data-mono font-medium">${item?.do_number || ''}</span>
+                      </div>
+                      <div class="flex justify-between items-start data-dotted-border pb-xs">
+                        <span class="font-body-sm text-body-sm text-secondary shrink-0">Site BTS Tujuan</span>
+                        <span class="font-body-sm text-body-sm text-right font-semibold">${item?.bts_site?.site_id || 'Site BTS'} - ${item?.bts_site?.site_name || item?.destination_address || ''}</span>
+                      </div>
+                      <div class="flex justify-between items-start data-dotted-border pb-xs">
+                        <span class="font-body-sm text-body-sm text-secondary shrink-0">Material</span>
+                        <span class="font-body-sm text-body-sm text-right font-medium">${item?.description || ''}</span>
+                      </div>
+                      <div class="flex justify-between items-center pt-xs">
+                        <span class="font-body-sm text-body-sm text-secondary">Status SLA</span>
+                        <span class="px-md py-xs ${slaClass} text-label-sm font-bold rounded-full border uppercase tracking-wider">${slaText}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right Column -->
+                  <div class="border border-outline-variant rounded-lg p-sm bg-surface-container-low">
+                    <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-xs">Detail Penerima (POD)</h2>
+                    <div class="space-y-xs">
+                      <div class="flex justify-between items-center data-dotted-border pb-xs">
+                        <span class="font-body-sm text-body-sm text-secondary">Nama Penerima</span>
+                        <span class="font-body-sm text-body-sm font-semibold">${podData?.receivedBy || ''}</span>
+                      </div>
+                      <div class="flex justify-between items-center data-dotted-border pb-xs">
+                        <span class="font-body-sm text-body-sm text-secondary">Catatan Terima</span>
+                        <span class="font-body-sm text-body-sm italic">${podData?.notes || 'Sudah di terima'}</span>
+                      </div>
+                      <div class="flex justify-between items-center data-dotted-border pb-xs">
+                        <span class="font-body-sm text-body-sm text-secondary">Tanggal Selesai</span>
+                        <span class="font-data-mono text-data-mono">${item?.updated_at ? new Date(item.updated_at).toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}</span>
+                      </div>
+                      <div class="flex justify-between items-center pt-xs">
+                        <span class="font-body-sm text-body-sm text-secondary">Status DO</span>
+                        <span class="px-md py-xs ${statusClass} font-bold text-label-sm rounded-full border uppercase tracking-wider">${item?.status || ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. Validation Section -->
+                <div class="border border-outline-variant rounded-lg p-sm mb-sm">
+                  <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-xs">Dokumentasi & Scan Validasi</h2>
+                  <div class="grid grid-cols-4 gap-md">
+                    <!-- Photo Grid Item -->
+                    <div class="col-span-3 border border-outline-variant rounded p-xs bg-surface-container">
+                      <div class="w-full h-44 overflow-hidden rounded bg-white relative group">
+                        ${podData?.photoUrl 
+                          ? `<img class="w-full h-full object-cover" src="${getPODFileUrl(podData.photoUrl)}" />` 
+                          : '<div class="w-full h-full flex items-center justify-center bg-surface-container text-secondary italic">Foto/Tanda Tangan Bukti Penerimaan Digital</div>'
+                        }
+                        <div class="absolute bottom-0 left-0 w-full p-xs bg-black/50 text-white font-label-sm text-center opacity-85 backdrop-blur-xs">Asset Verification Scan - Timestamp: ${item?.updated_at ? new Date(item.updated_at).toISOString().replace('T', ' ').slice(0, 19) : new Date().toISOString().replace('T', ' ').slice(0, 19)}</div>
+                      </div>
+                    </div>
+
+                    <!-- QR Code Grid Item -->
+                    <div class="col-span-1 flex flex-col items-center justify-center border border-outline-variant rounded p-xs bg-white">
+                      <div class="w-full aspect-square border border-outline-variant p-xs mb-xs bg-white">
+                        ${qrCodeDataUrl ? `<img class="w-full h-full object-contain" src="${qrCodeDataUrl}" />` : ''}
+                      </div>
+                      <div class="text-center w-full overflow-hidden">
+                        <p class="font-data-mono text-[9px] leading-tight text-primary font-bold break-all">${line1}</p>
+                        ${line2 ? `<p class="font-data-mono text-[8px] text-secondary break-all mt-[1px]">${line2}</p>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Signatures Row -->
+                <div class="grid grid-cols-2 gap-lg mt-sm pt-xs border-t border-dashed border-outline-variant">
+                  <div class="flex flex-col items-center justify-end h-24">
+                    <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xs">Penerima (Recipient)</p>
+                    <div class="h-10 w-28 flex items-center justify-center overflow-hidden mb-xs bg-gray-50 border border-gray-100 rounded">
+                      ${recSigImg}
+                    </div>
+                    <div class="w-36 border-b border-outline mb-xs"></div>
+                    <p class="font-body-sm text-[10px] text-secondary">( ${podData?.receivedBy || 'Nama Terang'} )</p>
+                  </div>
+                  <div class="flex flex-col items-center justify-end h-24">
+                    <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xs">Kurir (Courier)</p>
+                    <div class="h-10 w-28 flex items-center justify-center overflow-hidden mb-xs bg-gray-50 border border-gray-100 rounded">
+                      ${drvSigImg}
+                    </div>
+                    <div class="w-36 border-b border-outline mb-xs"></div>
+                    <p class="font-body-sm text-[10px] text-secondary">( ${driverName.toUpperCase()} )</p>
+                  </div>
                 </div>
               </div>
-
-              <!-- 2. Title Section -->
-              <div class="mb-xl">
-                <div class="border-2 border-primary-container bg-surface-container-lowest p-lg text-center rounded-DEFAULT">
-                  <h1 class="font-headline-md text-headline-md font-extrabold text-primary tracking-tight">BUKTI PENERIMAAN BARANG DIGITAL (POD)</h1>
-                  <div class="mt-sm flex justify-center items-center gap-xs">
-                    <span class="font-label-md text-label-md uppercase text-secondary">DO NUMBER:</span>
-                    <span class="font-data-mono text-headline-sm font-bold text-primary tracking-widest">${item?.do_number || ''}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 3. Information Grid -->
-              <div class="grid grid-cols-2 gap-lg mb-xl">
-                <!-- Left Column -->
-                <div class="border border-outline-variant rounded-lg p-md bg-surface-container-low">
-                  <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-md">Informasi Surat Jalan (DO)</h2>
-                  <div class="space-y-sm">
-                    <div class="flex justify-between items-center data-dotted-border pb-xs">
-                      <span class="font-body-sm text-body-sm text-secondary">No. Surat Jalan</span>
-                      <span class="font-data-mono text-data-mono font-medium">${item?.do_number || ''}</span>
-                    </div>
-                    <div class="flex justify-between items-start data-dotted-border pb-xs">
-                      <span class="font-body-sm text-body-sm text-secondary shrink-0">Site BTS Tujuan</span>
-                      <span class="font-body-sm text-body-sm text-right font-semibold">${item?.bts_site?.site_id || 'Site BTS'} - ${item?.bts_site?.site_name || item?.destination_address || ''}</span>
-                    </div>
-                    <div class="flex justify-between items-start data-dotted-border pb-xs">
-                      <span class="font-body-sm text-body-sm text-secondary shrink-0">Material</span>
-                      <span class="font-body-sm text-body-sm text-right font-medium">${item?.description || ''}</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-xs">
-                      <span class="font-body-sm text-body-sm text-secondary">Status SLA</span>
-                      <span class="px-md py-xs ${slaClass} text-label-sm font-bold rounded-full border uppercase tracking-wider">${slaText}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="border border-outline-variant rounded-lg p-md bg-surface-container-low">
-                  <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-md">Detail Penerima (POD)</h2>
-                  <div class="space-y-sm">
-                    <div class="flex justify-between items-center data-dotted-border pb-xs">
-                      <span class="font-body-sm text-body-sm text-secondary">Nama Penerima</span>
-                      <span class="font-body-sm text-body-sm font-semibold">${podData?.receivedBy || ''}</span>
-                    </div>
-                    <div class="flex justify-between items-center data-dotted-border pb-xs">
-                      <span class="font-body-sm text-body-sm text-secondary">Catatan Terima</span>
-                      <span class="font-body-sm text-body-sm italic">${podData?.notes || 'Sudah di terima'}</span>
-                    </div>
-                    <div class="flex justify-between items-center data-dotted-border pb-xs">
-                      <span class="font-body-sm text-body-sm text-secondary">Tanggal Selesai</span>
-                      <span class="font-data-mono text-data-mono">${item?.updated_at ? new Date(item.updated_at).toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-xs">
-                      <span class="font-body-sm text-body-sm text-secondary">Status DO</span>
-                      <span class="px-md py-xs ${statusClass} font-bold text-label-sm rounded-full border uppercase tracking-wider">${item?.status || ''}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 4. Validation Section -->
-              <div class="border border-outline-variant rounded-lg p-md mb-xl">
-                <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-md">Dokumentasi & Scan Validasi</h2>
-                <div class="grid grid-cols-4 gap-md">
-                  <!-- Photo Grid Item -->
-                  <div class="col-span-3 border border-outline-variant rounded p-xs bg-surface-container">
-                    <div class="w-full h-64 overflow-hidden rounded bg-white relative group">
-                      ${podData?.photoUrl 
-                        ? `<img class="w-full h-full object-cover" src="${getPODFileUrl(podData.photoUrl)}" />` 
-                        : '<div class="w-full h-full flex items-center justify-center bg-surface-container text-secondary italic">Foto/Tanda Tangan Bukti Penerimaan Digital</div>'
-                      }
-                      <div class="absolute bottom-0 left-0 w-full p-sm bg-black/50 text-white font-label-sm text-center opacity-80 backdrop-blur-sm">Asset Verification Scan - Timestamp: ${item?.updated_at ? new Date(item.updated_at).toISOString().replace('T', ' ').slice(0, 19) : new Date().toISOString().replace('T', ' ').slice(0, 19)}</div>
-                    </div>
-                  </div>
-
-                  <!-- QR Code Grid Item -->
-                  <div class="col-span-1 flex flex-col items-center justify-center border border-outline-variant rounded p-md bg-white">
-                    <div class="w-full aspect-square border border-outline-variant p-sm mb-sm bg-white">
-                      ${qrCodeDataUrl ? `<img class="w-full h-full object-contain" src="${qrCodeDataUrl}" />` : ''}
-                    </div>
-                    <div class="text-center w-full overflow-hidden">
-                      <p class="font-data-mono text-[10px] leading-tight text-primary font-bold break-all">${line1}</p>
-                      ${line2 ? `<p class="font-data-mono text-[9px] text-secondary break-all mt-[2px]">${line2}</p>` : ''}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Signatures Row -->
-              <div class="grid grid-cols-2 gap-xl mt-xl mb-lg pt-lg">
-                <div class="flex flex-col items-center">
-                  <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xl">Penerima (Recipient)</p>
-                  <div class="w-48 border-b border-outline mb-sm"></div>
-                  <p class="font-body-sm text-body-sm text-secondary">( ${podData?.receivedBy || 'Nama Terang'} )</p>
-                </div>
-                <div class="flex flex-col items-center">
-                  <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xl">Kurir (Courier)</p>
-                  <div class="w-48 border-b border-outline mb-sm"></div>
-                  <p class="font-body-sm text-body-sm text-secondary">( ${driverName.toUpperCase()} )</p>
-                </div>
-              </div>
-
-              <!-- Space filler -->
-              <div class="flex-grow"></div>
 
               <!-- 5. Footer -->
-              <div class="mt-xl pt-md border-t border-outline-variant text-center">
-                <p class="font-body-sm text-[10px] text-secondary leading-relaxed max-w-2xl mx-auto italic">
+              <div class="pt-sm border-t border-outline-variant text-center mt-auto">
+                <p class="font-body-sm text-[9px] text-secondary leading-relaxed max-w-2xl mx-auto italic">
                   Dokumen ini diterbitkan secara otomatis dan sah sebagai bukti serah terima barang digital yang tervalidasi menggunakan scan barcode. 
                   Seluruh data yang tercantum dalam dokumen ini merupakan representasi valid dari sistem manajemen aset ARTACOMINDO X AKS
                 </p>
-                <div class="flex justify-between items-end mt-lg">
+                <div class="flex justify-between items-end mt-sm">
                   <p class="font-label-sm text-label-sm font-bold text-primary uppercase">Sistem Tracking Logistik ARTACOMINDO X AKS</p>
                   <div class="text-right">
-                    <p class="font-data-mono text-[10px] text-secondary">PAGE 1 OF 1</p>
-                    <p class="font-data-mono text-[10px] text-secondary">${new Date().toLocaleString('id-ID')}</p>
+                    <p class="font-data-mono text-[9px] text-secondary">PAGE 1 OF 1</p>
+                    <p class="font-data-mono text-[9px] text-secondary">${new Date().toLocaleString('id-ID')}</p>
                   </div>
                 </div>
               </div>

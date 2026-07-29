@@ -63,23 +63,48 @@ class SyncProvider extends ChangeNotifier {
         final String? imagePath = task['image_path'];
 
         try {
-          String? uploadedImageUrl;
+          String? cameraUrl;
+          String? recSigUrl;
+          String? drvSigUrl;
 
-          // 1. Upload photo first if exists locally
+          // 1. Upload photo and signatures if exist locally
           if (imagePath != null && imagePath.isNotEmpty) {
-            final formData = FormData.fromMap({
-              'file': await MultipartFile.fromFile(imagePath),
-            });
-            final uploadRes = await apiClient.dio.post('/api/v1/uploads', data: formData);
-            if (uploadRes.statusCode == 201) {
-              uploadedImageUrl = uploadRes.data['data']['url'];
+            final pathsList = imagePath.split(',');
+            for (final p in pathsList) {
+              if (p.isEmpty) continue;
+              try {
+                final formData = FormData.fromMap({
+                  'file': await MultipartFile.fromFile(p),
+                });
+                final uploadRes = await apiClient.dio.post('/api/v1/uploads', data: formData);
+                if (uploadRes.statusCode == 201) {
+                  final url = uploadRes.data['data']['url'];
+                  if (p.contains('sig_rec_') || (p.contains('sig_') && !p.contains('drv_'))) {
+                    recSigUrl = url;
+                  } else if (p.contains('sig_drv_') || p.contains('drv_')) {
+                    drvSigUrl = url;
+                  } else {
+                    cameraUrl = url;
+                  }
+                }
+              } catch (err) {
+                debugPrint("Failed to upload file $p in sync queue: $err");
+              }
             }
           }
 
-          // 2. Adjust payload if we got uploaded image URL
-          if (uploadedImageUrl != null) {
-            payload['notes'] = "${payload['notes'] ?? ''} [Photo Proof: $uploadedImageUrl]".trim();
+          // 2. Adjust payload if we got uploaded URLs
+          String finalNotes = payload['notes'] ?? '';
+          if (cameraUrl != null) {
+            finalNotes = "$finalNotes [Proof of Delivery Photo: $cameraUrl]";
           }
+          if (recSigUrl != null) {
+            finalNotes = "$finalNotes [Receiver Signature: $recSigUrl]";
+          }
+          if (drvSigUrl != null) {
+            finalNotes = "$finalNotes [Driver Signature: $drvSigUrl]";
+          }
+          payload['notes'] = finalNotes.trim();
 
           // 3. Send final status update request
           Response response;

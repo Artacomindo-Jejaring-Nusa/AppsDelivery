@@ -33,8 +33,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
   bool _isSaving = false;
   bool _isBarcodeVerified = false;
 
-  // Signature controller
+  // Signature controller for receiver
   final SignatureController _sigController = SignatureController(
+    penStrokeWidth: 4,
+    penColor: StitchColors.primary,
+    exportBackgroundColor: Colors.white,
+  );
+
+  // Signature controller for driver
+  final SignatureController _driverSigController = SignatureController(
     penStrokeWidth: 4,
     penColor: StitchColors.primary,
     exportBackgroundColor: Colors.white,
@@ -46,6 +53,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     _notesController.dispose();
     _barcodeController.dispose();
     _sigController.dispose();
+    _driverSigController.dispose();
     super.dispose();
   }
 
@@ -205,6 +213,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
       return;
     }
 
+    if (_driverSigController.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Driver signature is required"),
+          backgroundColor: StitchColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -212,16 +230,26 @@ class _VerificationScreenState extends State<VerificationScreen> {
     final syncProv = Provider.of<SyncProvider>(context, listen: false);
     final manifestProv = Provider.of<ManifestProvider>(context, listen: false);
 
-    // Save signature locally to file
-    String? localImagePath;
+    // Save signatures locally to files
+    String? cameraPath = _imageFile?.path;
+    String? recSigPath;
+    String? drvSigPath;
+
     try {
-      final sigBytes = await _sigController.toPngBytes();
-      if (sigBytes != null) {
-        final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/sig_${widget.order.id}.png');
-        await file.writeAsBytes(sigBytes);
-        // If we have camera picture, upload camera proof instead, or combine
-        localImagePath = _imageFile?.path ?? file.path;
+      final tempDir = await getTemporaryDirectory();
+      
+      final recBytes = await _sigController.toPngBytes();
+      if (recBytes != null) {
+        final recFile = File('${tempDir.path}/sig_rec_${widget.order.id}.png');
+        await recFile.writeAsBytes(recBytes);
+        recSigPath = recFile.path;
+      }
+
+      final drvBytes = await _driverSigController.toPngBytes();
+      if (drvBytes != null) {
+        final drvFile = File('${tempDir.path}/sig_drv_${widget.order.id}.png');
+        await drvFile.writeAsBytes(drvBytes);
+        drvSigPath = drvFile.path;
       }
     } catch (e) {
       debugPrint("Failed to export signature bytes: $e");
@@ -233,7 +261,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
       doId: widget.order.id,
       status: 'delivered',
       notes: notesWithDetails,
-      localImagePath: localImagePath,
+      localImagePath: cameraPath,
+      receiverSignaturePath: recSigPath,
+      driverSignaturePath: drvSigPath,
       isOnline: syncProv.isOnline,
     );
 
@@ -423,6 +453,33 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       filled: true,
                       fillColor: StitchColors.surfaceContainerLowest,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 4b. Driver Signature
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "DRIVER SIGNATURE",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
+                      ),
+                      TextButton(
+                        onPressed: _isSaving ? null : () => _driverSigController.clear(),
+                        child: const Text("CLEAR", style: TextStyle(color: StitchColors.error, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: StitchColors.outlineVariant),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Signature(
+                      controller: _driverSigController,
+                      height: 150,
+                      backgroundColor: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 20),

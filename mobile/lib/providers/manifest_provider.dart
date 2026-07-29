@@ -115,6 +115,8 @@ class ManifestProvider extends ChangeNotifier {
     required String status,
     required String notes,
     String? localImagePath,
+    String? receiverSignaturePath,
+    String? driverSignaturePath,
     required bool isOnline,
   }) async {
     final endpoint = '/api/v1/delivery-orders/$doId/status';
@@ -123,6 +125,13 @@ class ManifestProvider extends ChangeNotifier {
       'notes': notes,
     };
 
+    // Combine paths with commas for the offline queue
+    final List<String> paths = [];
+    if (localImagePath != null && localImagePath.isNotEmpty) paths.add(localImagePath);
+    if (receiverSignaturePath != null && receiverSignaturePath.isNotEmpty) paths.add(receiverSignaturePath);
+    if (driverSignaturePath != null && driverSignaturePath.isNotEmpty) paths.add(driverSignaturePath);
+    final String combinedPaths = paths.join(',');
+
     if (!isOnline) {
       // Save locally in offline queue
       await dbHelper.queueOfflineTask(
@@ -130,7 +139,7 @@ class ManifestProvider extends ChangeNotifier {
         endpoint: endpoint,
         method: 'PUT',
         payload: payload,
-        imagePath: localImagePath,
+        imagePath: combinedPaths,
       );
 
       // Update in-memory active manifest status to reflect locally
@@ -159,21 +168,56 @@ class ManifestProvider extends ChangeNotifier {
 
     try {
       String? publicImageUrl;
+      String? publicRecSigUrl;
+      String? publicDrvSigUrl;
 
-      // Upload image if online
+      final List<Future> uploadFutures = [];
+
       if (localImagePath != null && localImagePath.isNotEmpty) {
-        final formData = FormData.fromMap({
+        uploadFutures.add(apiClient.dio.post('/api/v1/uploads', data: FormData.fromMap({
           'file': await MultipartFile.fromFile(localImagePath),
-        });
-        final uploadRes = await apiClient.dio.post('/api/v1/uploads', data: formData);
-        if (uploadRes.statusCode == 201) {
-          publicImageUrl = uploadRes.data['data']['url'];
-        }
+        })).then((res) {
+          if (res.statusCode == 201) {
+            publicImageUrl = uploadResDataUrl(res);
+          }
+        }));
       }
 
-      if (publicImageUrl != null) {
-        payload['notes'] = "$notes [Proof of Delivery Photo: $publicImageUrl]".trim();
+      if (receiverSignaturePath != null && receiverSignaturePath.isNotEmpty) {
+        uploadFutures.add(apiClient.dio.post('/api/v1/uploads', data: FormData.fromMap({
+          'file': await MultipartFile.fromFile(receiverSignaturePath),
+        })).then((res) {
+          if (res.statusCode == 201) {
+            publicRecSigUrl = uploadResDataUrl(res);
+          }
+        }));
       }
+
+      if (driverSignaturePath != null && driverSignaturePath.isNotEmpty) {
+        uploadFutures.add(apiClient.dio.post('/api/v1/uploads', data: FormData.fromMap({
+          'file': await MultipartFile.fromFile(driverSignaturePath),
+        })).then((res) {
+          if (res.statusCode == 201) {
+            publicDrvSigUrl = uploadResDataUrl(res);
+          }
+        }));
+      }
+
+      if (uploadFutures.isNotEmpty) {
+        await Future.wait(uploadFutures);
+      }
+
+      String finalNotes = notes;
+      if (publicImageUrl != null) {
+        finalNotes = "$finalNotes [Proof of Delivery Photo: $publicImageUrl]";
+      }
+      if (publicRecSigUrl != null) {
+        finalNotes = "$finalNotes [Receiver Signature: $publicRecSigUrl]";
+      }
+      if (publicDrvSigUrl != null) {
+        finalNotes = "$finalNotes [Driver Signature: $publicDrvSigUrl]";
+      }
+      payload['notes'] = finalNotes.trim();
 
       final response = await apiClient.dio.put(endpoint, data: payload);
       if (response.statusCode == 200) {
@@ -191,10 +235,17 @@ class ManifestProvider extends ChangeNotifier {
         endpoint: endpoint,
         method: 'PUT',
         payload: payload,
-        imagePath: localImagePath,
+        imagePath: combinedPaths,
       );
     }
     return false;
+  }
+
+  String? uploadResDataUrl(Response res) {
+    if (res.data != null && res.data['data'] != null) {
+      return res.data['data']['url'];
+    }
+    return null;
   }
 
   Future<bool> updateManifestStatus({

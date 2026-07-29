@@ -154,9 +154,12 @@ func (r *manifestRepository) FindAll(ctx context.Context, pagination *domain.Pag
 func (r *manifestRepository) FindItemsByManifestID(ctx context.Context, manifestID uuid.UUID) ([]*domain.ManifestItem, error) {
 	query := `
 		SELECT mi.id, mi.manifest_id, mi.delivery_order_id, mi.sequence_number, mi.created_at,
-			   dord.do_number, dord.status, dord.sla_status, dord.description, dord.origin_address, dord.destination_address
+			   dord.do_number, dord.status, dord.sla_status, dord.description, dord.origin_address, dord.destination_address,
+			   dord.sla_deadline, dord.sla_hours, dord.sla_days, dord.bts_site_id,
+			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district
 		FROM manifest_items mi
 		JOIN delivery_orders dord ON mi.delivery_order_id = dord.id
+		LEFT JOIN bts_sites bs ON dord.bts_site_id = bs.id
 		WHERE mi.manifest_id = $1
 		ORDER BY mi.sequence_number ASC`
 
@@ -170,12 +173,37 @@ func (r *manifestRepository) FindItemsByManifestID(ctx context.Context, manifest
 	for rows.Next() {
 		item := &domain.ManifestItem{}
 		do := &domain.DeliveryOrder{}
+		bts := &domain.BtsSite{}
+
+		var btsID, btsSiteID, btsSiteName, btsAddress, btsProvince, btsCity, btsDistrict *string
+
 		if err := rows.Scan(
 			&item.ID, &item.ManifestID, &item.DeliveryOrderID, &item.SequenceNumber, &item.CreatedAt,
 			&do.DONumber, &do.Status, &do.SLAStatus, &do.Description, &do.OriginAddress, &do.DestinationAddress,
+			&do.SLADeadline, &do.SLAHours, &do.SLADays, &do.BtsSiteID,
+			&btsID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
 		); err != nil {
 			return nil, err
 		}
+
+		if btsSiteID != nil {
+			bts.SiteID = *btsSiteID
+			bts.SiteName = *btsSiteName
+			if btsAddress != nil {
+				bts.Address = *btsAddress
+			}
+			if btsProvince != nil {
+				bts.Province = *btsProvince
+			}
+			if btsCity != nil {
+				bts.City = *btsCity
+			}
+			if btsDistrict != nil {
+				bts.District = *btsDistrict
+			}
+			do.BtsSite = bts
+		}
+
 		do.ID = item.DeliveryOrderID
 		item.DeliveryOrder = do
 		items = append(items, item)
