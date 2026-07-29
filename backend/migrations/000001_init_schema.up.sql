@@ -288,50 +288,6 @@ INSERT INTO bts_sites (id, site_id, site_name, address, province, city, district
 ('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c10', 'KAL-BTS-0010', 'BTS Sampit Baamang', 'Jl. Iskandar No. 34', 'Kalimantan Tengah', 'Kotawaringin Timur', 'Baamang', -2.53670000, 112.95200000, true)
 ON CONFLICT (id) DO NOTHING;
 
--- Delivery Orders (with Green, Yellow, and Red SLA statuses)
-INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by, created_at) VALUES
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'DO-2026-07-001', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'Material Migrasi BTS Banjarmasin Utara - Batch 1', 'in_transit', 3, 72, NOW() + INTERVAL '48 hours', 'green', 'Gudang PT. Eriksin Banjarmasin', 'Site BTS KAL-BTS-0001', 'Prioritas tinggi', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '24 hours'),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'DO-2026-07-002', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c02', 'Material Migrasi BTS Balikpapan - Replacement Unit', 'in_transit', 3, 72, NOW() + INTERVAL '10 hours', 'yellow', 'Gudang PT. Eriksin Balikpapan', 'Site BTS KAL-BTS-0002', 'Mendekati tenggat waktu SLA', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '62 hours'),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'DO-2026-07-003', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'Material Migrasi BTS Samarinda - Antenna Expansion', 'in_transit', 3, 72, NOW() - INTERVAL '5 hours', 'red', 'Gudang PT. Eriksin Samarinda', 'Site BTS KAL-BTS-0003', 'ESKALASI: Terlambat karena kendala cuaca', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '77 hours'),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d04', 'DO-2026-07-004', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'Material Migrasi BTS Pontianak Kota - Power Cable', 'pending', 3, 72, NOW() + INTERVAL '72 hours', 'green', 'Gudang PT. Eriksin Pontianak', 'Site BTS KAL-BTS-0004', 'Siap dikirim', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW()),
-('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d05', 'DO-2026-07-005', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'Material Migrasi BTS Palangkaraya - Battery Replacement', 'completed', 2, 48, NOW() + INTERVAL '20 hours', 'green', 'Gudang PT. Eriksin Palangkaraya', 'Site BTS KAL-BTS-0005', 'Selesai serah terima', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW() - INTERVAL '50 hours')
-ON CONFLICT (id) DO NOTHING;
 
--- Manifests
-INSERT INTO manifests (id, manifest_number, driver_id, status, dispatch_date, notes, created_by, created_at) VALUES
-('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'MNF-20260722-001', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', 'in_transit', NOW() - INTERVAL '24 hours', 'Pengiriman rute Banjarmasin - Balikpapan', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', NOW() - INTERVAL '24 hours')
-ON CONFLICT (id) DO NOTHING;
+-- Clean Schema: No dummy delivery orders or manifests seeded.
 
--- Manifest Items
-INSERT INTO manifest_items (id, manifest_id, delivery_order_id, sequence_number) VALUES
-('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 1),
-('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380e01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 2)
-ON CONFLICT (id) DO NOTHING;
-
--- Dismantle Assets
-INSERT INTO dismantle_assets (id, delivery_order_id, category, item_name, serial_number, quantity, unit, condition, notes, created_by) VALUES
-('e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f01', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'Antenna', 'Antenna Panel 1800MHz (Bongkaran)', 'SN-ANT-2026001', 2, 'pcs', 'good', 'Kondisi mulus', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55'),
-('e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f02', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d01', 'RRU', 'Remote Radio Unit 2100MHz', 'SN-RRU-2026002', 1, 'pcs', 'good', 'Bongkaran BTS Banjarmasin', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55'),
-('e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f03', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'Battery', 'Battery Pack 48V 100Ah', 'SN-BAT-2026003', 4, 'unit', 'fair', 'Kondisi penurun kapasitas 10%', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55')
-ON CONFLICT (id) DO NOTHING;
-
--- Barcodes
-INSERT INTO barcodes (id, asset_id, barcode_data, barcode_type, is_scanned) VALUES
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f01', 'INB-DO-2026-07-001-ANT001-20260722', 'qrcode', false),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f02', 'INB-DO-2026-07-001-RRU002-20260722', 'qrcode', false),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380003', 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380f03', 'INB-DO-2026-07-002-BAT003-20260722', 'qrcode', false)
-ON CONFLICT (id) DO NOTHING;
-
--- SLA Logs
-INSERT INTO sla_logs (id, delivery_order_id, previous_status, new_status, remaining_hours, message) VALUES
-('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380001', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d02', 'green', 'yellow', 10.0, 'SLA warning: 10.0 hours remaining'),
-('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380002', 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380d03', 'yellow', 'red', -5.0, 'SLA breached! Overdue by 5.0 hours')
-ON CONFLICT (id) DO NOTHING;
-
--- Driver Locations
-INSERT INTO driver_locations (id, driver_id, latitude, longitude, recorded_at) VALUES
-(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', -3.31940000, 114.59070000, NOW() - INTERVAL '15 minutes'),
-(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', -3.32100000, 114.59200000, NOW() - INTERVAL '10 minutes'),
-(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b11', -3.32350000, 114.59550000, NOW() - INTERVAL '5 minutes'),
-(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', -1.26540000, 116.83120000, NOW() - INTERVAL '10 minutes'),
-(gen_random_uuid(), 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', -1.26800000, 116.83400000, NOW() - INTERVAL '5 minutes');

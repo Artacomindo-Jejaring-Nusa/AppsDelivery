@@ -34,6 +34,15 @@ func NewManifestUsecase(manifestRepo domain.ManifestRepository, doRepo domain.De
 }
 
 func (u *manifestUsecase) Create(ctx context.Context, req *domain.CreateManifestRequest, createdBy uuid.UUID) (*domain.Manifest, error) {
+	// Validate driver and availability
+	driver, err := u.driverRepo.FindByID(ctx, req.DriverID)
+	if err != nil {
+		return nil, fmt.Errorf("driver not found: %w", err)
+	}
+	if !driver.IsAvailable {
+		return nil, errors.New("driver is already assigned to an active manifest and is not available")
+	}
+
 	// Validate that all DO IDs exist and are in "pending" status
 	for _, doID := range req.DeliveryOrderIDs {
 		do, err := u.doRepo.FindByID(ctx, doID)
@@ -62,6 +71,12 @@ func (u *manifestUsecase) Create(ctx context.Context, req *domain.CreateManifest
 
 	if err := u.manifestRepo.Create(ctx, manifest); err != nil {
 		return nil, err
+	}
+
+	// Update driver availability status to false (assigned/busy)
+	driver.IsAvailable = false
+	if err := u.driverRepo.Update(ctx, driver); err != nil {
+		return nil, fmt.Errorf("failed to update driver availability: %w", err)
 	}
 
 	// Add items to manifest
@@ -212,6 +227,17 @@ func (u *manifestUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, req *d
 		doStatus := domain.DOStatusInTransit
 		for _, item := range items {
 			_ = u.doRepo.UpdateStatus(ctx, item.DeliveryOrderID, doStatus, "Manifest dispatched")
+		}
+	}
+
+	// When manifest is completed, set driver availability back to true (idle/ready)
+	if req.Status == domain.ManifestStatusCompleted {
+		if manifest.DriverID != nil {
+			driver, err := u.driverRepo.FindByID(ctx, *manifest.DriverID)
+			if err == nil && driver != nil {
+				driver.IsAvailable = true
+				_ = u.driverRepo.Update(ctx, driver)
+			}
 		}
 	}
 

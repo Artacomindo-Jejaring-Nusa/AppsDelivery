@@ -62,6 +62,7 @@ type DriverUsecase interface {
 	Create(ctx context.Context, req *CreateDriverRequest) (*Driver, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Driver, error)
 	GetAll(ctx context.Context, pagination *PaginationRequest) ([]*Driver, int64, error)
+	GetAvailable(ctx context.Context) ([]*Driver, error)
 	Update(ctx context.Context, id uuid.UUID, req *UpdateDriverRequest) (*Driver, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }

@@ -56,6 +56,16 @@ func (h *DriverHandler) GetByID(c *gin.Context) {
 
 // GetAll handles GET /api/v1/drivers
 func (h *DriverHandler) GetAll(c *gin.Context) {
+	if c.Query("available") == "true" {
+		drivers, err := h.driverUsecase.GetAvailable(c.Request.Context())
+		if err != nil {
+			response.InternalServerError(c, err.Error())
+			return
+		}
+		response.Success(c, http.StatusOK, "Available drivers retrieved", drivers)
+		return
+	}
+
 	var pagination domain.PaginationRequest
 	if err := c.ShouldBindQuery(&pagination); err != nil {
 		response.BadRequest(c, "Invalid query parameters", err.Error())

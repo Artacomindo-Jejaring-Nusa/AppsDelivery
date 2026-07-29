@@ -254,7 +254,7 @@ export default function DeliveryOrdersPage() {
     try {
       const [mRes, dRes] = await Promise.all([
         api.get('/manifests'),
-        api.get('/drivers'),
+        api.get('/drivers?available=true'),
       ]);
       setManifests(mRes.data.data || []);
       setDriversList(dRes.data.data || []);
@@ -393,7 +393,7 @@ export default function DeliveryOrdersPage() {
             <tr>
               <td>
                 <div class="logo-title">OPERATIONS CENTER LOGISTICS</div>
-                <div class="logo-sub">PT. AKS X PT. ARTACOMINDO JEJARING NUSA</div>
+                <div class="logo-sub">ARTACOMINDO X AKS</div>
               </td>
               <td style="text-align:right;">
                 <div style="font-size:8.5pt;color:#64748b;">Dokumen Resmi Surat Jalan</div>

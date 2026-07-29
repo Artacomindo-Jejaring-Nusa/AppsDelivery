@@ -88,6 +88,10 @@ func (u *driverUsecase) Update(ctx context.Context, id uuid.UUID, req *domain.Up
 	return driver, nil
 }
 
+func (u *driverUsecase) GetAvailable(ctx context.Context) ([]*domain.Driver, error) {
+	return u.driverRepo.FindAvailable(ctx)
+}
+
 func (u *driverUsecase) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := u.driverRepo.FindByID(ctx, id)
 	if err != nil {
