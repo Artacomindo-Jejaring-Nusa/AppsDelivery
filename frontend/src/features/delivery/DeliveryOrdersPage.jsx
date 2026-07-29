@@ -1,14 +1,23 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import api from '../../services/api';
 
 export default function DeliveryOrdersPage() {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Filters for DO list
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+
+  useEffect(() => {
+    const searchVal = searchParams.get('search');
+    if (searchVal !== null) {
+      setSearch(searchVal);
+    }
+  }, [searchParams]);
   const [slaFilter, setSlaFilter] = useState('');
 
   // New DO Form State

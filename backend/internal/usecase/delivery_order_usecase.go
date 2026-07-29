@@ -145,7 +145,10 @@ func (u *deliveryOrderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, r
 		}
 
 		if title != "" {
-			hub.BroadcastNotification(title, msg, notifType)
+			hub.BroadcastNotification(title, msg, notifType, map[string]interface{}{
+				"do_number": doNum,
+				"action":    "view_do",
+			})
 		}
 	}(do.DONumber, req.Status)
 

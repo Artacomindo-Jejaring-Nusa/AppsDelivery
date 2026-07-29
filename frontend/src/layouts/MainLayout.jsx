@@ -127,6 +127,15 @@ export default function MainLayout() {
     }
   };
 
+  const handleNotificationClick = (notif) => {
+    setActiveDropdown(null);
+    if (notif.metadata && notif.metadata.do_number) {
+      navigate(`/delivery-orders?search=${notif.metadata.do_number}`);
+    } else {
+      navigate('/delivery-orders');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background font-body-md text-on-surface">
       {/* ─── Sidebar Navigation ─── */}
@@ -231,9 +240,22 @@ export default function MainLayout() {
               {activeDropdown === 'notifications' && (
                 <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-md py-sm bg-surface-container-low border-b border-outline-variant flex justify-between items-center">
-                    <h4 className="font-semibold text-body-md text-on-surface">System Notifications</h4>
-                    {newCount > 0 && (
-                      <span className="px-xs py-0.5 bg-primary/10 text-primary text-label-sm font-semibold rounded">{newCount} New</span>
+                    <div className="flex items-center gap-xs">
+                      <h4 className="font-semibold text-body-md text-on-surface">System Notifications</h4>
+                      {newCount > 0 && (
+                        <span className="px-xs py-0.5 bg-primary/10 text-primary text-label-xs font-semibold rounded">{newCount} New</span>
+                      )}
+                    </div>
+                    {notifications.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          setNotifications([]);
+                          setNewCount(0);
+                        }}
+                        className="text-label-sm font-semibold text-primary hover:underline transition-all"
+                      >
+                        Clear All
+                      </button>
                     )}
                   </div>
                   <div className="divide-y divide-outline-variant max-h-80 overflow-y-auto custom-scrollbar">
@@ -247,6 +269,7 @@ export default function MainLayout() {
                         return (
                           <div 
                             key={notif.id} 
+                            onClick={() => handleNotificationClick(notif)}
                             className={`p-md hover:bg-surface-container-low transition-colors cursor-pointer flex gap-sm border-l-4 ${style.borderClass}`}
                           >
                             <div className={`w-8 h-8 rounded-full ${style.bgClass} flex items-center justify-center shrink-0`}>

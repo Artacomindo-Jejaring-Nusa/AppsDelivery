@@ -9,6 +9,7 @@ import (
 
 	"backend-delivery/internal/domain"
 	"backend-delivery/pkg/fcm"
+	"backend-delivery/pkg/ws"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -74,6 +75,19 @@ func (u *manifestUsecase) Create(ctx context.Context, req *domain.CreateManifest
 			return nil, err
 		}
 	}
+
+	// Broadcast WebSocket notification to Admin Dashboard
+	go func(manifestNum string) {
+		ws.GetHub().BroadcastNotification(
+			"New Dispatch Assigned",
+			fmt.Sprintf("Manifest %s has been created and assigned to Driver", manifestNum),
+			"info",
+			map[string]interface{}{
+				"manifest_number": manifestNum,
+				"action":          "view_delivery_orders",
+			},
+		)
+	}(manifest.ManifestNumber)
 
 	// Trigger FCM Push Notification asynchronously to Driver HP
 	go func(manifestNum string, driverID uuid.UUID) {

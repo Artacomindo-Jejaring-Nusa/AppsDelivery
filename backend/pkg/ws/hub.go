@@ -87,12 +87,13 @@ func (h *Hub) run() {
 }
 
 // BroadcastNotification sends a notification payload to all connected WebSocket clients.
-func (h *Hub) BroadcastNotification(title, message, notificationType string) {
+func (h *Hub) BroadcastNotification(title, message, notificationType string, metadata map[string]interface{}) {
 	payload := map[string]interface{}{
 		"title":     title,
 		"message":   message,
 		"type":      notificationType,
 		"timestamp": "Just now",
+		"metadata":  metadata,
 	}
 	bytes, err := json.Marshal(payload)
 	if err != nil {
