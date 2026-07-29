@@ -1561,7 +1561,7 @@ export default function DeliveryOrdersPage() {
                                     <span>Lihat POD</span>
                                   </button>
                                 )}
-                                {(item.status === 'returned' || item.status === 'completed') && (
+                                {(item.status === 'delivered' || item.status === 'returned' || item.status === 'completed') && (
                                   <button
                                     onClick={() => handlePrintBAST(item)}
                                     className="px-sm py-xs bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100 font-label-md text-label-md rounded flex items-center gap-xs inline-flex shadow-xs"
