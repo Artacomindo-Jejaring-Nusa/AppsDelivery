@@ -161,9 +161,10 @@ func (h *AuthHandler) SaveFCMToken(c *gin.Context) {
 	}
 	userID := userIDVal.(uuid.UUID)
 
-	// Save FCM Token in Redis session
+	// Save FCM Token in Redis session under user_id and fcm:latest
 	if h.rdb != nil {
 		h.rdb.Set(c.Request.Context(), "fcm:"+userID.String(), req.FCMToken, 30*24*time.Hour)
+		h.rdb.Set(c.Request.Context(), "fcm:latest", req.FCMToken, 30*24*time.Hour)
 	}
 
 	response.Success(c, http.StatusOK, "FCM token registered successfully", gin.H{

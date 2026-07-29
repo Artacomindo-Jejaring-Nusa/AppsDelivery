@@ -1,6 +1,8 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/push_notification_service.dart';
 import '../../core/theme/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
@@ -90,7 +92,20 @@ class _LoginScreenState extends State<LoginScreen> {
           _loadingMessage = "Connecting GPS & loading active manifest...";
         });
 
-        // 1. Initial GPS ping to resolve driver_id and start live tracking
+        // 1. Sync FCM Push Token to backend now that user is authenticated
+        try {
+          String? token = PushNotificationService().fcmToken;
+          if (token == null || token.isEmpty) {
+            token = await FirebaseMessaging.instance.getToken();
+          }
+          if (token != null && token.isNotEmpty) {
+            await PushNotificationService().syncTokenToBackend(token);
+          }
+        } catch (e) {
+          debugPrint("FCM token sync error during login: $e");
+        }
+
+        // 2. Initial GPS ping to resolve driver_id and start live tracking
         await locProv.pingLocation();
         locProv.startTracking();
 
