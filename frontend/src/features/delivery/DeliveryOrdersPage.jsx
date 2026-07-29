@@ -9,6 +9,7 @@ export default function DeliveryOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPOD, setSelectedPOD] = useState(null);
+  const [selectedDOForPOD, setSelectedDOForPOD] = useState(null);
   const [showPODModal, setShowPODModal] = useState(false);
 
   const parsePODNotes = (notesStr) => {
@@ -40,6 +41,141 @@ export default function DeliveryOrdersPage() {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
     const host = base.replace(/\/api\/v1\/?$/i, '');
     return `${host}${url}`;
+  };
+
+  const handlePrintPOD = async (item, podData) => {
+    let qrCodeDataUrl = '';
+    try {
+      qrCodeDataUrl = await QRCode.toDataURL(podData.barcode || item.do_number, {
+        width: 150,
+        margin: 1,
+      });
+    } catch (err) {
+      console.error('Failed to generate QR code for POD print:', err);
+    }
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Bukti POD - ${item?.do_number || ''}</title>
+          <style>
+            @page { size: A4 portrait; margin: 15mm; }
+            * { box-sizing: border-box; }
+            body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #0f172a; line-height: 1.5; padding: 0; margin: 0; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00236f; padding-bottom: 12px; margin-bottom: 20px; }
+            .logo-title { color: #00236f; font-size: 16pt; font-weight: bold; margin: 0; }
+            .logo-sub { font-size: 9pt; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+            .doc-title-box { border: 1.5px solid #00236f; background: #f8fafc; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+            .doc-title-box h2 { color: #00236f; margin: 0; font-size: 14pt; text-transform: uppercase; letter-spacing: 1px; }
+            .doc-title-box p { margin: 4px 0 0 0; font-family: monospace; font-weight: bold; font-size: 11pt; color: #00236f; }
+            .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+            .section-box { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; background: #fff; }
+            .section-title { font-weight: bold; color: #00236f; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; margin-bottom: 8px; font-size: 9.5pt; text-transform: uppercase; }
+            .info-row { display: flex; margin-bottom: 6px; font-size: 9pt; }
+            .info-label { width: 120px; color: #64748b; font-weight: 500; }
+            .info-value { flex: 1; font-weight: 600; color: #0f172a; }
+            .proof-section { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
+            .proof-grid { display: flex; gap: 20px; margin-top: 10px; }
+            .photo-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; background: #f8fafc; height: 180px; display: flex; align-items: center; justify-content: center; }
+            .photo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+            .qr-box { width: 130px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; background: #fff; }
+            .qr-box img { width: 100px; height: 100px; }
+            .qr-box span { font-size: 7.5pt; font-family: monospace; margin-top: 4px; color: #64748b; font-weight: bold; word-break: break-all; }
+            .footer-notes { font-size: 8pt; color: #64748b; font-style: italic; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+            .company-footer { font-weight: bold; color: #0f172a; text-transform: uppercase; font-family: monospace; font-size: 9pt; margin-top: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div style="flex:1;">
+              <h1 class="logo-title">PT. AKS x PT. ARTACOMINDO</h1>
+              <span class="logo-sub">Logistics & Supply Chain Operations Center</span>
+            </div>
+            <div style="text-align:right;">
+              <span class="logo-sub">SISTEM INTEGRASI DIGITAL</span>
+            </div>
+          </div>
+
+          <div class="doc-title-box">
+            <h2>Bukti Penerimaan Barang Digital (POD)</h2>
+            <p>DO NUMBER: ${item?.do_number || ''}</p>
+          </div>
+
+          <div class="grid-container">
+            <div class="section-box">
+              <div class="section-title">Informasi Surat Jalan (DO)</div>
+              <div class="info-row">
+                <div class="info-label">No. Surat Jalan</div>
+                <div class="info-value">${item?.do_number || ''}</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Site BTS Tujuan</div>
+                <div class="info-value">${item?.bts_site?.site_id || 'Site BTS'} - ${item?.bts_site?.site_name || item?.destination_address || ''}</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Material</div>
+                <div class="info-value">${item?.description || 'Logistics Material'}</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Status SLA</div>
+                <div class="info-value" style="color: #10b981; text-transform: uppercase;">${item?.sla_status || 'Aman'}</div>
+              </div>
+            </div>
+
+            <div class="section-box">
+              <div class="section-title">Detail Penerima (POD)</div>
+              <div class="info-row">
+                <div class="info-label">Nama Penerima</div>
+                <div class="info-value">${podData?.receivedBy || ''}</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Catatan Terima</div>
+                <div class="info-value">${podData?.notes || '-'}</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Tanggal Selesai</div>
+                <div class="info-value">${item?.updated_at ? new Date(item.updated_at).toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Status DO</div>
+                <div class="info-value" style="color: #10b981; text-transform: uppercase;">${item?.status || ''}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="proof-section">
+            <div class="section-title">Dokumentasi & Scan Validasi</div>
+            <div class="proof-grid">
+              <div class="photo-box">
+                ${podData?.photoUrl 
+                  ? `<img src="${getPODFileUrl(podData.photoUrl)}" />` 
+                  : '<div style="color: #64748b; font-style: italic;">Foto/Tanda Tangan Bukti Penerimaan Digital</div>'
+                }
+              </div>
+              <div class="qr-box">
+                ${qrCodeDataUrl ? `<img src="${qrCodeDataUrl}" />` : ''}
+                <span>${podData?.barcode || item?.do_number || ''}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-notes">
+            <p>Dokumen ini diterbitkan secara otomatis dan sah sebagai bukti serah terima barang digital yang tervalidasi menggunakan scan barcode.</p>
+            <div class="company-footer">SISTEM TRACKING LOGISTIK PT. AKS X PT. ARTACOMINDO</div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   // Filters for DO list
@@ -851,6 +987,7 @@ export default function DeliveryOrdersPage() {
                                     onClick={() => {
                                       const podData = parsePODNotes(item.notes);
                                       if (podData) {
+                                        setSelectedDOForPOD(item);
                                         setSelectedPOD({ ...podData, do_number: item.do_number });
                                         setShowPODModal(true);
                                       } else {
@@ -1473,6 +1610,7 @@ export default function DeliveryOrdersPage() {
                 onClick={() => {
                   setShowPODModal(false);
                   setSelectedPOD(null);
+                  setSelectedDOForPOD(null);
                 }} 
                 className="text-secondary hover:text-on-surface"
               >
@@ -1516,12 +1654,21 @@ export default function DeliveryOrdersPage() {
               )}
             </div>
 
-            <div className="flex justify-end pt-md border-t border-outline-variant">
+            <div className="flex justify-end gap-md pt-md border-t border-outline-variant">
+              <button
+                type="button"
+                onClick={() => handlePrintPOD(selectedDOForPOD, selectedPOD)}
+                className="px-md py-sm bg-secondary text-on-secondary font-label-md rounded-lg hover:opacity-90 flex items-center gap-xs text-[13px] shadow-sm transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">print</span>
+                <span>Cetak Surat POD (PDF)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   setShowPODModal(false);
                   setSelectedPOD(null);
+                  setSelectedDOForPOD(null);
                 }}
                 className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container"
               >
