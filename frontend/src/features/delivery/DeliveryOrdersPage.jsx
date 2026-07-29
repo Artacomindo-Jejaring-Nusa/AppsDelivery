@@ -54,117 +54,309 @@ export default function DeliveryOrdersPage() {
       console.error('Failed to generate QR code for POD print:', err);
     }
 
+    const rawBarcode = podData.barcode || item.do_number;
+    let line1 = rawBarcode;
+    let line2 = '';
+    if (rawBarcode.length > 20) {
+      line1 = rawBarcode.substring(0, 20);
+      line2 = rawBarcode.substring(20);
+    }
+
+    const foundManifest = manifests.find(m => 
+      m.items && m.items.some(mit => mit.delivery_order_id === item.id)
+    );
+    const driverName = foundManifest && foundManifest.driver ? foundManifest.driver.full_name : 'Dedi';
+
+    const slaClass = item.sla_status === 'red' 
+      ? 'bg-red-100 text-red-800 border-red-200' 
+      : item.sla_status === 'yellow' 
+      ? 'bg-amber-100 text-amber-800 border-amber-200' 
+      : 'bg-green-100 text-green-800 border-green-200';
+    const slaText = item.sla_status === 'red' ? 'Red' : item.sla_status === 'yellow' ? 'Yellow' : 'Green';
+
+    const statusClass = item.status === 'delivered' 
+      ? 'bg-green-100 text-green-800 border-green-200' 
+      : 'bg-blue-100 text-blue-800 border-blue-200';
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
-      <html>
+      <!DOCTYPE html>
+      <html class="light" lang="id">
         <head>
-          <title>Bukti POD - ${item?.do_number || ''}</title>
+          <meta charset="utf-8">
+          <meta content="width=device-width, initial-scale=1.0" name="viewport">
+          <title>Digital Proof of Delivery - ${item?.do_number || ''}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+          <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+          <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+          <script id="tailwind-config">
+            tailwind.config = {
+              darkMode: "class",
+              theme: {
+                extend: {
+                  "colors": {
+                      "inverse-primary": "#b6c4ff",
+                      "surface-dim": "#d8dadc",
+                      "on-secondary-container": "#54647a",
+                      "error-container": "#ffdad6",
+                      "surface-container-low": "#f2f4f6",
+                      "outline": "#757682",
+                      "primary-fixed": "#dce1ff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-high": "#e6e8ea",
+                      "on-primary-container": "#90a8ff",
+                      "surface-container": "#eceef0",
+                      "primary-container": "#1e3a8a",
+                      "inverse-surface": "#2d3133",
+                      "secondary": "#505f76",
+                      "primary": "#00236f",
+                      "on-tertiary-fixed-variant": "#3f465c",
+                      "on-tertiary-fixed": "#131b2e",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#a4acc5",
+                      "on-background": "#191c1e",
+                      "on-surface-variant": "#444651",
+                      "on-primary-fixed": "#00164e",
+                      "outline-variant": "#c5c5d3",
+                      "on-secondary": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "background": "#f7f9fb",
+                      "on-secondary-fixed": "#0b1c30",
+                      "surface-container-highest": "#e0e3e5",
+                      "surface-variant": "#e0e3e5",
+                      "on-primary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "surface-bright": "#f7f9fb",
+                      "surface-tint": "#4059aa",
+                      "error": "#ba1a1a",
+                      "surface": "#f7f9fb",
+                      "tertiary-fixed-dim": "#bec6e0",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "tertiary-fixed": "#dae2fd",
+                      "secondary-container": "#d0e1fb",
+                      "tertiary-container": "#384055",
+                      "secondary-fixed": "#d3e4fe",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#191c1e",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "tertiary": "#222a3e",
+                      "on-primary-fixed-variant": "#264191"
+                  },
+                  "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+                  },
+                  "spacing": {
+                      "lg": "24px",
+                      "base": "4px",
+                      "xs": "4px",
+                      "margin": "24px",
+                      "gutter": "16px",
+                      "sm": "8px",
+                      "xl": "32px",
+                      "md": "16px"
+                  },
+                  "fontFamily": {
+                      "body-sm": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "data-mono": ["JetBrains Mono"],
+                      "body-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-md": ["Inter"]
+                  },
+                  "fontSize": {
+                      "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                      "data-mono": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                  }
+                },
+              },
+            }
+          </script>
           <style>
-            @page { size: A4 portrait; margin: 15mm; }
-            * { box-sizing: border-box; }
-            body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10pt; color: #0f172a; line-height: 1.5; padding: 0; margin: 0; }
-            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00236f; padding-bottom: 12px; margin-bottom: 20px; }
-            .logo-title { color: #00236f; font-size: 16pt; font-weight: bold; margin: 0; }
-            .logo-sub { font-size: 9pt; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-            .doc-title-box { border: 1.5px solid #00236f; background: #f8fafc; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
-            .doc-title-box h2 { color: #00236f; margin: 0; font-size: 14pt; text-transform: uppercase; letter-spacing: 1px; }
-            .doc-title-box p { margin: 4px 0 0 0; font-family: monospace; font-weight: bold; font-size: 11pt; color: #00236f; }
-            .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-            .section-box { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; background: #fff; }
-            .section-title { font-weight: bold; color: #00236f; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; margin-bottom: 8px; font-size: 9.5pt; text-transform: uppercase; }
-            .info-row { display: flex; margin-bottom: 6px; font-size: 9pt; }
-            .info-label { width: 120px; color: #64748b; font-weight: 500; }
-            .info-value { flex: 1; font-weight: 600; color: #0f172a; }
-            .proof-section { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
-            .proof-grid { display: flex; gap: 20px; margin-top: 10px; }
-            .photo-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; background: #f8fafc; height: 180px; display: flex; align-items: center; justify-content: center; }
-            .photo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-            .qr-box { width: 130px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; background: #fff; }
-            .qr-box img { width: 100px; height: 100px; }
-            .qr-box span { font-size: 7.5pt; font-family: monospace; margin-top: 4px; color: #64748b; font-weight: bold; word-break: break-all; }
-            .footer-notes { font-size: 8pt; color: #64748b; font-style: italic; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
-            .company-footer { font-weight: bold; color: #0f172a; text-transform: uppercase; font-family: monospace; font-size: 9pt; margin-top: 4px; }
+            .a4-container {
+                width: 210mm;
+                min-height: 297mm;
+                margin: 40px auto;
+                background: #ffffff;
+                box-shadow: 0 0 20px rgba(0,0,0,0.05);
+                padding: 25.4mm;
+                position: relative;
+            }
+            @media print {
+                body { background: none; }
+                .a4-container { margin: 0; box-shadow: none; border: none; }
+                .no-print { display: none; }
+            }
+            .material-symbols-outlined {
+                font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            }
+            .data-dotted-border {
+                border-bottom: 1px dotted #E2E8F0;
+            }
           </style>
         </head>
-        <body>
-          <div class="header">
-            <div style="flex:1;">
-              <h1 class="logo-title">PT. AKS x PT. ARTACOMINDO</h1>
-              <span class="logo-sub">Logistics & Supply Chain Operations Center</span>
+        <body class="bg-surface-container-lowest font-body-md text-on-surface">
+          <header class="fixed top-0 w-full z-50 flex justify-between items-center px-margin h-16 bg-surface dark:bg-on-background border-b border-outline-variant no-print">
+            <div class="font-headline-md text-headline-md font-bold text-primary">ARTACOMINDO X AKS</div>
+            <div class="flex gap-md">
+              <button class="flex items-center gap-xs bg-primary text-on-primary px-md py-sm rounded-lg font-label-md hover:opacity-90 transition-all" onclick="window.print()">
+                <span class="material-symbols-outlined">print</span>
+                PRINT POD
+              </button>
             </div>
-            <div style="text-align:right;">
-              <span class="logo-sub">SISTEM INTEGRASI DIGITAL</span>
-            </div>
-          </div>
+          </header>
 
-          <div class="doc-title-box">
-            <h2>Bukti Penerimaan Barang Digital (POD)</h2>
-            <p>DO NUMBER: ${item?.do_number || ''}</p>
-          </div>
+          <main class="pt-24 pb-24">
+            <article class="a4-container border border-outline-variant flex flex-col">
+              <!-- 1. Header Branding -->
+              <div class="flex justify-between items-start border-b-2 border-primary-container pb-md mb-lg">
+                <div class="flex flex-col">
+                  <div class="flex items-center gap-sm">
+                    <span class="font-headline-md text-headline-md font-extrabold text-primary tracking-tight">ARTACOMINDO X AKS</span>
+                  </div>
+                  <p class="font-label-sm text-label-sm uppercase tracking-widest text-secondary mt-xs">Logistics & Supply Chain Operations Center</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-label-md text-label-md font-bold text-primary tracking-tighter">SISTEM INTEGRASI DIGITAL</p>
+                  <p class="font-data-mono text-data-mono text-on-surface-variant mt-xs">Ref: ${item?.do_number || ''}</p>
+                </div>
+              </div>
 
-          <div class="grid-container">
-            <div class="section-box">
-              <div class="section-title">Informasi Surat Jalan (DO)</div>
-              <div class="info-row">
-                <div class="info-label">No. Surat Jalan</div>
-                <div class="info-value">${item?.do_number || ''}</div>
+              <!-- 2. Title Section -->
+              <div class="mb-xl">
+                <div class="border-2 border-primary-container bg-surface-container-lowest p-lg text-center rounded-DEFAULT">
+                  <h1 class="font-headline-md text-headline-md font-extrabold text-primary tracking-tight">BUKTI PENERIMAAN BARANG DIGITAL (POD)</h1>
+                  <div class="mt-sm flex justify-center items-center gap-xs">
+                    <span class="font-label-md text-label-md uppercase text-secondary">DO NUMBER:</span>
+                    <span class="font-data-mono text-headline-sm font-bold text-primary tracking-widest">${item?.do_number || ''}</span>
+                  </div>
+                </div>
               </div>
-              <div class="info-row">
-                <div class="info-label">Site BTS Tujuan</div>
-                <div class="info-value">${item?.bts_site?.site_id || 'Site BTS'} - ${item?.bts_site?.site_name || item?.destination_address || ''}</div>
-              </div>
-              <div class="info-row">
-                <div class="info-label">Material</div>
-                <div class="info-value">${item?.description || 'Logistics Material'}</div>
-              </div>
-              <div class="info-row">
-                <div class="info-label">Status SLA</div>
-                <div class="info-value" style="color: #10b981; text-transform: uppercase;">${item?.sla_status || 'Aman'}</div>
-              </div>
-            </div>
 
-            <div class="section-box">
-              <div class="section-title">Detail Penerima (POD)</div>
-              <div class="info-row">
-                <div class="info-label">Nama Penerima</div>
-                <div class="info-value">${podData?.receivedBy || ''}</div>
-              </div>
-              <div class="info-row">
-                <div class="info-label">Catatan Terima</div>
-                <div class="info-value">${podData?.notes || '-'}</div>
-              </div>
-              <div class="info-row">
-                <div class="info-label">Tanggal Selesai</div>
-                <div class="info-value">${item?.updated_at ? new Date(item.updated_at).toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}</div>
-              </div>
-              <div class="info-row">
-                <div class="info-label">Status DO</div>
-                <div class="info-value" style="color: #10b981; text-transform: uppercase;">${item?.status || ''}</div>
-              </div>
-            </div>
-          </div>
+              <!-- 3. Information Grid -->
+              <div class="grid grid-cols-2 gap-lg mb-xl">
+                <!-- Left Column -->
+                <div class="border border-outline-variant rounded-lg p-md bg-surface-container-low">
+                  <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-md">Informasi Surat Jalan (DO)</h2>
+                  <div class="space-y-sm">
+                    <div class="flex justify-between items-center data-dotted-border pb-xs">
+                      <span class="font-body-sm text-body-sm text-secondary">No. Surat Jalan</span>
+                      <span class="font-data-mono text-data-mono font-medium">${item?.do_number || ''}</span>
+                    </div>
+                    <div class="flex justify-between items-start data-dotted-border pb-xs">
+                      <span class="font-body-sm text-body-sm text-secondary shrink-0">Site BTS Tujuan</span>
+                      <span class="font-body-sm text-body-sm text-right font-semibold">${item?.bts_site?.site_id || 'Site BTS'} - ${item?.bts_site?.site_name || item?.destination_address || ''}</span>
+                    </div>
+                    <div class="flex justify-between items-start data-dotted-border pb-xs">
+                      <span class="font-body-sm text-body-sm text-secondary shrink-0">Material</span>
+                      <span class="font-body-sm text-body-sm text-right font-medium">${item?.description || ''}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-xs">
+                      <span class="font-body-sm text-body-sm text-secondary">Status SLA</span>
+                      <span class="px-md py-xs ${slaClass} text-label-sm font-bold rounded-full border uppercase tracking-wider">${slaText}</span>
+                    </div>
+                  </div>
+                </div>
 
-          <div class="proof-section">
-            <div class="section-title">Dokumentasi & Scan Validasi</div>
-            <div class="proof-grid">
-              <div class="photo-box">
-                ${podData?.photoUrl 
-                  ? `<img src="${getPODFileUrl(podData.photoUrl)}" />` 
-                  : '<div style="color: #64748b; font-style: italic;">Foto/Tanda Tangan Bukti Penerimaan Digital</div>'
-                }
+                <!-- Right Column -->
+                <div class="border border-outline-variant rounded-lg p-md bg-surface-container-low">
+                  <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-md">Detail Penerima (POD)</h2>
+                  <div class="space-y-sm">
+                    <div class="flex justify-between items-center data-dotted-border pb-xs">
+                      <span class="font-body-sm text-body-sm text-secondary">Nama Penerima</span>
+                      <span class="font-body-sm text-body-sm font-semibold">${podData?.receivedBy || ''}</span>
+                    </div>
+                    <div class="flex justify-between items-center data-dotted-border pb-xs">
+                      <span class="font-body-sm text-body-sm text-secondary">Catatan Terima</span>
+                      <span class="font-body-sm text-body-sm italic">${podData?.notes || 'Sudah di terima'}</span>
+                    </div>
+                    <div class="flex justify-between items-center data-dotted-border pb-xs">
+                      <span class="font-body-sm text-body-sm text-secondary">Tanggal Selesai</span>
+                      <span class="font-data-mono text-data-mono">${item?.updated_at ? new Date(item.updated_at).toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-xs">
+                      <span class="font-body-sm text-body-sm text-secondary">Status DO</span>
+                      <span class="px-md py-xs ${statusClass} font-bold text-label-sm rounded-full border uppercase tracking-wider">${item?.status || ''}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="qr-box">
-                ${qrCodeDataUrl ? `<img src="${qrCodeDataUrl}" />` : ''}
-                <span>${podData?.barcode || item?.do_number || ''}</span>
+
+              <!-- 4. Validation Section -->
+              <div class="border border-outline-variant rounded-lg p-md mb-xl">
+                <h2 class="font-label-md text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-xs mb-md">Dokumentasi & Scan Validasi</h2>
+                <div class="grid grid-cols-4 gap-md">
+                  <!-- Photo Grid Item -->
+                  <div class="col-span-3 border border-outline-variant rounded p-xs bg-surface-container">
+                    <div class="w-full h-64 overflow-hidden rounded bg-white relative group">
+                      ${podData?.photoUrl 
+                        ? `<img class="w-full h-full object-cover" src="${getPODFileUrl(podData.photoUrl)}" />` 
+                        : '<div class="w-full h-full flex items-center justify-center bg-surface-container text-secondary italic">Foto/Tanda Tangan Bukti Penerimaan Digital</div>'
+                      }
+                      <div class="absolute bottom-0 left-0 w-full p-sm bg-black/50 text-white font-label-sm text-center opacity-80 backdrop-blur-sm">Asset Verification Scan - Timestamp: ${item?.updated_at ? new Date(item.updated_at).toISOString().replace('T', ' ').slice(0, 19) : new Date().toISOString().replace('T', ' ').slice(0, 19)}</div>
+                    </div>
+                  </div>
+
+                  <!-- QR Code Grid Item -->
+                  <div class="col-span-1 flex flex-col items-center justify-center border border-outline-variant rounded p-md bg-white">
+                    <div class="w-full aspect-square border border-outline-variant p-sm mb-sm bg-white">
+                      ${qrCodeDataUrl ? `<img class="w-full h-full object-contain" src="${qrCodeDataUrl}" />` : ''}
+                    </div>
+                    <div class="text-center w-full overflow-hidden">
+                      <p class="font-data-mono text-[10px] leading-tight text-primary font-bold break-all">${line1}</p>
+                      ${line2 ? `<p class="font-data-mono text-[9px] text-secondary break-all mt-[2px]">${line2}</p>` : ''}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div class="footer-notes">
-            <p>Dokumen ini diterbitkan secara otomatis dan sah sebagai bukti serah terima barang digital yang tervalidasi menggunakan scan barcode.</p>
-            <div class="company-footer">SISTEM TRACKING LOGISTIK PT. AKS X PT. ARTACOMINDO</div>
-          </div>
+              <!-- Signatures Row -->
+              <div class="grid grid-cols-2 gap-xl mt-xl mb-lg pt-lg">
+                <div class="flex flex-col items-center">
+                  <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xl">Penerima (Recipient)</p>
+                  <div class="w-48 border-b border-outline mb-sm"></div>
+                  <p class="font-body-sm text-body-sm text-secondary">( ${podData?.receivedBy || 'Nama Terang'} )</p>
+                </div>
+                <div class="flex flex-col items-center">
+                  <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xl">Kurir (Courier)</p>
+                  <div class="w-48 border-b border-outline mb-sm"></div>
+                  <p class="font-body-sm text-body-sm text-secondary">( ${driverName.toUpperCase()} )</p>
+                </div>
+              </div>
 
+              <!-- Space filler -->
+              <div class="flex-grow"></div>
+
+              <!-- 5. Footer -->
+              <div class="mt-xl pt-md border-t border-outline-variant text-center">
+                <p class="font-body-sm text-[10px] text-secondary leading-relaxed max-w-2xl mx-auto italic">
+                  Dokumen ini diterbitkan secara otomatis dan sah sebagai bukti serah terima barang digital yang tervalidasi menggunakan scan barcode. 
+                  Seluruh data yang tercantum dalam dokumen ini merupakan representasi valid dari sistem manajemen aset ARTACOMINDO X AKS
+                </p>
+                <div class="flex justify-between items-end mt-lg">
+                  <p class="font-label-sm text-label-sm font-bold text-primary uppercase">Sistem Tracking Logistik ARTACOMINDO X AKS</p>
+                  <div class="text-right">
+                    <p class="font-data-mono text-[10px] text-secondary">PAGE 1 OF 1</p>
+                    <p class="font-data-mono text-[10px] text-secondary">${new Date().toLocaleString('id-ID')}</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </main>
+          
           <script>
             window.onload = function() {
               setTimeout(function() {
@@ -223,6 +415,7 @@ export default function DeliveryOrdersPage() {
   useEffect(() => {
     fetchOrders();
     fetchBtsSites();
+    fetchManifestsAndDrivers();
   }, [slaFilter]);
 
   const fetchBtsSites = async () => {
