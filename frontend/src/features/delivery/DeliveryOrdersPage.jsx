@@ -396,6 +396,348 @@ export default function DeliveryOrdersPage() {
     printWindow.document.close();
   };
 
+  const handlePrintBAST = async (item) => {
+    let assets = [];
+    try {
+      const res = await api.get(`/delivery-orders/${item.id}/assets`);
+      assets = res.data.data || [];
+    } catch (err) {
+      console.error('Failed to fetch dismantle assets for BAST:', err);
+    }
+
+    const podData = parsePODNotes(item.notes) || {
+      receivedBy: 'Ericsson WH Agent',
+      notes: 'Handover dismantle complete',
+      receiverSignatureUrl: null,
+      driverSignatureUrl: null,
+      photoUrl: null
+    };
+
+    const foundManifest = manifests.find(m => 
+      m.items && m.items.some(mit => mit.delivery_order_id === item.id)
+    );
+    const driverName = foundManifest && foundManifest.driver ? foundManifest.driver.full_name : 'Dedi';
+    const vehiclePlate = foundManifest && foundManifest.driver ? foundManifest.driver.vehicle_plate : 'Armada AKS';
+    const manifestNum = foundManifest ? foundManifest.manifest_number : '-';
+
+    const mainManifestQR = await generateQRDataUrl(manifestNum);
+
+    const assetsHtml = assets.length > 0
+      ? assets.map((asset, idx) => `
+          <tr>
+            <td style="text-align:center;">${idx + 1}</td>
+            <td>${asset.category || 'Network Equipment'}</td>
+            <td>${asset.item_name || 'ZTE BBU/RRU unit'}</td>
+            <td style="font-family:monospace;font-weight:bold;color:#00236f;">${asset.serial_number || '-'}</td>
+            <td style="text-align:center;">${asset.quantity || 1} ${asset.unit || 'pcs'}</td>
+            <td style="text-align:center;text-transform:uppercase;font-weight:bold;color:${asset.condition === 'good' ? '#047857' : '#b91c1c'};">
+              ${asset.condition || 'good'}
+            </td>
+          </tr>
+        `).join('')
+      : `<tr><td colspan="6" style="text-align:center;color:#64748b;font-style:italic;">Tidak ada detail asset dismantle terdaftar</td></tr>`;
+
+    const recSigImg = podData?.receiverSignatureUrl 
+      ? `<img class="max-h-12 max-w-full object-contain" src="${getPODFileUrl(podData.receiverSignatureUrl)}" />`
+      : '<div class="text-[10px] text-gray-300 italic">Belum Tanda Tangan</div>';
+
+    const drvSigImg = podData?.driverSignatureUrl 
+      ? `<img class="max-h-12 max-w-full object-contain" src="${getPODFileUrl(podData.driverSignatureUrl)}" />`
+      : '<div class="text-[10px] text-gray-300 italic">Belum Tanda Tangan</div>';
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html class="light" lang="id">
+        <head>
+          <meta charset="utf-8">
+          <meta content="width=device-width, initial-scale=1.0" name="viewport">
+          <title>Berita Acara Serah Terima (BAST) - ${item?.do_number || ''}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+          <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+          <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+          <script id="tailwind-config">
+            tailwind.config = {
+              darkMode: "class",
+              theme: {
+                extend: {
+                  "colors": {
+                      "inverse-primary": "#b6c4ff",
+                      "surface-dim": "#d8dadc",
+                      "on-secondary-container": "#54647a",
+                      "error-container": "#ffdad6",
+                      "surface-container-low": "#f2f4f6",
+                      "outline": "#757682",
+                      "primary-fixed": "#dce1ff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-high": "#e6e8ea",
+                      "on-primary-container": "#90a8ff",
+                      "surface-container": "#eceef0",
+                      "primary-container": "#1e3a8a",
+                      "inverse-surface": "#2d3133",
+                      "secondary": "#505f76",
+                      "primary": "#00236f",
+                      "on-tertiary-fixed-variant": "#3f465c",
+                      "on-tertiary-fixed": "#131b2e",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#a4acc5",
+                      "on-background": "#191c1e",
+                      "on-surface-variant": "#444651",
+                      "on-primary-fixed": "#00164e",
+                      "outline-variant": "#c5c5d3",
+                      "on-secondary": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "background": "#f7f9fb",
+                      "on-secondary-fixed": "#0b1c30",
+                      "surface-container-highest": "#e0e3e5",
+                      "surface-variant": "#e0e3e5",
+                      "on-primary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "surface-bright": "#f7f9fb",
+                      "surface-tint": "#4059aa",
+                      "error": "#ba1a1a",
+                      "surface": "#f7f9fb",
+                      "tertiary-fixed-dim": "#bec6e0",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "tertiary-fixed": "#dae2fd",
+                      "secondary-container": "#d0e1fb",
+                      "tertiary-container": "#384055",
+                      "secondary-fixed": "#d3e4fe",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#191c1e",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "tertiary": "#222a3e",
+                      "on-primary-fixed-variant": "#264191"
+                  },
+                  "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+                  },
+                  "spacing": {
+                      "lg": "24px",
+                      "base": "4px",
+                      "xs": "4px",
+                      "margin": "24px",
+                      "gutter": "16px",
+                      "sm": "8px",
+                      "xl": "32px",
+                      "md": "16px"
+                  },
+                  "fontFamily": {
+                      "body-sm": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "data-mono": ["JetBrains Mono"],
+                      "body-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-md": ["Inter"]
+                  },
+                  "fontSize": {
+                      "body-sm": ["11px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-lg": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["20px", {"lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-sm": ["10px", {"lineHeight": "12px", "fontWeight": "500"}],
+                      "data-mono": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "body-lg": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-md": ["11px", {"lineHeight": "14px", "fontWeight": "600"}],
+                      "body-md": ["13px", {"lineHeight": "18px", "fontWeight": "400"}]
+                  }
+                },
+              },
+            }
+          </script>
+          <style>
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+            .a4-container {
+                width: 210mm;
+                height: 297mm;
+                max-height: 297mm;
+                margin: 20px auto;
+                background: #ffffff;
+                box-shadow: 0 0 20px rgba(0,0,0,0.05);
+                padding: 15mm 20mm;
+                position: relative;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            @media print {
+                body { background: none; margin: 0; padding: 0; }
+                .a4-container { margin: 0; box-shadow: none; border: none; height: 297mm; max-height: 297mm; }
+                .no-print { display: none; }
+            }
+            .material-symbols-outlined {
+                font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            }
+            .data-dotted-border {
+                border-bottom: 1px dotted #E2E8F0;
+            }
+            table.items-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+            table.items-table th { background: #00236f; color: white; padding: 5px 8px; font-size: 8.5pt; text-align: left; border: 1px solid #00236f; text-transform: uppercase; }
+            table.items-table td { border: 1px solid #cbd5e1; padding: 5px 8px; font-size: 8.5pt; vertical-align: middle; }
+          </style>
+        </head>
+        <body class="bg-surface-container-lowest font-body-md text-on-surface">
+          <header class="fixed top-0 w-full z-50 flex justify-between items-center px-margin h-16 bg-surface dark:bg-on-background border-b border-outline-variant no-print">
+            <div class="font-headline-md text-headline-md font-bold text-primary">ARTACOMINDO X AKS</div>
+            <div class="flex gap-md">
+              <button class="flex items-center gap-xs bg-primary text-on-primary px-md py-sm rounded-lg font-label-md hover:opacity-90 transition-all" onclick="window.print()">
+                <span class="material-symbols-outlined">print</span>
+                PRINT BAST
+              </button>
+            </div>
+          </header>
+
+          <main class="pt-20 pb-20">
+            <article class="a4-container border border-outline-variant flex flex-col justify-between">
+              <div>
+                <!-- 1. Header Branding -->
+                <div class="flex justify-between items-start border-b-2 border-primary-container pb-sm mb-sm">
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-sm">
+                      <span class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">ARTACOMINDO X AKS</span>
+                    </div>
+                    <p class="font-label-sm text-label-sm uppercase tracking-widest text-secondary mt-xs">Logistics & Supply Chain Operations Center</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-label-md text-label-md font-bold text-primary tracking-tighter">BERITA ACARA SERAH TERIMA</p>
+                    <p class="font-data-mono text-data-mono text-on-surface-variant mt-xs">Ref: BAST-${item?.do_number || ''}</p>
+                  </div>
+                </div>
+
+                <!-- 2. Title Section -->
+                <div class="mb-sm">
+                  <div class="border-2 border-primary-container bg-surface-container-lowest p-sm text-center rounded-DEFAULT">
+                    <h1 class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">BERITA ACARA SERAH TERIMA (BAST) BARANG DISMANTLE</h1>
+                    <div class="mt-xs flex justify-center items-center gap-xs">
+                      <span class="font-label-md text-label-md uppercase text-secondary">MANIFEST NO:</span>
+                      <span class="font-data-mono text-headline-sm font-bold text-primary tracking-widest">${manifestNum}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pihak Info -->
+                <div class="border border-outline-variant rounded-lg p-sm bg-surface-container-low mb-sm text-[12px] leading-relaxed">
+                  <p class="font-semibold text-primary mb-xs">Pada hari ini, tanggal ${new Date(item.updated_at || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, telah dilakukan serah terima barang pembongkaran (dismantle) oleh pihak-pihak di bawah ini:</p>
+                  <table class="w-full">
+                    <tr>
+                      <td class="font-medium text-secondary w-36">PIHAK PERTAMA (Pemberi):</td>
+                      <td class="font-bold text-primary">${driverName.toUpperCase()} (Kurir PT AKS - ${vehiclePlate})</td>
+                    </tr>
+                    <tr>
+                      <td class="font-medium text-secondary">PIHAK KEDUA (Penerima):</td>
+                      <td class="font-bold text-primary">${podData.receivedBy.toUpperCase()} (Warehouse Agent Ericsson)</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- 3. Assets list Table -->
+                <div class="mb-sm">
+                  <h2 class="font-label-md text-label-md font-bold text-primary uppercase mb-xs">Daftar Material / Perangkat Dismantle (ZTE)</h2>
+                  <table class="items-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 5%; text-align:center;">No</th>
+                        <th style="width: 25%;">Kategori</th>
+                        <th style="width: 30%;">Nama Barang</th>
+                        <th style="width: 25%;">Serial Number (S/N)</th>
+                        <th style="width: 15%; text-align:center;">Qty</th>
+                        <th style="width: 10%; text-align:center;">Kondisi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${assetsHtml}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- 4. Validation Section -->
+                <div class="border border-outline-variant rounded-lg p-xs mb-sm">
+                  <div class="grid grid-cols-4 gap-md">
+                    <!-- Photo Grid Item -->
+                    <div class="col-span-3 border border-outline-variant rounded p-xs bg-surface-container">
+                      <div class="w-full h-36 overflow-hidden rounded bg-white relative">
+                        ${podData?.photoUrl 
+                          ? `<img class="w-full h-full object-cover" src="${getPODFileUrl(podData.photoUrl)}" />` 
+                          : '<div class="w-full h-full flex items-center justify-center bg-surface-container text-secondary italic">Foto/Tanda Tangan Bukti Penerimaan Digital</div>'
+                        }
+                        <div class="absolute bottom-0 left-0 w-full p-xs bg-black/50 text-white font-label-sm text-center opacity-85 backdrop-blur-xs">Asset Verification Scan - Timestamp: ${item?.updated_at ? new Date(item.updated_at).toISOString().replace('T', ' ').slice(0, 19) : new Date().toISOString().replace('T', ' ').slice(0, 19)}</div>
+                      </div>
+                    </div>
+
+                    <!-- QR Code Grid Item -->
+                    <div class="col-span-1 flex flex-col items-center justify-center border border-outline-variant rounded p-xs bg-white">
+                      <div class="w-full aspect-square border border-outline-variant p-xs mb-xs bg-white">
+                        ${mainManifestQR ? `<img class="w-full h-full object-contain" src="${mainManifestQR}" />` : ''}
+                      </div>
+                      <div class="text-center w-full overflow-hidden">
+                        <p class="font-data-mono text-[8px] leading-tight text-primary font-bold break-all">${item?.do_number}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Signatures Row -->
+                <div class="grid grid-cols-2 gap-lg mt-sm pt-xs border-t border-dashed border-outline-variant">
+                  <div class="flex flex-col items-center justify-end h-24">
+                    <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xs">Pihak Kedua (WH Ericsson)</p>
+                    <div class="h-10 w-28 flex items-center justify-center overflow-hidden mb-xs bg-gray-50 border border-gray-100 rounded">
+                      ${recSigImg}
+                    </div>
+                    <div class="w-36 border-b border-outline mb-xs"></div>
+                    <p class="font-body-sm text-[10px] text-secondary">( ${podData?.receivedBy || 'Nama Terang'} )</p>
+                  </div>
+                  <div class="flex flex-col items-center justify-end h-24">
+                    <p class="font-label-md text-label-md font-bold text-primary uppercase mb-xs">Pihak Pertama (AKS/Courier)</p>
+                    <div class="h-10 w-28 flex items-center justify-center overflow-hidden mb-xs bg-gray-50 border border-gray-100 rounded">
+                      ${drvSigImg}
+                    </div>
+                    <div class="w-36 border-b border-outline mb-xs"></div>
+                    <p class="font-body-sm text-[10px] text-secondary">( ${driverName.toUpperCase()} )</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. Footer -->
+              <div class="pt-sm border-t border-outline-variant text-center mt-auto">
+                <p class="font-body-sm text-[9px] text-secondary leading-relaxed max-w-2xl mx-auto italic">
+                  Dokumen Berita Acara Serah Terima (BAST) ini diterbitkan secara otomatis dan sah sebagai bukti serah terima barang digital yang tervalidasi menggunakan scan barcode serial number.
+                  Seluruh data yang tercantum merupakan representasi valid dari sistem manajemen aset ARTACOMINDO X AKS.
+                </p>
+                <div class="flex justify-between items-end mt-sm">
+                  <p class="font-label-sm text-label-sm font-bold text-primary uppercase">Sistem Reverse Logistik ARTACOMINDO X AKS</p>
+                  <div class="text-right">
+                    <p class="font-data-mono text-[9px] text-secondary">PAGE 1 OF 1</p>
+                    <p class="font-data-mono text-[9px] text-secondary">${new Date().toLocaleString('id-ID')}</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </main>
+          
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   // Filters for DO list
   const [search, setSearch] = useState(searchParams.get('search') || '');
 
@@ -1217,6 +1559,15 @@ export default function DeliveryOrdersPage() {
                                   >
                                     <span className="material-symbols-outlined text-[16px]">visibility</span>
                                     <span>Lihat POD</span>
+                                  </button>
+                                )}
+                                {(item.status === 'returned' || item.status === 'completed') && (
+                                  <button
+                                    onClick={() => handlePrintBAST(item)}
+                                    className="px-sm py-xs bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100 font-label-md text-label-md rounded flex items-center gap-xs inline-flex shadow-xs"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">assignment_turned_in</span>
+                                    <span>Print BAST</span>
                                   </button>
                                 )}
                                 <button

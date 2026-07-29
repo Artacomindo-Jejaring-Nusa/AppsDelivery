@@ -93,6 +93,37 @@ class SyncProvider extends ChangeNotifier {
             }
           }
 
+          // 1b. Upload dismantle assets if present in offline task payload
+          final scannedSns = payload['scanned_serial_numbers'];
+          if (scannedSns != null && scannedSns is List && scannedSns.isNotEmpty) {
+            final uriParts = endpoint.split('/');
+            String? doId;
+            if (uriParts.length >= 4) {
+              doId = uriParts[uriParts.length - 2];
+            }
+            if (doId != null) {
+              try {
+                final assets = scannedSns.map((sn) => {
+                  'category': 'Network Equipment',
+                  'item_name': 'ZTE BBU/RRU unit',
+                  'serial_number': sn,
+                  'quantity': 1,
+                  'unit': 'pcs',
+                  'condition': 'good',
+                  'notes': 'Dismantled from site via driver scan'
+                }).toList();
+
+                await apiClient.dio.post(
+                  '/api/v1/delivery-orders/$doId/assets/batch',
+                  data: {'assets': assets},
+                );
+              } catch (e) {
+                debugPrint("Failed to upload dismantle assets in sync: $e");
+              }
+            }
+          }
+          payload.remove('scanned_serial_numbers');
+
           // 2. Adjust payload if we got uploaded URLs
           String finalNotes = payload['notes'] ?? '';
           if (cameraUrl != null) {

@@ -16,8 +16,14 @@ import '../../providers/sync_provider.dart';
 class VerificationScreen extends StatefulWidget {
   final DeliveryOrderModel order;
   final String manifestId;
+  final List<String> scannedSerialNumbers;
 
-  const VerificationScreen({super.key, required this.order, required this.manifestId});
+  const VerificationScreen({
+    super.key,
+    required this.order,
+    required this.manifestId,
+    this.scannedSerialNumbers = const [],
+  });
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
@@ -256,22 +262,27 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
 
     final notesWithDetails = "Received by: ${_receiverNameController.text}. notes: ${_notesController.text}. Barcode: ${_barcodeController.text}";
+    final String targetStatus = widget.scannedSerialNumbers.isNotEmpty ? 'returned' : 'delivered';
 
     final success = await manifestProv.updateDOStatus(
       doId: widget.order.id,
-      status: 'delivered',
+      status: targetStatus,
       notes: notesWithDetails,
       localImagePath: cameraPath,
       receiverSignaturePath: recSigPath,
       driverSignaturePath: drvSigPath,
+      scannedSerialNumbers: widget.scannedSerialNumbers,
       isOnline: syncProv.isOnline,
     );
 
-    // If all DOs are delivered, check if we should auto-complete manifest
+    // If all DOs are delivered/returned/completed, check if we should auto-complete manifest
     if (success && manifestProv.activeManifest != null) {
       bool allCompleted = true;
       for (final doc in manifestProv.activeManifest!.deliveryOrders) {
-        if (doc.id != widget.order.id && doc.status != 'delivered' && doc.status != 'completed') {
+        if (doc.id != widget.order.id && 
+            doc.status != 'delivered' && 
+            doc.status != 'completed' && 
+            doc.status != 'returned') {
           allCompleted = false;
           break;
         }
@@ -328,6 +339,49 @@ class _VerificationScreenState extends State<VerificationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 0. Scanned Dismantle Serial Numbers (If reverse logistics / Progress 2)
+                  if (widget.scannedSerialNumbers.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: StitchColors.secondaryContainer.withOpacity(0.3),
+                        border: Border.all(color: StitchColors.primary.withOpacity(0.2)),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.inventory_2, color: StitchColors.primary, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                "DISMANTLED ASSETS (${widget.scannedSerialNumbers.length})",
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: StitchColors.primary, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ...widget.scannedSerialNumbers.map((sn) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4.0),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check, color: StitchColors.slaGreen, size: 14),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "SN: $sn",
+                                  style: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
                   // 1. QR Code Scan
                   const Text(
                     "SCAN BARCODE / QR CODE",

@@ -103,6 +103,7 @@ class _ScannerTabState extends State<ScannerTab> {
           builder: (context) => VerificationScreen(
             order: order,
             manifestId: Provider.of<ManifestProvider>(context, listen: false).activeManifest!.id,
+            scannedSerialNumbers: List<String>.from(_scannedSerialNumbers),
           ),
         ),
       ).then((_) {

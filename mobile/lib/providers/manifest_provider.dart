@@ -117,12 +117,15 @@ class ManifestProvider extends ChangeNotifier {
     String? localImagePath,
     String? receiverSignaturePath,
     String? driverSignaturePath,
+    List<String>? scannedSerialNumbers,
     required bool isOnline,
   }) async {
     final endpoint = '/api/v1/delivery-orders/$doId/status';
     final payload = {
       'status': status,
       'notes': notes,
+      if (scannedSerialNumbers != null && scannedSerialNumbers.isNotEmpty)
+        'scanned_serial_numbers': scannedSerialNumbers,
     };
 
     // Combine paths with commas for the offline queue
@@ -203,6 +206,13 @@ class ManifestProvider extends ChangeNotifier {
         }));
       }
 
+      if (scannedSerialNumbers != null && scannedSerialNumbers.isNotEmpty) {
+        uploadFutures.add(uploadDismantleAssets(
+          doId: doId,
+          serialNumbers: scannedSerialNumbers,
+        ));
+      }
+
       if (uploadFutures.isNotEmpty) {
         await Future.wait(uploadFutures);
       }
@@ -239,6 +249,32 @@ class ManifestProvider extends ChangeNotifier {
       );
     }
     return false;
+  }
+
+  Future<bool> uploadDismantleAssets({
+    required String doId,
+    required List<String> serialNumbers,
+  }) async {
+    try {
+      final assets = serialNumbers.map((sn) => {
+        'category': 'Network Equipment',
+        'item_name': 'ZTE BBU/RRU unit',
+        'serial_number': sn,
+        'quantity': 1,
+        'unit': 'pcs',
+        'condition': 'good',
+        'notes': 'Dismantled from site via driver scan'
+      }).toList();
+
+      final response = await apiClient.dio.post(
+        '/api/v1/delivery-orders/$doId/assets/batch',
+        data: {'assets': assets},
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      debugPrint("Failed to upload dismantle assets: $e");
+      return false;
+    }
   }
 
   String? uploadResDataUrl(Response res) {
