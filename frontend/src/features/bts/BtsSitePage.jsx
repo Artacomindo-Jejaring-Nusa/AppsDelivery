@@ -19,6 +19,14 @@ export default function BtsSitePage() {
   const [clusterFilter, setClusterFilter] = useState('All Clusters');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, clusterFilter, statusFilter, perPage]);
+
   // Add Site Form State
   const [addForm, setAddForm] = useState({
     site_id: '',
@@ -258,6 +266,13 @@ export default function BtsSitePage() {
     return matchesSearch && matchesCluster && matchesStatus;
   });
 
+  // Calculate Pagination Slicing
+  const totalFiltered = filteredSites.length;
+  const totalPages = Math.ceil(totalFiltered / perPage) || 1;
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(startIndex + perPage, totalFiltered);
+  const paginatedSites = filteredSites.slice(startIndex, endIndex);
+
   // Calculate KPIs
   const totalCount = sites.length;
   const activeCount = sites.filter((s) => s.is_active).length;
@@ -409,11 +424,30 @@ export default function BtsSitePage() {
                 filteredSites.map((site) => (
                   <tr key={site.id} className="table-row-hover transition-colors">
                     <td className="p-md font-data-mono text-data-mono font-bold text-primary">{site.site_id}</td>
-                    <td className="p-md font-semibold">{site.site_name}</td>
-                    <td className="p-md font-data-mono text-body-sm text-secondary">
-                      {site.latitude !== null && site.latitude !== undefined ? Number(site.latitude).toFixed(4) : '-'} / {site.longitude !== null && site.longitude !== undefined ? Number(site.longitude).toFixed(4) : '-'}
+                    <td className="p-md font-semibold text-on-surface">
+                      <div className="flex flex-col">
+                        <span>{site.site_name}</span>
+                        {site.district && (
+                          <span className="text-[10px] text-secondary font-normal capitalize">
+                            {site.district.toLowerCase()}
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="p-md">{site.city || '-'}</td>
+                    <td className="p-md font-data-mono text-body-sm text-secondary">
+                      <div className="flex items-center gap-xs">
+                        <span className="material-symbols-outlined text-[16px] text-outline">explore</span>
+                        <span>
+                          {site.latitude !== null && site.latitude !== undefined ? Number(site.latitude).toFixed(4) : '-'}, {site.longitude !== null && site.longitude !== undefined ? Number(site.longitude).toFixed(4) : '-'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-md">
+                      <div className="flex items-center gap-xs font-semibold text-secondary">
+                        <span className="material-symbols-outlined text-[16px]">location_city</span>
+                        <span className="capitalize">{site.city?.toLowerCase() || '-'}</span>
+                      </div>
+                    </td>
                     <td className="p-md">
                       <span className={`inline-flex items-center gap-xs px-sm py-[2px] rounded-full border text-[11px] font-bold ${
                         site.is_active 
@@ -424,17 +458,21 @@ export default function BtsSitePage() {
                         {site.is_active ? 'ACTIVE' : 'DOWN'}
                       </span>
                     </td>
-                    <td className="p-md text-on-surface-variant max-w-[200px] truncate">{site.address || '-'}</td>
+                    <td className="p-md text-on-surface-variant max-w-[200px] truncate" title={site.address || ''}>
+                      {site.address || '-'}
+                    </td>
                     <td className="p-md text-right">
                       <button 
                         onClick={() => handleEditClick(site)}
                         className="p-xs hover:bg-primary-container hover:text-primary rounded-md transition-colors"
+                        title="Edit Site"
                       >
                         <span className="material-symbols-outlined text-md">edit</span>
                       </button>
                       <button 
                         onClick={() => handleDeleteClick(site)}
                         className="p-xs hover:bg-error-container hover:text-error rounded-md transition-colors ml-xs"
+                        title="Hapus Site"
                       >
                         <span className="material-symbols-outlined text-md">delete</span>
                       </button>
