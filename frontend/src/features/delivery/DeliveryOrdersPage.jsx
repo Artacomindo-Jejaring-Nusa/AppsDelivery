@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import api from '../../services/api';
+import zteBtsSites from '../../data/zte_bts_sites.json';
 
 export default function DeliveryOrdersPage() {
   const [searchParams] = useSearchParams();
@@ -761,6 +762,7 @@ export default function DeliveryOrdersPage() {
   });
 
   const [btsSitesList, setBtsSitesList] = useState([]);
+  const [siteSearchQuery, setSiteSearchQuery] = useState('');
 
   // Active Inbound Scan Session State
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'scan'
@@ -786,13 +788,34 @@ export default function DeliveryOrdersPage() {
     fetchManifestsAndDrivers();
   }, [slaFilter]);
 
-  const fetchBtsSites = async () => {
+  const fetchBtsSites = async (searchVal = '') => {
     try {
-      const res = await api.get('/bts-sites?per_page=200');
-      setBtsSitesList(res.data.data || []);
+      const res = await api.get(`/bts-sites?per_page=100&search=${encodeURIComponent(searchVal)}`);
+      const data = res.data.data;
+      if (data && data.length > 0) {
+        setBtsSitesList(data);
+      } else {
+        const localFiltered = zteBtsSites.filter(s => 
+          s.site_id.toLowerCase().includes(searchVal.toLowerCase()) || 
+          s.site_name.toLowerCase().includes(searchVal.toLowerCase()) ||
+          s.city.toLowerCase().includes(searchVal.toLowerCase())
+        );
+        setBtsSitesList(localFiltered.slice(0, 300));
+      }
     } catch (err) {
       console.error('Failed to fetch BTS Sites:', err);
+      const localFiltered = zteBtsSites.filter(s => 
+        s.site_id.toLowerCase().includes(searchVal.toLowerCase()) || 
+        s.site_name.toLowerCase().includes(searchVal.toLowerCase()) ||
+        s.city.toLowerCase().includes(searchVal.toLowerCase())
+      );
+      setBtsSitesList(localFiltered.slice(0, 300));
     }
+  };
+
+  const handleSiteSearchChange = (val) => {
+    setSiteSearchQuery(val);
+    fetchBtsSites(val);
   };
 
   const fetchOrders = async () => {
@@ -1871,6 +1894,16 @@ export default function DeliveryOrdersPage() {
 
               <div>
                 <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Pilih Site BTS Tujuan (Master 4,600+ Sites)</label>
+                <div className="relative mb-2">
+                  <span className="absolute left-sm top-1/2 -translate-y-1/2 material-symbols-outlined text-secondary text-[18px]">search</span>
+                  <input
+                    type="text"
+                    placeholder="Ketik untuk cari ID atau Nama Site (e.g. AMT001)..."
+                    value={siteSearchQuery}
+                    onChange={(e) => handleSiteSearchChange(e.target.value)}
+                    className="w-full h-10 bg-surface pl-[36px] pr-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary text-body-md"
+                  />
+                </div>
                 <select
                   value={formData.bts_site_id}
                   onChange={(e) => {

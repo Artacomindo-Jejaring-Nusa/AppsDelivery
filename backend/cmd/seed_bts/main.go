@@ -35,7 +35,7 @@ func main() {
 	}
 	defer db.Close()
 
-	jsonPath := "../../frontend/src/data/zte_bts_sites.json"
+	jsonPath := "../frontend/src/data/zte_bts_sites.json"
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
 		log.Fatalf("Failed to read JSON data: %v", err)
