@@ -259,13 +259,12 @@ CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON dismantle_assets
 -- All user passwords are: admin123 ($2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO)
 -- ============================================
 
--- Users (Admin, Dispatcher, Drivers, Data Entry)
+-- Users (Admin, Drivers, Data Entry)
 INSERT INTO users (id, username, email, password_hash, full_name, role, phone, is_active) VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'admin', 'admin@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'System Administrator', 'admin', '081200000000', true),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'dispatcher1', 'dispatcher@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Ahmad Dispatcher', 'dispatcher', '081234567890', true),
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'driver1', 'budi.driver@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Budi Kurir', 'driver', '081299887766', true),
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', 'driver2', 'joko.driver@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Joko Kurir', 'driver', '081388776655', true),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55', 'dataentry1', 'siti.data@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Siti Data Entry', 'data_entry', '081477665544', true)
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55', 'dataentry1', 'dataentry@aksartacomindo.com', '$2a$10$DC6bFKoxFbklzQfht4N1JuomtbmaKaS3c3VLlfvEWp4NahHjllpUO', 'Siti Data Entry', 'data_entry', '081477665544', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Drivers
@@ -274,19 +273,7 @@ INSERT INTO drivers (id, user_id, full_name, phone, vehicle_plate, vehicle_type,
 ('d1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', 'Joko Kurir', '081388776655', 'DA 5678 CD', 'Box Truck', true, true)
 ON CONFLICT (id) DO NOTHING;
 
--- BTS Sites (10 Kalimantan Sites with real GPS coordinates)
-INSERT INTO bts_sites (id, site_id, site_name, address, province, city, district, latitude, longitude, is_active) VALUES
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c01', 'KAL-BTS-0001', 'BTS Banjarmasin Utara', 'Jl. A. Yani No. 123', 'Kalimantan Selatan', 'Banjarmasin', 'Banjarmasin Utara', -3.31940000, 114.59070000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c02', 'KAL-BTS-0002', 'BTS Balikpapan Tengah', 'Jl. Jend. Sudirman No. 45', 'Kalimantan Timur', 'Balikpapan', 'Balikpapan Tengah', -1.26540000, 116.83120000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c03', 'KAL-BTS-0003', 'BTS Samarinda Seberang', 'Jl. M. Yamin No. 88', 'Kalimantan Timur', 'Samarinda', 'Samarinda Seberang', -0.50220000, 117.15360000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c04', 'KAL-BTS-0004', 'BTS Pontianak Kota', 'Jl. Gajah Mada No. 12', 'Kalimantan Barat', 'Pontianak', 'Pontianak Kota', -0.02630000, 109.34250000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c05', 'KAL-BTS-0005', 'BTS Palangkaraya Pahandut', 'Jl. Tjilik Riwut Km. 5', 'Kalimantan Tengah', 'Palangkaraya', 'Pahandut', -2.20880000, 113.91600000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c06', 'KAL-BTS-0006', 'BTS Banjarbaru Selatan', 'Jl. Mistar Cokrokusumo No. 7', 'Kalimantan Selatan', 'Banjarbaru', 'Banjarbaru Selatan', -3.44020000, 114.83040000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c07', 'KAL-BTS-0007', 'BTS Tarakan Barat', 'Jl. Yos Sudarso No. 99', 'Kalimantan Utara', 'Tarakan', 'Tarakan Barat', 3.30650000, 117.59250000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c08', 'KAL-BTS-0008', 'BTS Singkawang Barat', 'Jl. St. Syahrir No. 15', 'Kalimantan Barat', 'Singkawang', 'Singkawang Barat', 0.90710000, 108.98600000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c09', 'KAL-BTS-0009', 'BTS Tenggarong Seberang', 'Jl. Raya Tenggarong No. 20', 'Kalimantan Timur', 'Kutai Kartanegara', 'Tenggarong', -0.41890000, 117.00120000, true),
-('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380c10', 'KAL-BTS-0010', 'BTS Sampit Baamang', 'Jl. Iskandar No. 34', 'Kalimantan Tengah', 'Kotawaringin Timur', 'Baamang', -2.53670000, 112.95200000, true)
-ON CONFLICT (id) DO NOTHING;
+-- BTS Sites (Will be populated using real BTS site data from Excel)
 
 
 -- Clean Schema: No dummy delivery orders or manifests seeded.
