@@ -292,6 +292,19 @@ export default function BtsSitePage() {
   const activeCount = sites.filter((s) => s.is_active).length;
   const maintenanceCount = sites.filter((s) => !s.is_active).length;
 
+  const uptimeEfficiency = totalCount > 0 ? (activeCount / totalCount * 100).toFixed(1) : '100.0';
+  const responseTime = totalCount > 0 ? (0.8 + (maintenanceCount * 0.02)).toFixed(1) : '0.8';
+
+  let hardwareHealth = 'Excellent';
+  const uptimeNum = parseFloat(uptimeEfficiency);
+  if (uptimeNum < 70) {
+    hardwareHealth = 'Critical';
+  } else if (uptimeNum < 85) {
+    hardwareHealth = 'Warning';
+  } else if (uptimeNum < 95) {
+    hardwareHealth = 'Good';
+  }
+
   return (
     <div className="space-y-lg animate-in fade-in duration-300">
       {/* ─── Header & KPI Cards Section ─── */}
@@ -584,28 +597,34 @@ export default function BtsSitePage() {
             <div>
               <div className="flex justify-between mb-xs">
                 <span className="text-label-md font-label-md">Uptime Efficiency</span>
-                <span className="text-label-md font-label-md">98.2%</span>
+                <span className="text-label-md font-label-md">{uptimeEfficiency}%</span>
               </div>
               <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden">
-                <div className="h-full bg-primary" style={{ width: '98.2%' }}></div>
+                <div className="h-full bg-primary" style={{ width: `${uptimeEfficiency}%` }}></div>
               </div>
             </div>
             <div>
               <div className="flex justify-between mb-xs">
                 <span className="text-label-md font-label-md">Response Time</span>
-                <span className="text-label-md font-label-md">1.2s</span>
+                <span className="text-label-md font-label-md">{responseTime}s</span>
               </div>
               <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden">
-                <div className="h-full bg-secondary" style={{ width: '75%' }}></div>
+                <div className="h-full bg-secondary" style={{ width: `${Math.max(10, 100 - (parseFloat(responseTime) * 15))}%` }}></div>
               </div>
             </div>
             <div>
               <div className="flex justify-between mb-xs">
                 <span className="text-label-md font-label-md">Hardware Health</span>
-                <span className="text-label-md font-label-md">Good</span>
+                <span className={`text-label-md font-bold ${
+                  hardwareHealth === 'Critical' ? 'text-error' :
+                  hardwareHealth === 'Warning' ? 'text-amber-600' : 'text-green-600'
+                }`}>{hardwareHealth}</span>
               </div>
               <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden">
-                <div className="h-full bg-green-500" style={{ width: '89%' }}></div>
+                <div className={`h-full ${
+                  hardwareHealth === 'Critical' ? 'bg-error' :
+                  hardwareHealth === 'Warning' ? 'bg-amber-500' : 'bg-green-500'
+                }`} style={{ width: `${uptimeEfficiency}%` }}></div>
               </div>
             </div>
           </div>
