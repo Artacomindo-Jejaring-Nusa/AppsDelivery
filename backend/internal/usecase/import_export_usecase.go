@@ -20,6 +20,7 @@ type importExportUsecase struct {
 	btsSiteRepo domain.BtsSiteRepository
 	doRepo      domain.DeliveryOrderRepository
 	assetRepo   domain.DismantleAssetRepository
+	auditRepo   domain.AuditLogRepository
 	defaultSLA  int
 }
 
@@ -28,15 +29,18 @@ func NewImportExportUsecase(
 	btsSiteRepo domain.BtsSiteRepository,
 	doRepo domain.DeliveryOrderRepository,
 	assetRepo domain.DismantleAssetRepository,
+	auditRepo domain.AuditLogRepository,
 	defaultSLA int,
 ) domain.ImportExportUsecase {
 	return &importExportUsecase{
 		btsSiteRepo: btsSiteRepo,
 		doRepo:      doRepo,
 		assetRepo:   assetRepo,
+		auditRepo:   auditRepo,
 		defaultSLA:  defaultSLA,
 	}
 }
+
 
 func (u *importExportUsecase) ImportBtsSites(ctx context.Context, reader io.Reader, filename string) (*domain.ImportResult, error) {
 	rows, err := readRowsFromFile(reader, filename)
@@ -305,6 +309,45 @@ func (u *importExportUsecase) ExportDismantleAssets(ctx context.Context) ([]byte
 	filename := fmt.Sprintf("Laporan_Barang_Dismantle_%s.xlsx", time.Now().Format("20060102_150405"))
 	return buf.Bytes(), filename, nil
 }
+
+func (u *importExportUsecase) ExportActivityLogs(ctx context.Context) ([]byte, string, error) {
+	f := excelize.NewFile()
+	sheetName := "Laporan Aktivitas Sistem"
+	f.SetSheetName("Sheet1", sheetName)
+
+	headers := []string{"No", "Waktu (Timestamp)", "Kategori Aktivitas", "Aksi / Peristiwa", "ID Referensi", "IP Address", "Detail Proses / Catatan"}
+	for colIdx, header := range headers {
+		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
+		_ = f.SetCellValue(sheetName, cell, header)
+	}
+
+	// Fetch activity audit logs
+	logs, _, err := u.auditRepo.GetList(ctx, &domain.PaginationRequest{Page: 1, PerPage: 10000})
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch audit logs: %w", err)
+	}
+
+	rowCounter := 2
+	for _, logItem := range logs {
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowCounter), rowCounter-1)
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowCounter), logItem.CreatedAt.Format("2006-01-02 15:04:05"))
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowCounter), logItem.EntityName)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowCounter), logItem.Action)
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowCounter), logItem.EntityID)
+		f.SetCellValue(sheetName, fmt.Sprintf("F%d", rowCounter), logItem.IPAddress)
+		f.SetCellValue(sheetName, fmt.Sprintf("G%d", rowCounter), logItem.Details)
+		rowCounter++
+	}
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return nil, "", err
+	}
+
+	filename := fmt.Sprintf("Laporan_Aktivitas_Sistem_%s.xlsx", time.Now().Format("20060102_150405"))
+	return buf.Bytes(), filename, nil
+}
+
 
 // readRowsFromFile handles both Excel (.xlsx) and CSV files transparently.
 func readRowsFromFile(reader io.Reader, filename string) ([][]string, error) {

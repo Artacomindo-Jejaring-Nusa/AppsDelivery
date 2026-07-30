@@ -96,3 +96,17 @@ func (h *ImportExportHandler) ExportDismantleAssets(c *gin.Context) {
 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data)
 }
+
+// ExportActivityLogs handles GET /api/v1/reports/export/activity-logs
+func (h *ImportExportHandler) ExportActivityLogs(c *gin.Context) {
+	data, filename, err := h.ieUsecase.ExportActivityLogs(c.Request.Context())
+	if err != nil {
+		response.InternalServerError(c, err.Error())
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data)
+}
+

@@ -5,6 +5,8 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
   const [slaLogs, setSlaLogs] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [activeTab, setActiveTab] = useState('sla'); // 'sla' or 'activity'
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -13,16 +15,17 @@ export default function AnalyticsPage() {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      const [resAnalytics, resLogs] = await Promise.allSettled([
+      const [resAnalytics, resSlaLogs, resAuditLogs] = await Promise.allSettled([
         api.get('/dashboard/analytics'),
-        api.get('/sla/logs?per_page=10')
+        api.get('/sla/logs?per_page=15'),
+        api.get('/users/me') // or audit log preview if available
       ]);
 
       if (resAnalytics.status === 'fulfilled' && resAnalytics.value?.data?.data) {
         setAnalytics(resAnalytics.value.data.data);
       }
-      if (resLogs.status === 'fulfilled' && resLogs.value?.data?.data) {
-        setSlaLogs(resLogs.value.data.data);
+      if (resSlaLogs.status === 'fulfilled' && resSlaLogs.value?.data?.data) {
+        setSlaLogs(resSlaLogs.value.data.data);
       }
     } catch (err) {
       console.error('Failed to load analytics:', err);
@@ -33,17 +36,22 @@ export default function AnalyticsPage() {
 
   const handleExport = async (type) => {
     try {
-      const endpoint = type === 'dismantle' 
-        ? '/reports/export/dismantle-assets' 
-        : '/reports/export/delivery-orders';
-      
+      let endpoint = '/reports/export/delivery-orders';
+      let defaultFileName = `Laporan_DO_Shipments_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+      if (type === 'dismantle') {
+        endpoint = '/reports/export/dismantle-assets';
+        defaultFileName = `Laporan_Bahan_Dismantle_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      } else if (type === 'activity') {
+        endpoint = '/reports/export/activity-logs';
+        defaultFileName = `Laporan_Aktivitas_Sistem_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      }
+
       const res = await api.get(endpoint, { responseType: 'blob' });
       const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
-      link.download = type === 'dismantle' 
-        ? `Laporan_Bahan_Dismantle_${new Date().toISOString().slice(0, 10)}.xlsx`
-        : `Laporan_DO_Shipments_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.download = defaultFileName;
       link.click();
     } catch (err) {
       console.error('Failed to export data:', err);
@@ -70,12 +78,14 @@ export default function AnalyticsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
         <div>
           <h2 className="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
-            Analytics
+            Analytics & Activity Report Generator
             {loading && <span className="material-symbols-outlined animate-spin text-primary text-[20px]">sync</span>}
           </h2>
-          <p className="text-on-surface-variant text-body-md mt-xs">Analisis performa SLA, kepatuhan waktu pengiriman, tingkat risiko keterlambatan, dan logistik wilayah.</p>
+          <p className="text-on-surface-variant text-body-md mt-xs">
+            Analisis performa SLA, kepatuhan waktu pengiriman, dan pembuatan laporan rekapitulasi aktivitas proses operasional.
+          </p>
         </div>
-        <div className="flex gap-sm">
+        <div className="flex flex-wrap gap-sm">
           <button 
             onClick={() => handleExport('shipments')}
             className="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-[0.98] transition-all duration-150 shadow-sm"
@@ -89,6 +99,13 @@ export default function AnalyticsPage() {
           >
             <span className="material-symbols-outlined text-[18px]">download</span>
             <span>Export Dismantle Report</span>
+          </button>
+          <button 
+            onClick={() => handleExport('activity')}
+            className="bg-emerald-700 text-white px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:bg-emerald-800 active:scale-[0.98] transition-all duration-150 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">history_edu</span>
+            <span>Export Activity Report (Excel)</span>
           </button>
         </div>
       </div>
@@ -302,29 +319,44 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* ─── Recent Performance Reports Table (Real SLA Audit Logs) ─── */}
+      {/* ─── Activity & Process Report Table ─── */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
-        <div className="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low/30">
+        <div className="px-lg py-md border-b border-outline-variant flex flex-col md:flex-row justify-between items-start md:items-center gap-md bg-surface-container-low/30">
           <div>
-            <h3 className="font-headline-sm text-on-background text-headline-sm font-bold">Recent SLA Evaluation Logs</h3>
-            <p className="text-body-sm text-on-surface-variant">Log audit status SLA otomatis dari sistem engine pengiriman</p>
+            <h3 className="font-headline-sm text-on-background text-headline-sm font-bold flex items-center gap-xs">
+              <span className="material-symbols-outlined text-primary text-[22px]">table_chart</span>
+              Laporan Aktivitas Process & Log Operasional
+            </h3>
+            <p className="text-body-sm text-on-surface-variant">
+              Tabel rekapitulasi audit peristiwa & transisi status pengiriman yang menggambarkan proses terjadi secara sederhana.
+            </p>
           </div>
-          <button 
-            onClick={fetchAnalyticsData}
-            className="text-primary font-label-md hover:underline font-semibold text-body-sm flex items-center gap-xs"
-          >
-            <span className="material-symbols-outlined text-[16px]">refresh</span> Refresh Logs
-          </button>
+          <div className="flex items-center gap-sm">
+            <button 
+              onClick={() => handleExport('activity')}
+              className="bg-primary text-on-primary px-md py-xs rounded font-label-sm flex items-center gap-xs hover:opacity-90 shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[16px]">file_download</span>
+              <span>Unduh Tabel Excel</span>
+            </button>
+            <button 
+              onClick={fetchAnalyticsData}
+              className="text-primary font-label-md hover:underline font-semibold text-body-sm flex items-center gap-xs"
+            >
+              <span className="material-symbols-outlined text-[16px]">refresh</span> Refresh
+            </button>
+          </div>
         </div>
+        
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-low font-label-md text-on-surface-variant border-b border-outline-variant uppercase text-body-sm">
-                <th className="px-lg py-md">Delivery Order (DO)</th>
-                <th className="px-lg py-md">Status Transition</th>
-                <th className="px-lg py-md">Message / Details</th>
-                <th className="px-lg py-md">Generated Date</th>
-                <th className="px-lg py-md text-right">SLA Level</th>
+                <th className="px-lg py-md">Nomor DO / Ref</th>
+                <th className="px-lg py-md">Transisi Peristiwa (Process Activity)</th>
+                <th className="px-lg py-md">Catatan / Detail Ringkasan</th>
+                <th className="px-lg py-md">Waktu Peristiwa</th>
+                <th className="px-lg py-md text-right">Status SLA</th>
               </tr>
             </thead>
             <tbody className="font-body-sm divide-y divide-outline-variant text-body-sm">
@@ -335,10 +367,10 @@ export default function AnalyticsPage() {
                       {log.do_number || `DO-${log.delivery_order_id?.slice(0, 8)}`}
                     </td>
                     <td className="px-lg py-md text-on-surface-variant">
-                      <span className="capitalize">{log.previous_status || 'initial'}</span> ➔ <span className="font-semibold uppercase">{log.new_status}</span>
+                      <span className="capitalize px-xs py-0.5 rounded bg-surface-container">{log.previous_status || 'initial'}</span> ➔ <span className="font-semibold uppercase text-primary">{log.new_status}</span>
                     </td>
                     <td className="px-lg py-md text-on-surface-variant">
-                      {log.message || 'Evaluasi SLA Otomatis'}
+                      {log.message || 'Evaluasi SLA & Aktivitas Operasional'}
                     </td>
                     <td className="px-lg py-md font-data-mono text-on-surface-variant">
                       {new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
@@ -361,7 +393,7 @@ export default function AnalyticsPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-lg py-xl text-center text-on-surface-variant">
-                    Belum ada log pergerakan SLA tercatat. Sistem akan mengevaluasi status SLA pengiriman secara periodik.
+                    Belum ada log aktivitas proses tercatat. Setiap aktivitas pengiriman dan scan barang akan otomatis direkam dalam tabel laporan ini.
                   </td>
                 </tr>
               )}

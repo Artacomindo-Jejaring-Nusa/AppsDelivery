@@ -21,4 +21,6 @@ type ImportExportUsecase interface {
 	ImportDeliveryOrders(ctx context.Context, reader io.Reader, filename string, createdBy uuid.UUID) (*ImportResult, error)
 	ExportDeliveryOrders(ctx context.Context) ([]byte, string, error)
 	ExportDismantleAssets(ctx context.Context) ([]byte, string, error)
+	ExportActivityLogs(ctx context.Context) ([]byte, string, error)
 }
+

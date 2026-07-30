@@ -143,7 +143,8 @@ func main() {
 	barcodeUsecase := usecase.NewBarcodeUsecase(barcodeRepo, assetRepo, doRepo, barcodeGen)
 	slaEngine := usecase.NewSLAEngineUsecase(doRepo, slaRepo, cfg.SLA.WarningHours)
 	dashboardUsecase := usecase.NewDashboardUsecase(dashboardRepo)
-	importExportUsecase := usecase.NewImportExportUsecase(btsSiteRepo, doRepo, assetRepo, cfg.SLA.DefaultHours)
+	importExportUsecase := usecase.NewImportExportUsecase(btsSiteRepo, doRepo, assetRepo, auditRepo, cfg.SLA.DefaultHours)
+
 	locUsecase := usecase.NewDriverLocationUsecase(locRepo, driverRepo)
 
 	// ============================================

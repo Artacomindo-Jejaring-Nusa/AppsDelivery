@@ -181,7 +181,9 @@ func (r *Router) Setup(engine *gin.Engine) {
 		{
 			reports.GET("/export/delivery-orders", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.importExportHandler.ExportDeliveryOrders)
 			reports.GET("/export/dismantle-assets", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher, domain.RoleDataEntry), r.importExportHandler.ExportDismantleAssets)
+			reports.GET("/export/activity-logs", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.importExportHandler.ExportActivityLogs)
 		}
+
 
 		// ---- Manifests ----
 		manifests := protected.Group("/manifests")
