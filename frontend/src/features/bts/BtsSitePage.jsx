@@ -273,6 +273,19 @@ export default function BtsSitePage() {
   const endIndex = Math.min(startIndex + perPage, totalFiltered);
   const paginatedSites = filteredSites.slice(startIndex, endIndex);
 
+  const getPageNumbers = () => {
+    const pages = [];
+    const delta = 1;
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== '...') {
+        pages.push('...');
+      }
+    }
+    return pages;
+  };
+
   // Calculate KPIs
   const totalCount = sites.length;
   const activeCount = sites.filter((s) => s.is_active).length;
@@ -420,8 +433,8 @@ export default function BtsSitePage() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredSites.length > 0 ? (
-                filteredSites.map((site) => (
+              ) : paginatedSites.length > 0 ? (
+                paginatedSites.map((site) => (
                   <tr key={site.id} className="table-row-hover transition-colors">
                     <td className="p-md font-data-mono text-data-mono font-bold text-primary">{site.site_id}</td>
                     <td className="p-md font-semibold text-on-surface">
@@ -491,14 +504,61 @@ export default function BtsSitePage() {
         </div>
 
         {/* Pagination */}
-        <div className="bg-surface-container-low px-md py-sm border-t border-outline-variant flex items-center justify-between">
-          <p className="font-label-md text-label-md text-secondary">Showing {filteredSites.length} of {sites.length} entries</p>
+        <div className="bg-surface-container-low px-md py-sm border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-md">
+          <div className="flex flex-wrap items-center gap-md">
+            <p className="font-label-md text-label-md text-secondary">
+              Showing {totalFiltered > 0 ? startIndex + 1 : 0} to {endIndex} of {totalFiltered} entries
+            </p>
+            <div className="flex items-center gap-xs font-label-md text-label-md text-secondary">
+              <span>Show</span>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="py-[2px] px-sm bg-surface border border-outline-variant rounded font-semibold text-primary outline-none focus:ring-0 cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span>entries</span>
+            </div>
+          </div>
           <div className="flex items-center gap-xs">
-            <button className="p-sm rounded border border-outline-variant hover:bg-surface-container-highest transition-colors disabled:opacity-50" disabled>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-sm rounded border border-outline-variant hover:bg-surface-container-highest transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-surface text-secondary"
+            >
               <span className="material-symbols-outlined text-sm leading-none">chevron_left</span>
             </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded bg-primary text-on-primary font-bold text-sm">1</button>
-            <button className="p-sm rounded border border-outline-variant hover:bg-surface-container-highest transition-colors">
+            
+            {getPageNumbers().map((page, idx) => (
+              page === '...' ? (
+                <span key={`dots-${idx}`} className="px-xs text-secondary font-bold">...</span>
+              ) : (
+                <button
+                  key={`page-${page}`}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 flex items-center justify-center rounded font-bold text-sm border ${
+                    currentPage === page 
+                      ? 'bg-primary text-on-primary border-primary' 
+                      : 'bg-surface text-secondary border-outline-variant hover:bg-surface-container-highest transition-colors'
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            ))}
+
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-sm rounded border border-outline-variant hover:bg-surface-container-highest transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-surface text-secondary"
+            >
               <span className="material-symbols-outlined text-sm leading-none">chevron_right</span>
             </button>
           </div>
