@@ -167,8 +167,9 @@ class _LoginScreenState extends State<LoginScreen> {
             }
           },
           child: const Text(
-            "Driver Portal",
+            "Merkurius Driver Portal",
             style: TextStyle(
+
               color: StitchColors.primary,
               fontWeight: FontWeight.bold,
               fontSize: 22,
