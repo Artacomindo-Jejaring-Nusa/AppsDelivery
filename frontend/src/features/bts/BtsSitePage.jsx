@@ -58,7 +58,7 @@ export default function BtsSitePage() {
   const fetchSites = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/bts-sites?per_page=100');
+      const res = await api.get('/bts-sites?per_page=5000');
       const data = res.data.data;
       if (data && data.length > 0) {
         setSites(data);

@@ -17,8 +17,8 @@ func (p *PaginationRequest) SetDefaults() {
 	if p.PerPage <= 0 {
 		p.PerPage = 20
 	}
-	if p.PerPage > 100 {
-		p.PerPage = 100
+	if p.PerPage > 10000 {
+		p.PerPage = 10000
 	}
 	if p.Order == "" {
 		p.Order = "desc"

@@ -74,7 +74,7 @@ func (r *btsSiteRepository) FindBySiteID(ctx context.Context, siteID string) (*d
 func (r *btsSiteRepository) FindAll(ctx context.Context, pagination *domain.PaginationRequest) ([]*domain.BtsSite, int64, error) {
 	pagination.SetDefaults()
 
-	countQuery := `SELECT COUNT(*) FROM bts_sites WHERE is_active = true`
+	countQuery := `SELECT COUNT(*) FROM bts_sites WHERE 1=1`
 	args := []interface{}{}
 	argIndex := 1
 
@@ -92,7 +92,7 @@ func (r *btsSiteRepository) FindAll(ctx context.Context, pagination *domain.Pagi
 
 	dataQuery := `
 		SELECT id, site_id, site_name, address, province, city, district, latitude, longitude, is_active, created_at, updated_at
-		FROM bts_sites WHERE is_active = true`
+		FROM bts_sites WHERE 1=1`
 
 	dataArgs := []interface{}{}
 	dataArgIndex := 1
