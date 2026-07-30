@@ -27,6 +27,7 @@ type DeliveryOrder struct {
 	CreatedAt          time.Time          `json:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at"`
 	DeletedAt          *time.Time         `json:"deleted_at,omitempty"`
+	Driver             *Driver            `json:"driver,omitempty"`
 }
 
 // SLADetailResponse contains granular day and hour SLA metrics when requested.

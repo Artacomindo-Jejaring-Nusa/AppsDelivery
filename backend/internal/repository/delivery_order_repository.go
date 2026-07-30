@@ -41,15 +41,21 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.description, dord.status,
 			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status, dord.origin_address, dord.destination_address,
 			   dord.notes, dord.created_by, dord.created_at, dord.updated_at, dord.deleted_at,
-			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district
+			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district,
+			   drv.id, drv.full_name, drv.vehicle_plate, drv.vehicle_type
 		FROM delivery_orders dord
 		LEFT JOIN bts_sites bs ON dord.bts_site_id = bs.id
+		LEFT JOIN manifest_items mi ON dord.id = mi.delivery_order_id
+		LEFT JOIN manifests m ON mi.manifest_id = m.id
+		LEFT JOIN drivers drv ON m.driver_id = drv.id
 		WHERE dord.id = $1 AND dord.deleted_at IS NULL`
 
 	doEntity := &domain.DeliveryOrder{}
 	bts := &domain.BtsSite{}
 
 	var btsID, btsSiteID, btsSiteName, btsAddress, btsProvince, btsCity, btsDistrict *string
+	var drvUUID *uuid.UUID
+	var drvFullName, drvPlate, drvType *string
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&doEntity.ID, &doEntity.DONumber, &doEntity.BtsSiteID, &doEntity.Description,
@@ -57,6 +63,7 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 		&doEntity.OriginAddress, &doEntity.DestinationAddress, &doEntity.Notes,
 		&doEntity.CreatedBy, &doEntity.CreatedAt, &doEntity.UpdatedAt, &doEntity.DeletedAt,
 		&btsID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
+		&drvUUID, &drvFullName, &drvPlate, &drvType,
 	)
 	if err != nil {
 		return nil, err
@@ -78,6 +85,22 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 			bts.District = *btsDistrict
 		}
 		doEntity.BtsSite = bts
+	}
+
+	if drvUUID != nil {
+		drv := &domain.Driver{
+			ID: *drvUUID,
+		}
+		if drvFullName != nil {
+			drv.FullName = *drvFullName
+		}
+		if drvPlate != nil {
+			drv.VehiclePlate = *drvPlate
+		}
+		if drvType != nil {
+			drv.VehicleType = *drvType
+		}
+		doEntity.Driver = drv
 	}
 
 	return doEntity, nil
@@ -140,9 +163,13 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status,
 			   dord.origin_address, dord.destination_address, dord.notes,
 			   dord.created_by, dord.created_at, dord.updated_at,
-			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district
+			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district,
+			   drv.id, drv.full_name, drv.vehicle_plate, drv.vehicle_type
 		FROM delivery_orders dord
 		LEFT JOIN bts_sites bs ON dord.bts_site_id = bs.id
+		LEFT JOIN manifest_items mi ON dord.id = mi.delivery_order_id
+		LEFT JOIN manifests m ON mi.manifest_id = m.id
+		LEFT JOIN drivers drv ON m.driver_id = drv.id
 		WHERE dord.deleted_at IS NULL`
 
 	dataArgs := []interface{}{}
@@ -187,6 +214,8 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 		bts := &domain.BtsSite{}
 		var btsUUID *uuid.UUID
 		var btsSiteID, btsSiteName, btsAddress, btsProvince, btsCity, btsDistrict *string
+		var drvUUID *uuid.UUID
+		var drvFullName, drvPlate, drvType *string
 
 		if err := rows.Scan(
 			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
@@ -194,6 +223,7 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,
 			&btsUUID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
+			&drvUUID, &drvFullName, &drvPlate, &drvType,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -219,6 +249,22 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 				bts.District = *btsDistrict
 			}
 			do.BtsSite = bts
+		}
+
+		if drvUUID != nil {
+			drv := &domain.Driver{
+				ID: *drvUUID,
+			}
+			if drvFullName != nil {
+				drv.FullName = *drvFullName
+			}
+			if drvPlate != nil {
+				drv.VehiclePlate = *drvPlate
+			}
+			if drvType != nil {
+				drv.VehicleType = *drvType
+			}
+			do.Driver = drv
 		}
 
 		orders = append(orders, do)
