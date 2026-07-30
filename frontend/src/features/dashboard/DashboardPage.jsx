@@ -203,8 +203,8 @@ const DEMO_ALERTS = [
 // ═══════════════════════════════════════
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
-  const [dispatches, setDispatches] = useState(DEMO_DISPATCHES);
-  const [alerts] = useState(DEMO_ALERTS);
+  const [dispatches, setDispatches] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const timers = useCountdownTimers(dispatches);
@@ -218,23 +218,28 @@ export default function DashboardPage() {
     try {
       const [statsRes, dosRes] = await Promise.all([
         api.get('/dashboard/stats').catch(() => null),
-        api.get('/delivery-orders?per_page=5').catch(() => null),
+        api.get('/delivery-orders?per_page=15').catch(() => null),
       ]);
 
       if (statsRes && statsRes.data?.data) {
         setStats(statsRes.data.data);
       } else {
         setStats({
-          total_do_today: 1284,
-          sla_breach_risk: 42,
-          active_drivers: 312,
-          missed_deliveries: 7,
+          total_delivery_orders: 0,
+          today_delivery_orders: 0,
+          month_delivery_orders: 0,
+          do_status_breakdown: { returned: 0, completed: 0, pending: 0 },
+          sla_breakdown: { red: 0, yellow: 0, green: 0 },
+          active_manifests: 0,
+          total_dismantle_assets: 0,
+          active_drivers: 0,
         });
       }
 
-      if (dosRes && dosRes.data?.data && dosRes.data.data.length > 0) {
+      if (dosRes && dosRes.data?.data) {
+        const data = dosRes.data.data;
         // Map real API data into dispatches format
-        const mapped = dosRes.data.data.map((doItem, idx) => ({
+        const mapped = data.map((doItem, idx) => ({
           id: doItem.id || String(idx),
           doNumber: doItem.do_number,
           btsId: doItem.bts_site?.site_id || 'BTS-SITE',
@@ -255,6 +260,50 @@ export default function DashboardPage() {
               : 3600,
         }));
         setDispatches(mapped);
+
+        // Generate dynamic alerts from delivery orders
+        const dynamicAlerts = [];
+        let alertId = 1;
+        data.forEach((doItem) => {
+          if (doItem.sla_status === 'red' && doItem.status !== 'completed' && doItem.status !== 'cancelled') {
+            dynamicAlerts.push({
+              id: alertId++,
+              type: 'error',
+              title: 'SLA Breach Alert',
+              message: `DO ${doItem.do_number} to site ${doItem.bts_site?.site_id || 'BTS'} has breached its SLA deadline!`,
+              time: 'Just now',
+              borderClass: 'border-error',
+              bgClass: 'bg-error-container/20',
+              titleClass: 'text-error',
+            });
+          } else if (doItem.sla_status === 'yellow' && doItem.status !== 'completed' && doItem.status !== 'cancelled') {
+            dynamicAlerts.push({
+              id: alertId++,
+              type: 'info',
+              title: 'SLA Warning',
+              message: `DO ${doItem.do_number} to site ${doItem.bts_site?.site_id || 'BTS'} is approaching its SLA threshold.`,
+              time: 'Recently',
+              borderClass: 'border-primary',
+              bgClass: 'bg-secondary-container/20',
+              titleClass: 'text-primary',
+            });
+          }
+        });
+
+        // Add some default system alert if there are no breach/warning alerts
+        if (dynamicAlerts.length === 0) {
+          dynamicAlerts.push({
+            id: 1,
+            type: 'system',
+            title: 'System Normal',
+            message: 'All dispatch operations are running within SLA targets.',
+            time: '10m ago',
+            borderClass: 'border-tertiary',
+            bgClass: 'bg-tertiary-fixed/20 opacity-70',
+            titleClass: 'text-on-surface',
+          });
+        }
+        setAlerts(dynamicAlerts);
       }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -308,9 +357,9 @@ export default function DashboardPage() {
               </div>
               <span className="text-emerald-600 font-label-sm text-label-sm flex items-center gap-xs">
                 <span className="material-symbols-outlined text-xs">
-                  trending_up
+                  calendar_today
                 </span>
-                +12%
+                Month Total: {stats?.month_delivery_orders ?? 0}
               </span>
             </div>
             <div className="mt-xl">
@@ -318,7 +367,7 @@ export default function DashboardPage() {
                 Total DO Today
               </p>
               <h3 className="font-headline-lg text-headline-lg text-on-surface">
-                {stats?.total_do_today?.toLocaleString() || '1,284'}
+                {stats?.today_delivery_orders?.toLocaleString() ?? '0'}
               </h3>
             </div>
           </div>
@@ -334,23 +383,23 @@ export default function DashboardPage() {
                   warning
                 </span>
               </div>
-              <span className="text-error font-label-sm text-label-sm flex items-center gap-xs">
+              <span className={`font-label-sm text-label-sm flex items-center gap-xs ${(stats?.sla_breakdown?.red || 0) > 0 ? 'text-error' : 'text-emerald-600'}`}>
                 <span className="material-symbols-outlined text-xs">
-                  priority_high
+                  {(stats?.sla_breakdown?.red || 0) > 0 ? 'priority_high' : 'done'}
                 </span>
-                High Risk
+                {(stats?.sla_breakdown?.red || 0) > 0 ? 'High Risk' : 'Normal'}
               </span>
             </div>
             <div className="mt-xl">
               <p className="font-label-md text-label-md text-on-surface-variant mb-xs">
                 SLA Breach Risk
               </p>
-              <h3 className="font-headline-lg text-headline-lg text-error">
-                {stats?.sla_breach_risk ?? 42}
+              <h3 className={`font-headline-lg text-headline-lg ${(stats?.sla_breakdown?.red || 0) > 0 ? 'text-error' : 'text-on-surface'}`}>
+                {stats?.sla_breakdown?.red ?? 0}
               </h3>
             </div>
             <div className="mt-xs w-full bg-surface-container h-1 rounded-full overflow-hidden">
-              <div className="bg-error h-full rounded-full" style={{ width: '78%' }}></div>
+              <div className="bg-error h-full rounded-full" style={{ width: `${stats?.total_delivery_orders > 0 ? ((stats.sla_breakdown?.red / stats.total_delivery_orders) * 100).toFixed(0) : 0}%` }}></div>
             </div>
           </div>
 
@@ -364,7 +413,7 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined">person</span>
               </div>
               <span className="text-on-surface-variant font-label-sm text-label-sm">
-                89% Cap.
+                {stats?.active_drivers > 0 ? (stats?.active_drivers * 100 / 10).toFixed(0) : 0}% Cap.
               </span>
             </div>
             <div className="mt-xl">
@@ -372,7 +421,7 @@ export default function DashboardPage() {
                 Active Drivers
               </p>
               <h3 className="font-headline-lg text-headline-lg text-on-surface">
-                {stats?.active_drivers ?? 312}
+                {stats?.active_drivers ?? 0}
               </h3>
             </div>
           </div>
@@ -388,11 +437,11 @@ export default function DashboardPage() {
                   event_busy
                 </span>
               </div>
-              <span className="text-on-surface-variant font-label-sm text-label-sm flex items-center gap-xs">
+              <span className="text-emerald-600 font-label-sm text-label-sm flex items-center gap-xs">
                 <span className="material-symbols-outlined text-xs">
                   history
                 </span>
-                Yesterday: 04
+                Completed: {stats?.do_status_breakdown?.completed ?? 0}
               </span>
             </div>
             <div className="mt-xl">
@@ -400,7 +449,7 @@ export default function DashboardPage() {
                 Missed Deliveries
               </p>
               <h3 className="font-headline-lg text-headline-lg text-on-surface">
-                {String(stats?.missed_deliveries ?? 7).padStart(2, '0')}
+                {String(stats?.do_status_breakdown?.returned ?? 0).padStart(2, '0')}
               </h3>
             </div>
           </div>
@@ -519,7 +568,7 @@ export default function DashboardPage() {
         <div className="px-lg py-sm border-t border-outline-variant flex items-center justify-between text-body-sm text-on-surface-variant">
           <div>
             Showing {dispatches.length} of{' '}
-            {stats?.total_do_today?.toLocaleString() || '1,284'} Delivery Orders
+            {stats?.total_delivery_orders?.toLocaleString() ?? '0'} Delivery Orders
           </div>
           <div className="flex items-center gap-xs">
             <button className="p-1 hover:bg-surface-container transition-colors rounded">
@@ -527,7 +576,7 @@ export default function DashboardPage() {
                 chevron_left
               </span>
             </button>
-            <span className="font-label-md px-2">Page 1 of 257</span>
+            <span className="font-label-md px-2">Page 1 of {Math.max(1, Math.ceil((stats?.total_delivery_orders || 0) / 15))}</span>
             <button className="p-1 hover:bg-surface-container transition-colors rounded">
               <span className="material-symbols-outlined text-lg">
                 chevron_right

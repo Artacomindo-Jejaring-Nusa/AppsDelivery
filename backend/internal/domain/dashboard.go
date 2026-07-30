@@ -11,6 +11,7 @@ type DashboardStats struct {
 	SLABreakdown        map[string]int64 `json:"sla_breakdown"`
 	ActiveManifests     int64            `json:"active_manifests"`
 	TotalDismantleAssets int64           `json:"total_dismantle_assets"`
+	ActiveDrivers       int64            `json:"active_drivers"`
 }
 
 // DashboardRepository defines the contract for dashboard analytics queries.

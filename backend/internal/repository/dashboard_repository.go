@@ -104,5 +104,9 @@ func (r *dashboardRepository) GetStats(ctx context.Context) (*domain.DashboardSt
 	assetQuery := `SELECT COUNT(*) FROM dismantle_assets`
 	_ = r.db.QueryRow(ctx, assetQuery).Scan(&stats.TotalDismantleAssets)
 
+	// 6. Active Drivers Count
+	driverQuery := `SELECT COUNT(*) FROM drivers WHERE is_active = true`
+	_ = r.db.QueryRow(ctx, driverQuery).Scan(&stats.ActiveDrivers)
+
 	return stats, nil
 }
