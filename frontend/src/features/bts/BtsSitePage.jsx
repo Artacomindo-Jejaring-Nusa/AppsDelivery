@@ -55,11 +55,21 @@ export default function BtsSitePage() {
       if (data && data.length > 0) {
         setSites(data);
       } else {
-        setSites(zteBtsSites);
+        const mapped = zteBtsSites.map(s => ({
+          ...s,
+          latitude: s.lat ?? null,
+          longitude: s.lng ?? null
+        }));
+        setSites(mapped);
       }
     } catch (err) {
       console.warn('Failed to fetch BTS sites from API, using ZTE KML dataset:', err);
-      setSites(zteBtsSites);
+      const mapped = zteBtsSites.map(s => ({
+        ...s,
+        latitude: s.lat ?? null,
+        longitude: s.lng ?? null
+      }));
+      setSites(mapped);
     } finally {
       setLoading(false);
     }
@@ -401,7 +411,7 @@ export default function BtsSitePage() {
                     <td className="p-md font-data-mono text-data-mono font-bold text-primary">{site.site_id}</td>
                     <td className="p-md font-semibold">{site.site_name}</td>
                     <td className="p-md font-data-mono text-body-sm text-secondary">
-                      {site.latitude !== null ? site.latitude.toFixed(4) : '-'} / {site.longitude !== null ? site.longitude.toFixed(4) : '-'}
+                      {site.latitude !== null && site.latitude !== undefined ? Number(site.latitude).toFixed(4) : '-'} / {site.longitude !== null && site.longitude !== undefined ? Number(site.longitude).toFixed(4) : '-'}
                     </td>
                     <td className="p-md">{site.city || '-'}</td>
                     <td className="p-md">
