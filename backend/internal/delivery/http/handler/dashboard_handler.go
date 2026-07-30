@@ -29,3 +29,15 @@ func (h *DashboardHandler) GetStats(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Dashboard statistics retrieved", stats)
 }
+
+// GetAnalytics handles GET /api/v1/dashboard/analytics
+func (h *DashboardHandler) GetAnalytics(c *gin.Context) {
+	analytics, err := h.dashboardUsecase.GetAnalytics(c.Request.Context())
+	if err != nil {
+		response.InternalServerError(c, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Analytics overview retrieved", analytics)
+}
+

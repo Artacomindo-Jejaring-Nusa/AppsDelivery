@@ -122,7 +122,9 @@ func (r *Router) Setup(engine *gin.Engine) {
 	{
 		// ---- Dashboard Analytics & Project Timeline ----
 		protected.GET("/dashboard/stats", r.dashboardHandler.GetStats)
+		protected.GET("/dashboard/analytics", r.dashboardHandler.GetAnalytics)
 		protected.GET("/projects/timeline", r.timelineHandler.GetTimeline)
+
 
 		// ---- Uploads ----
 		protected.POST("/uploads", r.uploadHandler.UploadFile)

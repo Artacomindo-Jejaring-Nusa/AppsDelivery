@@ -37,9 +37,11 @@ func (r *slaRepository) CreateLog(ctx context.Context, log *domain.SLALog) error
 
 func (r *slaRepository) FindLogsByDOID(ctx context.Context, doID uuid.UUID) ([]*domain.SLALog, error) {
 	query := `
-		SELECT id, delivery_order_id, previous_status, new_status, remaining_hours, message, created_at
-		FROM sla_logs WHERE delivery_order_id = $1
-		ORDER BY created_at DESC`
+		SELECT l.id, l.delivery_order_id, COALESCE(d.do_number, ''), l.previous_status, l.new_status, l.remaining_hours, l.message, l.created_at
+		FROM sla_logs l
+		LEFT JOIN delivery_orders d ON l.delivery_order_id = d.id
+		WHERE l.delivery_order_id = $1
+		ORDER BY l.created_at DESC`
 
 	rows, err := r.db.Query(ctx, query, doID)
 	if err != nil {
@@ -51,7 +53,7 @@ func (r *slaRepository) FindLogsByDOID(ctx context.Context, doID uuid.UUID) ([]*
 	for rows.Next() {
 		log := &domain.SLALog{}
 		if err := rows.Scan(
-			&log.ID, &log.DeliveryOrderID, &log.PreviousStatus,
+			&log.ID, &log.DeliveryOrderID, &log.DONumber, &log.PreviousStatus,
 			&log.NewStatus, &log.RemainingHours, &log.Message, &log.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -71,9 +73,10 @@ func (r *slaRepository) FindAllLogs(ctx context.Context, pagination *domain.Pagi
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, delivery_order_id, previous_status, new_status, remaining_hours, message, created_at
-		FROM sla_logs
-		ORDER BY created_at DESC
+		SELECT l.id, l.delivery_order_id, COALESCE(d.do_number, ''), l.previous_status, l.new_status, l.remaining_hours, l.message, l.created_at
+		FROM sla_logs l
+		LEFT JOIN delivery_orders d ON l.delivery_order_id = d.id
+		ORDER BY l.created_at DESC
 		LIMIT $1 OFFSET $2`)
 
 	rows, err := r.db.Query(ctx, query, pagination.PerPage, pagination.Offset())
@@ -86,7 +89,7 @@ func (r *slaRepository) FindAllLogs(ctx context.Context, pagination *domain.Pagi
 	for rows.Next() {
 		log := &domain.SLALog{}
 		if err := rows.Scan(
-			&log.ID, &log.DeliveryOrderID, &log.PreviousStatus,
+			&log.ID, &log.DeliveryOrderID, &log.DONumber, &log.PreviousStatus,
 			&log.NewStatus, &log.RemainingHours, &log.Message, &log.CreatedAt,
 		); err != nil {
 			return nil, 0, err
@@ -96,6 +99,7 @@ func (r *slaRepository) FindAllLogs(ctx context.Context, pagination *domain.Pagi
 
 	return logs, total, nil
 }
+
 
 func (r *slaRepository) GetSummary(ctx context.Context) (*domain.SLASummary, error) {
 	query := `

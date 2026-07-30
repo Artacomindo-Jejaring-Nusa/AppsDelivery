@@ -18,3 +18,8 @@ func NewDashboardUsecase(dashboardRepo domain.DashboardRepository) domain.Dashbo
 func (u *dashboardUsecase) GetStats(ctx context.Context) (*domain.DashboardStats, error) {
 	return u.dashboardRepo.GetStats(ctx)
 }
+
+func (u *dashboardUsecase) GetAnalytics(ctx context.Context) (*domain.AnalyticsOverview, error) {
+	return u.dashboardRepo.GetAnalytics(ctx)
+}
+

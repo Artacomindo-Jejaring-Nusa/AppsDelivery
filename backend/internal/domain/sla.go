@@ -11,12 +11,14 @@ import (
 type SLALog struct {
 	ID              uuid.UUID  `json:"id"`
 	DeliveryOrderID uuid.UUID  `json:"delivery_order_id"`
+	DONumber        string     `json:"do_number,omitempty"`
 	PreviousStatus  *string    `json:"previous_status"`
 	NewStatus       string     `json:"new_status"`
 	RemainingHours  *float64   `json:"remaining_hours"`
 	Message         string     `json:"message"`
 	CreatedAt       time.Time  `json:"created_at"`
 }
+
 
 // SLASummary holds the aggregated SLA overview counts.
 type SLASummary struct {
