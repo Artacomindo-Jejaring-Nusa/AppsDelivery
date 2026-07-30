@@ -250,7 +250,8 @@ export default function BtsSitePage() {
     const matchesSearch =
       site.site_id?.toLowerCase().includes(search.toLowerCase()) ||
       site.site_name?.toLowerCase().includes(search.toLowerCase()) ||
-      site.city?.toLowerCase().includes(search.toLowerCase());
+      site.city?.toLowerCase().includes(search.toLowerCase()) ||
+      site.address?.toLowerCase().includes(search.toLowerCase());
 
     const matchesCluster =
       clusterFilter === 'All Clusters' ||
@@ -419,7 +420,7 @@ export default function BtsSitePage() {
                 <th className="p-md">Coordinates</th>
                 <th className="p-md">City Cluster</th>
                 <th className="p-md">Status</th>
-                <th className="p-md">Address Details</th>
+                <th className="p-md">Material Component</th>
                 <th className="p-md text-right">Actions</th>
               </tr>
             </thead>
@@ -655,9 +656,9 @@ export default function BtsSitePage() {
               </div>
 
               <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Address Details</label>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Material Component</label>
                 <textarea
-                  placeholder="Detail jalan, gedung, etc."
+                  placeholder="Contoh: GSM|DCS|L1800|L2100|L2300"
                   value={addForm.address}
                   onChange={(e) => setAddForm({ ...addForm, address: e.target.value })}
                   className="w-full h-16 bg-surface p-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary resize-none"
@@ -766,8 +767,9 @@ export default function BtsSitePage() {
               </div>
 
               <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Address Details</label>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Material Component</label>
                 <textarea
+                  placeholder="Contoh: GSM|DCS|L1800|L2100|L2300"
                   value={editForm.address}
                   onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                   className="w-full h-16 bg-surface p-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary resize-none"
@@ -902,7 +904,7 @@ export default function BtsSitePage() {
                 <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Option B: Tempel Teks CSV</label>
                 <textarea
                   rows={6}
-                  placeholder={`site_id,site_name,address,province,city,district,latitude,longitude\nBTS-KAL-101,Site Telkomsel Balikpapan Selatan,Jl. Sudirman,Kalimantan Timur,Balikpapan,Balikpapan Selatan,-1.2345,116.8901`}
+                  placeholder={`site_id,site_name,address,province,city,district,latitude,longitude\nBTS-KAL-101,Site Balikpapan Selatan,GSM|DCS|L1800,Kalimantan Timur,Balikpapan,Balikpapan Selatan,-1.2345,116.8901`}
                   value={importCsvText}
                   onChange={(e) => setImportCsvText(e.target.value)}
                   className="w-full p-md bg-surface border border-outline-variant rounded-lg font-data-mono text-xs outline-none focus:border-primary"
