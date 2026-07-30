@@ -305,6 +305,22 @@ export default function BtsSitePage() {
     hardwareHealth = 'Good';
   }
 
+  // Extract unique cities (clusters) from the sites data dynamically
+  const uniqueClusters = Array.from(
+    new Set(
+      sites
+        .map((s) => s.city?.trim())
+        .filter((city) => !!city)
+    )
+  ).sort();
+
+  // Extract unique statuses from the sites data dynamically
+  const uniqueStatuses = Array.from(
+    new Set(
+      sites.map((s) => s.is_active ? 'Active' : 'Down')
+    )
+  ).sort();
+
   return (
     <div className="space-y-lg animate-in fade-in duration-300">
       {/* ─── Header & KPI Cards Section ─── */}
@@ -396,15 +412,14 @@ export default function BtsSitePage() {
           <select
             value={clusterFilter}
             onChange={(e) => setClusterFilter(e.target.value)}
-            className="w-full py-sm px-md bg-surface border border-outline-variant rounded text-body-md focus:border-primary focus:ring-0 outline-none"
+            className="w-full py-sm px-md bg-surface border border-outline-variant rounded text-body-md focus:border-primary focus:ring-0 outline-none cursor-pointer"
           >
             <option value="All Clusters">All Clusters</option>
-            <option value="Balikpapan">Balikpapan</option>
-            <option value="Banjarmasin">Banjarmasin</option>
-            <option value="Samarinda">Samarinda</option>
-            <option value="Pontianak">Pontianak</option>
-            <option value="Palangkaraya">Palangkaraya</option>
-            <option value="Tarakan">Tarakan</option>
+            {uniqueClusters.map((cluster) => (
+              <option key={cluster} value={cluster}>
+                {cluster.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+              </option>
+            ))}
           </select>
         </div>
         <div className="w-48">
@@ -412,12 +427,14 @@ export default function BtsSitePage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full py-sm px-md bg-surface border border-outline-variant rounded text-body-md focus:border-primary focus:ring-0 outline-none"
+            className="w-full py-sm px-md bg-surface border border-outline-variant rounded text-body-md focus:border-primary focus:ring-0 outline-none cursor-pointer"
           >
             <option value="All Statuses">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Down">Down / Inactive</option>
-            <option value="Maintenance">Maintenance</option>
+            {uniqueStatuses.map((status) => (
+              <option key={status} value={status}>
+                {status === 'Active' ? 'Active' : 'Down / Inactive'}
+              </option>
+            ))}
           </select>
         </div>
       </section>
