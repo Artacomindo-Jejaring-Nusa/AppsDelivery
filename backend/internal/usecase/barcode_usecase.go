@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"backend-delivery/internal/domain"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
+
 
 type barcodeUsecase struct {
 	barcodeRepo domain.BarcodeRepository
@@ -86,14 +88,24 @@ func (u *barcodeUsecase) GenerateForAsset(ctx context.Context, assetID uuid.UUID
 
 func (u *barcodeUsecase) LookupByCode(ctx context.Context, code string) (*domain.Barcode, error) {
 	barcode, err := u.barcodeRepo.FindByBarcodeData(ctx, code)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.New("barcode not found")
-		}
-		return nil, err
+	if err == nil && barcode != nil {
+		return barcode, nil
 	}
-	return barcode, nil
+
+	cleanCode := strings.TrimPrefix(code, "INB-")
+	do, _ := u.doRepo.FindByDONumber(ctx, cleanCode)
+	if do != nil {
+		return &domain.Barcode{
+			ID:          do.ID,
+			BarcodeData: fmt.Sprintf("INB-%s", do.DONumber),
+			BarcodeType: "QR_CODE",
+			CreatedAt:   do.CreatedAt,
+		}, nil
+	}
+
+	return nil, errors.New("barcode not found")
 }
+
 
 func (u *barcodeUsecase) MarkScanned(ctx context.Context, code string, scannedBy uuid.UUID) (*domain.Barcode, error) {
 	barcode, err := u.barcodeRepo.FindByBarcodeData(ctx, code)
