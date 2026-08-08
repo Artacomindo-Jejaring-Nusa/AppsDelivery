@@ -47,12 +47,6 @@ class _ScannerTabState extends State<ScannerTab> {
 
   Future<void> _handleSimulateScan(String mockSn) async {
     if (_scannedSerialNumbers.contains(mockSn)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Serial Number $mockSn already scanned"),
-          backgroundColor: StitchColors.slaYellow,
-        ),
-      );
       return;
     }
 
@@ -95,6 +89,8 @@ class _ScannerTabState extends State<ScannerTab> {
       setState(() {
         _isProcessingScan = false;
       });
+
+      ScaffoldMessenger.of(context).clearSnackBars();
 
       // Open Verification Screen
       Navigator.push(

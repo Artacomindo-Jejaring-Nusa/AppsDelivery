@@ -54,6 +54,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.scannedSerialNumbers.isNotEmpty) {
+      _isBarcodeVerified = true;
+      _barcodeController.text = widget.scannedSerialNumbers.first;
+    }
+  }
+
+  @override
   void dispose() {
     _receiverNameController.dispose();
     _notesController.dispose();
@@ -382,41 +391,72 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     const SizedBox(height: 20),
                   ],
 
-                  // 1. QR Code Scan
+                  // 1. QR Code Scan / Verified status
                   const Text(
-                    "SCAN BARCODE / QR CODE",
+                    "BARCODE / QR CODE STATUS",
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _barcodeController,
-                          readOnly: true,
-                          validator: (value) => value == null || value.isEmpty ? "Barcode verification required" : null,
-                          decoration: InputDecoration(
-                            hintText: "Scan barcode stickers...",
-                            prefixIcon: const Icon(Icons.qr_code_2),
-                            filled: true,
-                            fillColor: StitchColors.surfaceContainerLowest,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                  _isBarcodeVerified
+                      ? Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: StitchColors.slaGreen.withOpacity(0.12),
+                            border: Border.all(color: StitchColors.slaGreen.withOpacity(0.5)),
+                            borderRadius: BorderRadius.circular(8.0),
                           ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: StitchColors.slaGreen, size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "MASTER DO BARCODE VERIFIED",
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.slaGreen),
+                                    ),
+                                    Text(
+                                      _barcodeController.text.isNotEmpty ? _barcodeController.text : (widget.scannedSerialNumbers.isNotEmpty ? widget.scannedSerialNumbers.first : widget.order.doNumber),
+                                      style: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 13, fontWeight: FontWeight.bold, color: StitchColors.primary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _barcodeController,
+                                readOnly: true,
+                                validator: (value) => value == null || value.isEmpty ? "Barcode verification required" : null,
+                                decoration: InputDecoration(
+                                  hintText: "Scan barcode stickers...",
+                                  prefixIcon: const Icon(Icons.qr_code_2),
+                                  filled: true,
+                                  fillColor: StitchColors.surfaceContainerLowest,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: StitchColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.all(16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                              ),
+                              onPressed: _isSaving ? null : _simulateBarcodeScan,
+                              child: const Icon(Icons.photo_camera),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: StitchColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.all(16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                        ),
-                        onPressed: _isSaving ? null : _simulateBarcodeScan,
-                        child: const Icon(Icons.photo_camera),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 20),
 
                   // 2. Photo Proof
