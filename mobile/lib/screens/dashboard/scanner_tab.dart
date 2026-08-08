@@ -193,8 +193,8 @@ class _ScannerTabState extends State<ScannerTab> {
       );
     }
 
-    // Simulated dismantle items count: total 3 per DO for testing progress
-    const int totalExpectedScans = 3;
+    // Master DO Barcode scan progress: 1 Master Barcode per Delivery Order
+    const int totalExpectedScans = 1;
     final int currentScansCount = _scannedSerialNumbers.length;
     final double scanProgress = currentScansCount / totalExpectedScans;
 
@@ -248,11 +248,11 @@ class _ScannerTabState extends State<ScannerTab> {
                   ),
                   const SizedBox(width: 8),
                   Chip(
-                    label: const Text(
-                      "IN PROGRESS",
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                    label: Text(
+                      activeDO.status.replaceAll('_', ' ').toUpperCase(),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
-                    backgroundColor: StitchColors.primaryContainer,
+                    backgroundColor: StitchColors.primary,
                     visualDensity: VisualDensity.compact,
                   ),
                 ],
@@ -261,7 +261,7 @@ class _ScannerTabState extends State<ScannerTab> {
           ),
           const SizedBox(height: 16),
 
-          // 2. Scanning Progress Bar
+          // 2. Scanning Progress Bar (Master DO Barcode)
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
@@ -278,7 +278,7 @@ class _ScannerTabState extends State<ScannerTab> {
                     Row(
                       children: [
                         const Text(
-                          "Scanning Progress",
+                          "Scanning Master Barcode",
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         if (_isProcessingScan) ...[
@@ -292,7 +292,7 @@ class _ScannerTabState extends State<ScannerTab> {
                       ],
                     ),
                     Text(
-                      "$currentScansCount / $totalExpectedScans",
+                      "$currentScansCount / $totalExpectedScans Master DO",
                       style: const TextStyle(fontWeight: FontWeight.bold, color: StitchColors.primary),
                     ),
                   ],
@@ -304,7 +304,7 @@ class _ScannerTabState extends State<ScannerTab> {
                     value: scanProgress.clamp(0.0, 1.0),
                     minHeight: 8,
                     backgroundColor: StitchColors.surfaceContainerHigh,
-                    color: _isProcessingScan ? StitchColors.primaryContainer : StitchColors.primary,
+                    color: currentScansCount >= totalExpectedScans ? StitchColors.slaGreen : StitchColors.primary,
                   ),
                 )
               ],
