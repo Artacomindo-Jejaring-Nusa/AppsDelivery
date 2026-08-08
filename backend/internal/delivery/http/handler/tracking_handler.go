@@ -91,9 +91,14 @@ func (h *TrackingHandler) PublicTrack(c *gin.Context) {
 
 	var targetDO *domain.DeliveryOrder
 
-	// 1. Try finding directly by DO Number (e.g. DO-2026-07-006) or ID
-	if parsedUUID, uuidErr := uuid.Parse(rawInput); uuidErr == nil {
+	cleanInput := strings.TrimPrefix(rawInput, "INB-")
+
+	// 1. Try finding directly by DO Number (e.g. DO-2026-08-002) or ID
+	if parsedUUID, uuidErr := uuid.Parse(cleanInput); uuidErr == nil {
 		targetDO, _ = h.doRepo.FindByID(ctx, parsedUUID)
+	}
+	if targetDO == nil {
+		targetDO, _ = h.doRepo.FindByDONumber(ctx, cleanInput)
 	}
 	if targetDO == nil {
 		targetDO, _ = h.doRepo.FindByDONumber(ctx, rawInput)

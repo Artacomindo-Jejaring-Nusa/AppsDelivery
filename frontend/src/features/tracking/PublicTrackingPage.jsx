@@ -22,22 +22,28 @@ export default function PublicTrackingPage() {
       setInputNumber(queryNum);
       setSearched(true);
       fetchTrackingInfo(queryNum);
+
+      // Real-time live polling every 5 seconds for GPS position & status updates
+      const interval = setInterval(() => {
+        fetchTrackingInfo(queryNum, false);
+      }, 5000);
+      return () => clearInterval(interval);
     }
   }, [pathTrackingNumber]);
 
-  const fetchTrackingInfo = async (numToSearch) => {
+  const fetchTrackingInfo = async (numToSearch, showSpinner = true) => {
     if (!numToSearch || !numToSearch.trim()) return;
-    setLoading(true);
+    if (showSpinner) setLoading(true);
     setError(null);
     try {
       const res = await api.get(`/track/${encodeURIComponent(numToSearch.trim())}`);
       setTrackingData(res.data.data);
     } catch (err) {
       console.error('Failed to fetch tracking:', err);
-      setTrackingData(null);
+      if (showSpinner) setTrackingData(null);
       setError(err.response?.data?.message || 'Nomor pengiriman yang Anda masukkan tidak valid atau belum terdaftar dalam sistem kami.');
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
