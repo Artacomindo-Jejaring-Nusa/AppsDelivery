@@ -40,12 +40,15 @@ export default function DeliveryOrdersPage() {
 
   const getPODFileUrl = (url) => {
     if (!url) return '';
+    if (url.startsWith('data:image')) return url;
     if (url.startsWith('http://') || url.startsWith('https://')) {
+      if (url.includes('/uploads/')) {
+        return url.substring(url.indexOf('/uploads/'));
+      }
       return url;
     }
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
-    const host = base.replace(/\/api\/v1\/?$/i, '');
-    return `${host}${url}`;
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return cleanUrl;
   };
 
   const handlePrintPOD = async (item, podData) => {

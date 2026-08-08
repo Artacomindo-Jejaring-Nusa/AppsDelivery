@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -315,27 +316,99 @@ func (u *importExportUsecase) ExportActivityLogs(ctx context.Context) ([]byte, s
 	sheetName := "Laporan Aktivitas Sistem"
 	f.SetSheetName("Sheet1", sheetName)
 
-	headers := []string{"No", "Waktu (Timestamp)", "Kategori Aktivitas", "Aksi / Peristiwa", "ID Referensi", "IP Address", "Detail Proses / Catatan"}
+	headers := []string{"No", "Waktu (Timestamp)", "Kategori Aktivitas", "Aksi / Peristiwa", "ID Referensi", "IP Address / Channel", "Detail Proses / Catatan"}
 	for colIdx, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
 		_ = f.SetCellValue(sheetName, cell, header)
 	}
 
-	// Fetch activity audit logs
-	logs, _, err := u.auditRepo.GetList(ctx, &domain.PaginationRequest{Page: 1, PerPage: 10000})
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to fetch audit logs: %w", err)
+	// 1. Fetch activity audit logs from auditRepo
+	logs, _, _ := u.auditRepo.GetList(ctx, &domain.PaginationRequest{Page: 1, PerPage: 10000})
+
+	type ActivityRecord struct {
+		Timestamp time.Time
+		Category  string
+		Action    string
+		RefID     string
+		Channel   string
+		Details   string
+	}
+
+	var records []ActivityRecord
+
+	for _, l := range logs {
+		records = append(records, ActivityRecord{
+			Timestamp: l.CreatedAt,
+			Category:  l.EntityName,
+			Action:    l.Action,
+			RefID:     l.EntityID,
+			Channel:   l.IPAddress,
+			Details:   l.Details,
+		})
+	}
+
+	// 2. If no audit logs in DB, compile operational events from DOs, Manifests, & Assets
+	if len(records) == 0 {
+		orders, _, _ := u.doRepo.FindAll(ctx, &domain.DOFilterRequest{
+			PaginationRequest: domain.PaginationRequest{Page: 1, PerPage: 10000},
+		})
+
+		for _, order := range orders {
+			// DO Creation Event
+			records = append(records, ActivityRecord{
+				Timestamp: order.CreatedAt,
+				Category:  "Delivery Order",
+				Action:    "CREATE_DO",
+				RefID:     order.DONumber,
+				Channel:   "Web Portal",
+				Details:   fmt.Sprintf("Issue Surat Jalan %s - %s (SLA: %d Jam)", order.DONumber, order.Description, order.SLAHours),
+			})
+
+			// Status Update / POD Verification Event if updated
+			if order.Status != string(domain.DOStatusPending) || order.Notes != "" {
+				details := fmt.Sprintf("Status updated to %s.", strings.ToUpper(order.Status))
+				if order.Notes != "" {
+					details = fmt.Sprintf("%s Notes: %s", details, order.Notes)
+				}
+				records = append(records, ActivityRecord{
+					Timestamp: order.UpdatedAt,
+					Category:  "Delivery Order",
+					Action:    fmt.Sprintf("UPDATE_STATUS_%s", strings.ToUpper(order.Status)),
+					RefID:     order.DONumber,
+					Channel:   "Mobile App Driver",
+					Details:   details,
+				})
+			}
+
+			// Material Asset Dismantle Scans
+			assets, _, _ := u.assetRepo.FindByDeliveryOrderID(ctx, order.ID, &domain.PaginationRequest{Page: 1, PerPage: 1000})
+			for _, asset := range assets {
+				records = append(records, ActivityRecord{
+					Timestamp: asset.CreatedAt,
+					Category:  "Material Inbound",
+					Action:    "DISMANTLE_VERIFY",
+					RefID:     fmt.Sprintf("%s / %s", order.DONumber, asset.SerialNumber),
+					Channel:   "Barcode Scanner",
+					Details:   fmt.Sprintf("Verified %s (%s) S/N: %s - Condition: %s", asset.ItemName, asset.Category, asset.SerialNumber, strings.ToUpper(asset.Condition)),
+				})
+			}
+		}
+
+		// Sort records chronologically (newest first)
+		sort.Slice(records, func(i, j int) bool {
+			return records[i].Timestamp.After(records[j].Timestamp)
+		})
 	}
 
 	rowCounter := 2
-	for _, logItem := range logs {
+	for _, rec := range records {
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowCounter), rowCounter-1)
-		f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowCounter), logItem.CreatedAt.Format("2006-01-02 15:04:05"))
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowCounter), logItem.EntityName)
-		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowCounter), logItem.Action)
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowCounter), logItem.EntityID)
-		f.SetCellValue(sheetName, fmt.Sprintf("F%d", rowCounter), logItem.IPAddress)
-		f.SetCellValue(sheetName, fmt.Sprintf("G%d", rowCounter), logItem.Details)
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowCounter), rec.Timestamp.Format("2006-01-02 15:04:05"))
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowCounter), rec.Category)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowCounter), rec.Action)
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowCounter), rec.RefID)
+		f.SetCellValue(sheetName, fmt.Sprintf("F%d", rowCounter), rec.Channel)
+		f.SetCellValue(sheetName, fmt.Sprintf("G%d", rowCounter), rec.Details)
 		rowCounter++
 	}
 

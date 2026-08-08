@@ -27,7 +27,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - barcode_images:/app/uploads/barcodes
+      - uploads_data:/app/uploads
     networks:
       - delivery-network
     restart: unless-stopped
@@ -72,7 +72,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  barcode_images:
+  uploads_data:
 
 networks:
   delivery-network:
