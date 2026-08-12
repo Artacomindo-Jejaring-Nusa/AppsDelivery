@@ -1300,7 +1300,7 @@ export default function DeliveryOrdersPage() {
           </div>
         )}
 
-        {barcode.items && barcode.items.length > 0 && (
+        {barcode.items && barcode.items.length > 0 ? (
           <div className="w-full bg-surface-container-low p-sm rounded-lg text-left text-body-sm border border-outline-variant">
             <div className="font-bold text-on-surface mb-xs flex justify-between">
               <span>Daftar Material Inbound ({barcode.total_items || barcode.items.length} items):</span>
@@ -1313,6 +1313,15 @@ export default function DeliveryOrdersPage() {
                 </li>
               ))}
             </ul>
+          </div>
+        ) : (
+          <div className="w-full bg-surface-container-low p-sm rounded-lg text-left text-body-sm border border-outline-variant">
+            <div className="font-bold text-on-surface mb-xs">
+              <span>Paket Material Inbound (1 Master Koli):</span>
+            </div>
+            <p className="text-[12px] text-secondary font-body-sm font-semibold">
+              {barcode.description || 'Material Pengiriman Inbound Ericsson'}
+            </p>
           </div>
         )}
         
@@ -1357,12 +1366,6 @@ export default function DeliveryOrdersPage() {
       const refreshRes = await api.get(`/delivery-orders/${selectedDO.id}/assets`);
       const allAssets = refreshRes.data.data || [];
 
-      if (allAssets.length === 0) {
-        alert('Tidak ada item dismantle untuk disimpan.');
-        setIsSubmittingScan(false);
-        return;
-      }
-
       // Generate 1 Master Barcode Object for this Delivery Order
       const masterBarcodeData = `INB-${selectedDO.do_number}`;
       const masterBarcodeObj = {
@@ -1370,23 +1373,25 @@ export default function DeliveryOrdersPage() {
         do_number: selectedDO.do_number,
         barcode_data: masterBarcodeData,
         bts_site: selectedDO.bts_site,
-        total_items: allAssets.length,
+        description: selectedDO.description,
+        total_items: allAssets.length > 0 ? allAssets.length : 1,
         items: allAssets,
       };
 
       setGeneratedBarcodes([masterBarcodeObj]);
       setShowBarcodeModal(true);
+      setViewMode('list');
 
-      // Refresh scan rows (reload assets from server)
-      const mappedRows = allAssets.map((asset) => ({
+      const mappedRows = allAssets.map((asset, index) => ({
         id: asset.id,
+        no: index + 1,
+        category: asset.category || 'Network Equipment',
         serialNumber: asset.serial_number || '',
-        category: asset.category || 'Router/Switch',
         quantity: asset.quantity || 1,
         unit: asset.unit || 'PCS',
         status: 'scanned',
       }));
-      setScanRows([...mappedRows, createEmptyRow(mappedRows.length + 1)]);
+      setScanRows(mappedRows.length > 0 ? mappedRows : [createEmptyRow(1)]);
       setScannedCount(mappedRows.length);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save scanned assets.');
@@ -1399,12 +1404,12 @@ export default function DeliveryOrdersPage() {
   const handleShowPrintBarcode = async (doItem) => {
     setIsFetchingBarcodes(doItem.id);
     try {
-      const assetsRes = await api.get(`/delivery-orders/${doItem.id}/assets`);
-      const assets = assetsRes.data.data || [];
-
-      if (assets.length === 0) {
-        alert(`Belum ada material/asset yang di-scan untuk ${doItem.do_number}. Silakan lakukan Scan Inbound terlebih dahulu.`);
-        return;
+      let assets = [];
+      try {
+        const assetsRes = await api.get(`/delivery-orders/${doItem.id}/assets`);
+        assets = assetsRes.data.data || [];
+      } catch (e) {
+        assets = [];
       }
 
       const masterBarcodeData = `INB-${doItem.do_number}`;
@@ -1413,7 +1418,8 @@ export default function DeliveryOrdersPage() {
         do_number: doItem.do_number,
         barcode_data: masterBarcodeData,
         bts_site: doItem.bts_site,
-        total_items: assets.length,
+        description: doItem.description,
+        total_items: assets.length > 0 ? assets.length : 1,
         items: assets,
       };
 
