@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import TrackingMap from '../../components/shared/TrackingMap';
+import LanguageSwitcher from '../../components/shared/LanguageSwitcher';
 
 export default function PublicTrackingPage() {
   const { trackingNumber: pathTrackingNumber } = useParams();
@@ -98,6 +99,7 @@ export default function PublicTrackingPage() {
         </div>
 
         <div className="flex items-center gap-4">
+          <LanguageSwitcher />
           <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 border-2 border-[#00236f] text-[#00236f] font-bold text-xs uppercase">
             <span className="material-symbols-outlined text-[18px]">public</span>
             Public Tracking

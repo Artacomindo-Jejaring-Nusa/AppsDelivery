@@ -9,6 +9,7 @@ import 'providers/auth_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/manifest_provider.dart';
 import 'providers/sync_provider.dart';
+import 'providers/language_provider.dart';
 import 'screens/auth/login_screen.dart';
 
 void main() async {
@@ -27,6 +28,9 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(
+          create: (_) => LanguageProvider(),
+        ),
         ChangeNotifierProvider(
           create: (_) => AuthProvider(apiClient: apiClient),
         ),

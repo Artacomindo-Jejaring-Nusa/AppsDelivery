@@ -1,0 +1,52 @@
+{
+  "app_name": "Merkurius Delivery",
+  "app_subtitle": "Sistem Manajemen & Pelacakan Logistik",
+  "nav": {
+    "dashboard": "Dashboard",
+    "delivery_orders": "Surat Jalan (DO)",
+    "fleet_tracking": "Armada & Tracking",
+    "timeline": "Lini Masa",
+    "bts_sites": "Site BTS Kalimantan",
+    "logout": "Keluar"
+  },
+  "tracking": {
+    "public_title": "Lacak Pengiriman Logistik",
+    "public_subtitle": "Masukkan Nomor Surat Jalan (DO), Nomor Manifest, atau Barcode Material untuk melacak status real-time.",
+    "placeholder": "Contoh: DO-2026-07-002 atau INB-DO-...",
+    "btn_track": "Lacak",
+    "searching": "Memproses...",
+    "origin": "Asal Pengiriman (HUB)",
+    "destination": "Tujuan Pengiriman (Site BTS)",
+    "status_title": "Status Pengiriman Real-Time",
+    "inbound": "INBOUND LOGISTICS",
+    "outbound": "OUTBOUND DISMANTLE",
+    "material_inbound": "DAFTAR MATERIAL INBOUND / BARU",
+    "material_dismantle": "DAFTAR MATERIAL DISMANTLE",
+    "no_items_inbound": "Belum ada item material inbound yang tercatat untuk Surat Jalan ini.",
+    "no_items_dismantle": "Belum ada item dismantle yang tercatat untuk Surat Jalan ini."
+  },
+  "delivery": {
+    "title": "Manajemen Surat Jalan (DO)",
+    "subtitle": "Kelola pengiriman Inbound & Outbound Dismantle material telekomunikasi Ericsson Telkomsel",
+    "create_do": "Buat Surat Jalan",
+    "create_manifest": "Buat Manifest",
+    "filter_all": "Semua Jenis",
+    "filter_inbound": "Inbound Logistics",
+    "filter_outbound": "Outbound Dismantle",
+    "do_number": "Nomor DO",
+    "destination_site": "Site Tujuan",
+    "sla_deadline": "Batas SLA",
+    "status": "Status",
+    "action": "Aksi"
+  },
+  "common": {
+    "language": "Bahasa",
+    "indonesian": "Bahasa Indonesia",
+    "english": "English",
+    "close": "Tutup",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "print": "Cetak Label Master DO",
+    "search": "Cari..."
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "app_name": "Merkurius Delivery",
+  "app_subtitle": "Logistics Tracking & Management System",
+  "nav": {
+    "dashboard": "Dashboard",
+    "delivery_orders": "Delivery Orders (DO)",
+    "fleet_tracking": "Fleet & Tracking",
+    "timeline": "Timeline",
+    "bts_sites": "Kalimantan BTS Sites",
+    "logout": "Logout"
+  },
+  "tracking": {
+    "public_title": "Track Logistics Shipment",
+    "public_subtitle": "Enter Delivery Order (DO) Number, Manifest Number, or Material Barcode to track real-time status.",
+    "placeholder": "Example: DO-2026-07-002 or INB-DO-...",
+    "btn_track": "Track",
+    "searching": "Processing...",
+    "origin": "Shipment Origin (HUB)",
+    "destination": "Shipment Destination (BTS Site)",
+    "status_title": "Real-Time Delivery Status",
+    "inbound": "INBOUND LOGISTICS",
+    "outbound": "OUTBOUND DISMANTLE",
+    "material_inbound": "INBOUND / NEW MATERIAL LIST",
+    "material_dismantle": "DISMANTLE MATERIAL LIST",
+    "no_items_inbound": "No inbound material items recorded for this Delivery Order yet.",
+    "no_items_dismantle": "No dismantle items recorded for this Delivery Order yet."
+  },
+  "delivery": {
+    "title": "Delivery Order Management",
+    "subtitle": "Manage Inbound & Outbound Dismantle shipments for Ericsson Telkomsel telecom materials",
+    "create_do": "Create Delivery Order",
+    "create_manifest": "Create Manifest",
+    "filter_all": "All Types",
+    "filter_inbound": "Inbound Logistics",
+    "filter_outbound": "Outbound Dismantle",
+    "do_number": "DO Number",
+    "destination_site": "Destination Site",
+    "sla_deadline": "SLA Deadline",
+    "status": "Status",
+    "action": "Action"
+  },
+  "common": {
+    "language": "Language",
+    "indonesian": "Indonesian",
+    "english": "English",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "print": "Print Master DO Label",
+    "search": "Search..."
+  }
+}

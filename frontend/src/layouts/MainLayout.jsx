@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import LanguageSwitcher from '../components/shared/LanguageSwitcher';
 
 export default function MainLayout() {
   const { user, logout } = useAuthStore();
@@ -212,6 +213,9 @@ export default function MainLayout() {
             </div>
           </div>
           <div className="flex items-center gap-md">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
             {/* Live Indicator */}
             <div className="flex items-center gap-xs pr-md border-r border-outline-variant">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>

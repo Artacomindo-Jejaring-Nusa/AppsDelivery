@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/manifest_provider.dart';
+import '../../providers/language_provider.dart';
 import '../auth/login_screen.dart';
 import '../dashboard/trips_tab.dart';
 import '../dashboard/scanner_tab.dart';
@@ -65,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final authProv = Provider.of<AuthProvider>(context);
     final syncProv = Provider.of<SyncProvider>(context);
+    final langProv = Provider.of<LanguageProvider>(context);
 
     final List<Widget> tabs = [
       TripsTab(onSelectTab: selectTab),
@@ -81,16 +83,16 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Active Trips",
-              style: TextStyle(
+            Text(
+              langProv.tr('active_trips'),
+              style: const TextStyle(
                 color: StitchColors.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
             ),
             Text(
-              authProv.user != null ? "Driver: ${authProv.user!.fullName}" : "",
+              authProv.user != null ? "${langProv.tr('driver')}: ${authProv.user!.fullName}" : "",
               style: const TextStyle(
                 color: StitchColors.secondary,
                 fontSize: 12,
@@ -99,6 +101,45 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          // Language switcher dropdown
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.language, color: StitchColors.primary, size: 20),
+            tooltip: langProv.tr('language'),
+            onSelected: (code) => langProv.setLanguage(code),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'id',
+                child: Row(
+                  children: [
+                    const Text("🇮🇩 "),
+                    Text(
+                      langProv.tr('indonesian'),
+                      style: TextStyle(
+                        fontWeight: langProv.currentLanguage == 'id' ? FontWeight.bold : FontWeight.normal,
+                        color: langProv.currentLanguage == 'id' ? StitchColors.primary : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'en',
+                child: Row(
+                  children: [
+                    const Text("🇬🇧 "),
+                    Text(
+                      langProv.tr('english'),
+                      style: TextStyle(
+                        fontWeight: langProv.currentLanguage == 'en' ? FontWeight.bold : FontWeight.normal,
+                        color: langProv.currentLanguage == 'en' ? StitchColors.primary : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
           // Sync status pill in header
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -109,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 size: 16,
               ),
               label: Text(
-                syncProv.isOnline ? "Synced" : "Offline",
+                syncProv.isOnline ? langProv.tr('synced') : langProv.tr('offline'),
                 style: const TextStyle(
                   color: StitchColors.primary,
                   fontSize: 11,
