@@ -3,11 +3,34 @@
   "app_subtitle": "Sistem Manajemen & Pelacakan Logistik",
   "nav": {
     "dashboard": "Dashboard",
+    "timeline": "Timeline Proyek",
     "delivery_orders": "Surat Jalan (DO)",
+    "fleet": "Armada Pengiriman",
     "fleet_tracking": "Armada & Tracking",
-    "timeline": "Lini Masa",
+    "analytics": "Analitik Logistik",
+    "compliance": "Kepatuhan SLA",
+    "user_accounts": "Pengguna & Akun",
+    "tracking_monitoring": "Tracking & Monitoring",
     "bts_sites": "Site BTS Kalimantan",
-    "logout": "Keluar"
+    "logout": "Keluar Aplikasi"
+  },
+  "dashboard": {
+    "title": "Dasbor Control Tower Logistik",
+    "subtitle": "Pengawasan real-time operasi pengiriman logistik & kepatuhan SLA Kalimantan.",
+    "total_do_today": "Total DO Hari Ini",
+    "month_total": "Total Bulan Ini",
+    "sla_breach_risk": "Risiko Pelanggaran SLA",
+    "active_drivers": "Driver Aktif",
+    "missed_deliveries": "Keterlambatan Pengiriman",
+    "live_dispatch_monitor": "Pemantau Pengiriman Real-Time",
+    "critical_alerts": "Peringatan Sistem & SLA",
+    "do_number": "NOMOR DO",
+    "destination": "TUJUAN (SITE BTS)",
+    "driver_info": "INFO DRIVER",
+    "status": "STATUS",
+    "sla_countdown": "HITUNG MUNDUR SLA",
+    "filter": "Filter",
+    "export": "Ekspor Data"
   },
   "tracking": {
     "public_title": "Lacak Pengiriman Logistik",

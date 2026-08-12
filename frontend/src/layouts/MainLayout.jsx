@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import LanguageSwitcher from '../components/shared/LanguageSwitcher';
 
 export default function MainLayout() {
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -75,15 +77,15 @@ export default function MainLayout() {
   };
 
   const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
-    { label: 'Project Timeline', path: '/timeline', icon: 'account_tree' },
-    { label: 'Shipments', path: '/delivery-orders', icon: 'local_shipping' },
-    { label: 'Fleet', path: '/fleet', icon: 'directions_bus' },
-    { label: 'Analytics', path: '/analytics', icon: 'analytics' },
-    { label: 'Compliance', path: '/dashboard', icon: 'verified_user' },
-    { label: 'User & Accounts', path: '/user', icon: 'people' },
-    { label: 'Tracking & Monitoring', path: '/tracking', icon: 'location_searching' },
-    { label: 'BTS Sites', path: '/bts-sites', icon: 'cell_tower' },
+    { key: 'dashboard', label: t('nav.dashboard', 'Dashboard'), path: '/dashboard', icon: 'dashboard' },
+    { key: 'timeline', label: t('nav.timeline', 'Project Timeline'), path: '/timeline', icon: 'account_tree' },
+    { key: 'delivery_orders', label: t('nav.delivery_orders', 'Shipments'), path: '/delivery-orders', icon: 'local_shipping' },
+    { key: 'fleet', label: t('nav.fleet', 'Fleet'), path: '/fleet', icon: 'directions_bus' },
+    { key: 'analytics', label: t('nav.analytics', 'Analytics'), path: '/analytics', icon: 'analytics' },
+    { key: 'compliance', label: t('nav.compliance', 'Compliance'), path: '/dashboard', icon: 'verified_user' },
+    { key: 'user_accounts', label: t('nav.user_accounts', 'User & Accounts'), path: '/user', icon: 'people' },
+    { key: 'tracking_monitoring', label: t('nav.tracking_monitoring', 'Tracking & Monitoring'), path: '/tracking', icon: 'location_searching' },
+    { key: 'bts_sites', label: t('nav.bts_sites', 'BTS Sites'), path: '/bts-sites', icon: 'cell_tower' },
   ];
 
   const userInitials = (user?.full_name || user?.username || 'A')
@@ -167,7 +169,7 @@ export default function MainLayout() {
             const isActive = location.pathname.startsWith(item.path);
             return (
               <button
-                key={item.label}
+                key={item.key || item.label}
                 onClick={() => navigate(item.path)}
                 className={`flex items-center gap-md w-full px-md py-sm rounded-lg text-left transition-colors font-semibold text-body-md ${
                   isActive
@@ -189,7 +191,7 @@ export default function MainLayout() {
             className="flex items-center gap-md w-full px-md py-sm rounded-lg text-left text-error hover:bg-error/15 font-semibold text-body-md"
           >
             <span className="material-symbols-outlined">logout</span>
-            <span>Sign Out</span>
+            <span>{t('nav.logout', 'Sign Out')}</span>
           </button>
         </div>
       </nav>

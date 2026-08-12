@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import FleetMap from '../../components/shared/FleetMap';
 
@@ -256,53 +257,51 @@ export default function DashboardPage() {
           status: doItem.status || 'pending',
           countdownSeconds:
             doItem.sla_detail?.remaining_hours != null
-              ? Math.max(0, doItem.sla_detail.remaining_hours * 3600)
+              ? Math.max(0, Math.floor(doItem.sla_detail.remaining_hours * 3600))
               : 3600,
         }));
         setDispatches(mapped);
+      } else {
+        setDispatches(DEMO_DISPATCHES);
+      }
 
-        // Generate dynamic alerts from delivery orders
+      if (statsRes?.data?.data) {
+        const s = statsRes.data.data;
         const dynamicAlerts = [];
-        let alertId = 1;
-        data.forEach((doItem) => {
-          if (doItem.sla_status === 'red' && doItem.status !== 'completed' && doItem.status !== 'cancelled') {
-            dynamicAlerts.push({
-              id: alertId++,
-              type: 'error',
-              title: 'SLA Breach Alert',
-              message: `DO ${doItem.do_number} to site ${doItem.bts_site?.site_id || 'BTS'} has breached its SLA deadline!`,
-              time: 'Just now',
-              borderClass: 'border-error',
-              bgClass: 'bg-error-container/20',
-              titleClass: 'text-error',
-            });
-          } else if (doItem.sla_status === 'yellow' && doItem.status !== 'completed' && doItem.status !== 'cancelled') {
-            dynamicAlerts.push({
-              id: alertId++,
-              type: 'info',
-              title: 'SLA Warning',
-              message: `DO ${doItem.do_number} to site ${doItem.bts_site?.site_id || 'BTS'} is approaching its SLA threshold.`,
-              time: 'Recently',
-              borderClass: 'border-primary',
-              bgClass: 'bg-secondary-container/20',
-              titleClass: 'text-primary',
-            });
-          }
-        });
-
-        // Add some default system alert if there are no breach/warning alerts
-        if (dynamicAlerts.length === 0) {
+        if ((s.sla_breakdown?.red || 0) > 0) {
           dynamicAlerts.push({
             id: 1,
-            type: 'system',
-            title: 'System Normal',
-            message: 'All dispatch operations are running within SLA targets.',
-            time: '10m ago',
-            borderClass: 'border-tertiary',
-            bgClass: 'bg-tertiary-fixed/20 opacity-70',
-            titleClass: 'text-on-surface',
+            type: 'error',
+            title: 'SLA Breach Warning',
+            message: `${s.sla_breakdown.red} Delivery Orders exceed SLA threshold limits.`,
+            time: 'Just now',
+            borderClass: 'border-error',
+            bgClass: 'bg-error-container/20',
+            titleClass: 'text-error',
           });
         }
+        if (s.active_drivers > 0) {
+          dynamicAlerts.push({
+            id: 2,
+            type: 'info',
+            title: 'Fleet Active',
+            message: `${s.active_drivers} drivers currently online and dispatched.`,
+            time: '5m ago',
+            borderClass: 'border-primary',
+            bgClass: 'bg-secondary-container/20',
+            titleClass: 'text-primary',
+          });
+        }
+        dynamicAlerts.push({
+          id: 3,
+          type: 'system',
+          title: 'System Normal',
+          message: 'All dispatch operations are running within SLA targets.',
+          time: '10m ago',
+          borderClass: 'border-tertiary',
+          bgClass: 'bg-tertiary-fixed/20 opacity-70',
+          titleClass: 'text-on-surface',
+        });
         setAlerts(dynamicAlerts);
       }
     } catch (err) {
@@ -319,11 +318,10 @@ export default function DashboardPage() {
         <div className="flex items-end justify-between mb-md">
           <div>
             <h2 className="font-headline-lg text-headline-lg text-primary">
-              Control Tower Dashboard
+              {t('dashboard.title', 'Control Tower Dashboard')}
             </h2>
             <p className="font-body-md text-body-md text-on-surface-variant">
-              Real-time oversight of global dispatch operations and SLA
-              compliance.
+              {t('dashboard.subtitle', 'Real-time oversight of global dispatch operations and SLA compliance.')}
             </p>
           </div>
           <div className="flex gap-sm">
@@ -331,13 +329,13 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined text-sm">
                 filter_list
               </span>
-              Filter
+              {t('dashboard.filter', 'Filter')}
             </button>
             <button className="px-md py-sm bg-surface-container-highest text-on-surface-variant font-label-md text-label-md rounded-lg flex items-center gap-xs hover:opacity-80 transition-all">
               <span className="material-symbols-outlined text-sm">
                 download
               </span>
-              Export
+              {t('dashboard.export', 'Export')}
             </button>
           </div>
         </div>
@@ -359,12 +357,12 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-xs">
                   calendar_today
                 </span>
-                Month Total: {stats?.month_delivery_orders ?? 0}
+                {t('dashboard.month_total', 'Month Total')}: {stats?.month_delivery_orders ?? 0}
               </span>
             </div>
             <div className="mt-xl">
               <p className="font-label-md text-label-md text-on-surface-variant mb-xs">
-                Total DO Today
+                {t('dashboard.total_do_today', 'Total DO Today')}
               </p>
               <h3 className="font-headline-lg text-headline-lg text-on-surface">
                 {stats?.today_delivery_orders?.toLocaleString() ?? '0'}
@@ -392,7 +390,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-xl">
               <p className="font-label-md text-label-md text-on-surface-variant mb-xs">
-                SLA Breach Risk
+                {t('dashboard.sla_breach_risk', 'SLA Breach Risk')}
               </p>
               <h3 className={`font-headline-lg text-headline-lg ${(stats?.sla_breakdown?.red || 0) > 0 ? 'text-error' : 'text-on-surface'}`}>
                 {stats?.sla_breakdown?.red ?? 0}
@@ -418,7 +416,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-xl">
               <p className="font-label-md text-label-md text-on-surface-variant mb-xs">
-                Active Drivers
+                {t('dashboard.active_drivers', 'Active Drivers')}
               </p>
               <h3 className="font-headline-lg text-headline-lg text-on-surface">
                 {stats?.active_drivers ?? 0}
@@ -446,7 +444,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-xl">
               <p className="font-label-md text-label-md text-on-surface-variant mb-xs">
-                Missed Deliveries
+                {t('dashboard.missed_deliveries', 'Missed Deliveries')}
               </p>
               <h3 className="font-headline-lg text-headline-lg text-on-surface">
                 {String(stats?.do_status_breakdown?.returned ?? 0).padStart(2, '0')}
@@ -460,7 +458,7 @@ export default function DashboardPage() {
       <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
         <div className="px-lg py-md border-b border-outline-variant flex items-center justify-between bg-surface-bright">
           <h3 className="font-headline-sm text-headline-sm text-primary">
-            Live Dispatch Monitor
+            {t('dashboard.live_dispatch_monitor', 'Live Dispatch Monitor')}
           </h3>
           <div className="flex items-center gap-md">
             <span className="text-body-sm font-body-sm text-on-surface-variant">
@@ -480,19 +478,19 @@ export default function DashboardPage() {
             <thead>
               <tr className="bg-surface-container-low border-b border-outline-variant">
                 <th className="px-lg py-sm font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
-                  DO Number
+                  {t('dashboard.do_number', 'DO Number')}
                 </th>
                 <th className="px-lg py-sm font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
-                  Destination (BTS ID/Name)
+                  {t('dashboard.destination', 'Destination (BTS ID/Name)')}
                 </th>
                 <th className="px-lg py-sm font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
-                  Driver Info
+                  {t('dashboard.driver_info', 'Driver Info')}
                 </th>
                 <th className="px-lg py-sm font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
-                  Status
+                  {t('dashboard.status', 'Status')}
                 </th>
                 <th className="px-lg py-sm font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">
-                  SLA Countdown
+                  {t('dashboard.sla_countdown', 'SLA Countdown')}
                 </th>
               </tr>
             </thead>

@@ -3,11 +3,34 @@
   "app_subtitle": "Logistics Tracking & Management System",
   "nav": {
     "dashboard": "Dashboard",
+    "timeline": "Project Timeline",
     "delivery_orders": "Delivery Orders (DO)",
+    "fleet": "Fleet Management",
     "fleet_tracking": "Fleet & Tracking",
-    "timeline": "Timeline",
+    "analytics": "Logistics Analytics",
+    "compliance": "SLA Compliance",
+    "user_accounts": "User & Accounts",
+    "tracking_monitoring": "Tracking & Monitoring",
     "bts_sites": "Kalimantan BTS Sites",
-    "logout": "Logout"
+    "logout": "Sign Out"
+  },
+  "dashboard": {
+    "title": "Control Tower Dashboard",
+    "subtitle": "Real-time oversight of global dispatch operations and SLA compliance across Kalimantan.",
+    "total_do_today": "Total DO Today",
+    "month_total": "Month Total",
+    "sla_breach_risk": "SLA Breach Risk",
+    "active_drivers": "Active Drivers",
+    "missed_deliveries": "Missed Deliveries",
+    "live_dispatch_monitor": "Live Dispatch Monitor",
+    "critical_alerts": "System & SLA Alerts",
+    "do_number": "DO NUMBER",
+    "destination": "DESTINATION (BTS ID/NAME)",
+    "driver_info": "DRIVER INFO",
+    "status": "STATUS",
+    "sla_countdown": "SLA COUNTDOWN",
+    "filter": "Filter",
+    "export": "Export"
   },
   "tracking": {
     "public_title": "Track Logistics Shipment",
