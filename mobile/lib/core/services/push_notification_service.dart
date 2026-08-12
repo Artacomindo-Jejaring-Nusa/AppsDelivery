@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -25,6 +26,11 @@ class PushNotificationService {
 
   String? _fcmToken;
   String? get fcmToken => _fcmToken;
+
+  // Notification group key for Android grouped notifications
+  static const String _groupKey = 'com.artacomindo.delivery.manifest';
+  static const String _channelId = 'high_importance_channel';
+  static const String _channelName = 'High Importance Notifications';
 
   Future<void> initialize() async {
     try {
@@ -53,8 +59,8 @@ class PushNotificationService {
 
       // Channel Android High Importance
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'high_importance_channel',
-        'High Importance Notifications',
+        _channelId,
+        _channelName,
         description: 'Used for important logistics delivery notifications.',
         importance: Importance.max,
       );
@@ -63,24 +69,48 @@ class PushNotificationService {
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
 
-      // 5. Handling Foreground Notification
+      // 5. Handling Foreground Notification with Grouped Support
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         RemoteNotification? notification = message.notification;
         AndroidNotification? android = message.notification?.android;
 
         if (notification != null && android != null) {
+          // Generate unique ID for each notification so they don't replace each other
+          final int notifId = Random().nextInt(100000);
+
+          // Show the individual notification
           _localNotifications.show(
-            notification.hashCode,
+            notifId,
             notification.title,
             notification.body,
             NotificationDetails(
               android: AndroidNotificationDetails(
-                channel.id,
-                channel.name,
-                channelDescription: channel.description,
+                _channelId,
+                _channelName,
+                channelDescription: 'Used for important logistics delivery notifications.',
                 icon: '@mipmap/ic_launcher',
                 importance: Importance.max,
                 priority: Priority.high,
+                groupKey: _groupKey,
+              ),
+            ),
+          );
+
+          // Show a summary notification (Android InboxStyle grouping)
+          _localNotifications.show(
+            0, // Summary notification always has ID 0
+            'Merkurius Delivery',
+            'Anda memiliki penugasan baru',
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                _channelId,
+                _channelName,
+                channelDescription: 'Used for important logistics delivery notifications.',
+                icon: '@mipmap/ic_launcher',
+                importance: Importance.max,
+                priority: Priority.high,
+                groupKey: _groupKey,
+                setAsGroupSummary: true,
               ),
             ),
           );

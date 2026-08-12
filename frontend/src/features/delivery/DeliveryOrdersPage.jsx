@@ -235,7 +235,7 @@ export default function DeliveryOrdersPage() {
         </head>
         <body class="bg-surface-container-lowest font-body-md text-on-surface">
           <header class="fixed top-0 w-full z-50 flex justify-between items-center px-margin h-16 bg-surface dark:bg-on-background border-b border-outline-variant no-print">
-            <div class="font-headline-md text-headline-md font-bold text-primary">ARTACOMINDO X AKS</div>
+            <div class="font-headline-md text-headline-md font-bold text-primary">Merkurius Delivery</div>
             <div class="flex gap-md">
               <button class="flex items-center gap-xs bg-primary text-on-primary px-md py-sm rounded-lg font-label-md hover:opacity-90 transition-all" onclick="window.print()">
                 <span class="material-symbols-outlined">print</span>
@@ -251,7 +251,7 @@ export default function DeliveryOrdersPage() {
                 <div class="flex justify-between items-start border-b-2 border-primary-container pb-sm mb-sm">
                   <div class="flex flex-col">
                     <div class="flex items-center gap-sm">
-                      <span class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">ARTACOMINDO X AKS</span>
+                      <span class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">Merkurius Delivery</span>
                     </div>
                     <p class="font-label-sm text-label-sm uppercase tracking-widest text-secondary mt-xs">Logistics & Supply Chain Operations Center</p>
                   </div>
@@ -374,10 +374,10 @@ export default function DeliveryOrdersPage() {
               <div class="pt-sm border-t border-outline-variant text-center mt-auto">
                 <p class="font-body-sm text-[9px] text-secondary leading-relaxed max-w-2xl mx-auto italic">
                   Dokumen ini diterbitkan secara otomatis dan sah sebagai bukti serah terima barang digital yang tervalidasi menggunakan scan barcode. 
-                  Seluruh data yang tercantum dalam dokumen ini merupakan representasi valid dari sistem manajemen aset ARTACOMINDO X AKS
+                  Seluruh data yang tercantum dalam dokumen ini merupakan representasi valid dari sistem manajemen aset Merkurius Delivery
                 </p>
                 <div class="flex justify-between items-end mt-sm">
-                  <p class="font-label-sm text-label-sm font-bold text-primary uppercase">Sistem Tracking Logistik ARTACOMINDO X AKS</p>
+                  <p class="font-label-sm text-label-sm font-bold text-primary uppercase">Sistem Tracking Logistik Merkurius Delivery</p>
                   <div class="text-right">
                     <p class="font-data-mono text-[9px] text-secondary">PAGE 1 OF 1</p>
                     <p class="font-data-mono text-[9px] text-secondary">${new Date().toLocaleString('id-ID')}</p>
@@ -604,7 +604,7 @@ export default function DeliveryOrdersPage() {
         </head>
         <body class="bg-surface-container-lowest font-body-md text-on-surface">
           <header class="fixed top-0 w-full z-50 flex justify-between items-center px-margin h-16 bg-surface dark:bg-on-background border-b border-outline-variant no-print">
-            <div class="font-headline-md text-headline-md font-bold text-primary">ARTACOMINDO X AKS</div>
+            <div class="font-headline-md text-headline-md font-bold text-primary">Merkurius Delivery</div>
             <div class="flex gap-md">
               <button class="flex items-center gap-xs bg-primary text-on-primary px-md py-sm rounded-lg font-label-md hover:opacity-90 transition-all" onclick="window.print()">
                 <span class="material-symbols-outlined">print</span>
@@ -620,7 +620,7 @@ export default function DeliveryOrdersPage() {
                 <div class="flex justify-between items-start border-b-2 border-primary-container pb-sm mb-sm">
                   <div class="flex flex-col">
                     <div class="flex items-center gap-sm">
-                      <span class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">ARTACOMINDO X AKS</span>
+                      <span class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">Merkurius Delivery</span>
                     </div>
                     <p class="font-label-sm text-label-sm uppercase tracking-widest text-secondary mt-xs">Logistics & Supply Chain Operations Center</p>
                   </div>
@@ -730,10 +730,10 @@ export default function DeliveryOrdersPage() {
               <div class="pt-sm border-t border-outline-variant text-center mt-auto">
                 <p class="font-body-sm text-[9px] text-secondary leading-relaxed max-w-2xl mx-auto italic">
                   Dokumen Berita Acara Serah Terima (BAST) ini diterbitkan secara otomatis dan sah sebagai bukti serah terima barang digital yang tervalidasi menggunakan scan barcode serial number.
-                  Seluruh data yang tercantum merupakan representasi valid dari sistem manajemen aset ARTACOMINDO X AKS.
+                  Seluruh data yang tercantum merupakan representasi valid dari sistem manajemen aset Merkurius Delivery.
                 </p>
                 <div class="flex justify-between items-end mt-sm">
-                  <p class="font-label-sm text-label-sm font-bold text-primary uppercase">Sistem Reverse Logistik ARTACOMINDO X AKS</p>
+                  <p class="font-label-sm text-label-sm font-bold text-primary uppercase">Sistem Reverse Logistik Merkurius Delivery</p>
                   <div class="text-right">
                     <p class="font-data-mono text-[9px] text-secondary">PAGE 1 OF 1</p>
                     <p class="font-data-mono text-[9px] text-secondary">${new Date().toLocaleString('id-ID')}</p>
@@ -974,7 +974,7 @@ export default function DeliveryOrdersPage() {
             <tr>
               <td>
                 <div class="logo-title">OPERATIONS CENTER LOGISTICS</div>
-                <div class="logo-sub">ARTACOMINDO X AKS</div>
+                <div class="logo-sub">Merkurius Delivery</div>
               </td>
               <td style="text-align:right;">
                 <div style="font-size:8.5pt;color:#64748b;">Dokumen Resmi Surat Jalan</div>

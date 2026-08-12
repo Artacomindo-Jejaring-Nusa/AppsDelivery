@@ -365,27 +365,60 @@ class _TripsTabState extends State<TripsTab> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "DO ID",
-                                style: TextStyle(
-                                  color: StitchColors.onSurfaceVariant,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      "DO ID",
+                                      style: TextStyle(
+                                        color: StitchColors.onSurfaceVariant,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: order.type == 'outbound'
+                                            ? const Color(0xFFFFF3E0)
+                                            : const Color(0xFFE3F2FD),
+                                        borderRadius: BorderRadius.circular(4.0),
+                                        border: Border.all(
+                                          color: order.type == 'outbound'
+                                              ? const Color(0xFFFF9800)
+                                              : const Color(0xFF1565C0),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        order.type == 'outbound' ? 'OUTBOUND' : 'INBOUND',
+                                        style: TextStyle(
+                                          color: order.type == 'outbound'
+                                              ? const Color(0xFFE65100)
+                                              : const Color(0xFF0D47A1),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              Text(
-                                order.doNumber,
-                                style: const TextStyle(
-                                  fontFamily: 'JetBrains Mono',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: StitchColors.onSurface,
+                                Text(
+                                  order.doNumber,
+                                  style: const TextStyle(
+                                    fontFamily: 'JetBrains Mono',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: StitchColors.onSurface,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -564,7 +597,7 @@ class _TripsTabState extends State<TripsTab> {
                                           const Icon(Icons.circle, color: Colors.green, size: 10),
                                           const SizedBox(width: 6),
                                           const Text(
-                                            "Warehouse Logistik",
+                                            "Gudang Utama Ericsson",
                                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                                           ),
                                           const Padding(

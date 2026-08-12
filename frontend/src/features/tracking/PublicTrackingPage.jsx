@@ -92,7 +92,7 @@ export default function PublicTrackingPage() {
       <header className="flex items-center justify-between px-6 py-4 w-full bg-[#f7f9fb] border-b-2 border-[#c5c5d3] sticky top-0 z-20">
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <h1 className="font-bold text-xl md:text-2xl text-[#00236f] leading-tight">ARTACOMINDO X AKS</h1>
+            <h1 className="font-bold text-xl md:text-2xl text-[#00236f] leading-tight">Merkurius Delivery</h1>
             <p className="text-[10px] text-[#444651] uppercase tracking-widest font-bold">Logistics Tracking System</p>
           </div>
         </div>

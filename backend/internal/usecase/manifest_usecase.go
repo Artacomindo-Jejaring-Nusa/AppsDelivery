@@ -104,64 +104,66 @@ func (u *manifestUsecase) Create(ctx context.Context, req *domain.CreateManifest
 		)
 	}(manifest.ManifestNumber)
 
-	// Trigger FCM Push Notification asynchronously to Driver HP
-	go func(manifestNum string, driverID uuid.UUID) {
-		title := "🚚 Penugasan Manifest Baru"
-		body := fmt.Sprintf("Manifest %s telah ditugaskan kepada Anda. Cek sekarang!", manifestNum)
-
+	// Trigger FCM Push Notifications asynchronously to Driver HP
+	// Sends: 1 summary notification + 1 notification per Delivery Order
+	go func(manifestNum string, driverID uuid.UUID, doIDs []uuid.UUID) {
 		if u.rdb == nil {
 			log.Printf("[FCM] Redis not available, skipping push notification")
 			return
 		}
 
-		bgCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		bgCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		// 1. Resolve driver's UserID from driverID (FCM token is saved under fcm:<userID>)
-		var tokenKeys []string
-		tokenKeys = append(tokenKeys, "fcm:"+driverID.String()) // try driverID directly
-
-		if u.driverRepo != nil {
-			driver, err := u.driverRepo.FindByID(bgCtx, driverID)
-			if err == nil && driver != nil && driver.UserID != nil {
-				tokenKeys = append(tokenKeys, "fcm:"+driver.UserID.String()) // try userID
-				log.Printf("[FCM] Resolved driverID %s -> userID %s", driverID, driver.UserID.String())
-			}
+		// 1. Resolve FCM token for the driver
+		fcmToken := u.resolveFCMToken(bgCtx, driverID)
+		if fcmToken == "" {
+			log.Printf("[FCM] WARNING: Could not resolve any FCM token for manifest %s", manifestNum)
+			return
 		}
 
-		// Also try fcm:latest as fallback
-		tokenKeys = append(tokenKeys, "fcm:latest")
+		// 2. Send summary notification first
+		summaryTitle := "🚚 Penugasan Manifest Baru"
+		summaryBody := fmt.Sprintf("Manifest %s — %d shipment telah ditugaskan kepada Anda.", manifestNum, len(doIDs))
+		if err := fcm.SendPushNotification(bgCtx, fcmToken, summaryTitle, summaryBody); err != nil {
+			log.Printf("[FCM] Failed to send summary notification: %v", err)
+		} else {
+			log.Printf("[FCM] ✅ Summary push notification sent for manifest %s", manifestNum)
+		}
 
-		// 2. Try each key until one succeeds
-		for _, key := range tokenKeys {
-			token, err := u.rdb.Get(bgCtx, key).Result()
-			if err != nil || token == "" {
+		// 3. Send individual notification per Delivery Order (with 500ms delay between each)
+		for i, doID := range doIDs {
+			time.Sleep(500 * time.Millisecond)
+
+			doDetail, err := u.doRepo.FindByID(bgCtx, doID)
+			if err != nil {
+				log.Printf("[FCM] Could not fetch DO %s for notification: %v", doID, err)
 				continue
 			}
-			if sendErr := fcm.SendPushNotification(bgCtx, token, title, body); sendErr == nil {
-				log.Printf("[FCM] Push notification sent successfully via key=%s", key)
-				return
+
+			var doTitle, doBody string
+			siteName := doDetail.DestinationAddress
+			if doDetail.BtsSite != nil {
+				siteName = fmt.Sprintf("%s (%s)", doDetail.BtsSite.SiteName, doDetail.BtsSite.City)
+			}
+
+			if doDetail.Type == "outbound" {
+				doTitle = fmt.Sprintf("📦 [%d/%d] OUTBOUND Dismantle", i+1, len(doIDs))
+				doBody = fmt.Sprintf("%s — Ambil material dari %s", doDetail.DONumber, siteName)
 			} else {
-				log.Printf("[FCM] Failed to send via key=%s: %v", key, sendErr)
+				doTitle = fmt.Sprintf("📦 [%d/%d] INBOUND Logistics", i+1, len(doIDs))
+				doBody = fmt.Sprintf("%s — Kirim ke %s", doDetail.DONumber, siteName)
+			}
+
+			if err := fcm.SendPushNotification(bgCtx, fcmToken, doTitle, doBody); err != nil {
+				log.Printf("[FCM] Failed to send DO notification #%d (%s): %v", i+1, doDetail.DONumber, err)
+			} else {
+				log.Printf("[FCM] ✅ DO notification #%d sent: %s → %s", i+1, doDetail.DONumber, siteName)
 			}
 		}
 
-		// 3. Final fallback: Broadcast to ALL registered FCM Tokens in Redis
-		keys, err := u.rdb.Keys(bgCtx, "fcm:*").Result()
-		if err == nil && len(keys) > 0 {
-			for _, k := range keys {
-				t, e := u.rdb.Get(bgCtx, k).Result()
-				if e == nil && t != "" {
-					if err := fcm.SendPushNotification(bgCtx, t, title, body); err == nil {
-						log.Printf("[FCM] Broadcast push notification sent via key=%s", k)
-						return
-					}
-				}
-			}
-		}
-
-		log.Printf("[FCM] WARNING: Could not send push notification for manifest %s to any token", manifestNum)
-	}(manifest.ManifestNumber, req.DriverID)
+		log.Printf("[FCM] All %d push notifications dispatched for manifest %s", len(doIDs)+1, manifestNum)
+	}(manifest.ManifestNumber, req.DriverID, req.DeliveryOrderIDs)
 
 	// Load items for response
 	items, _ := u.manifestRepo.FindItemsByManifestID(ctx, manifest.ID)
@@ -243,4 +245,44 @@ func (u *manifestUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, req *d
 
 	manifest.Status = req.Status
 	return manifest, nil
+}
+
+// resolveFCMToken attempts to find a valid FCM token for the given driver
+// by trying multiple Redis keys: fcm:<driverID>, fcm:<userID>, fcm:latest, and broadcast
+func (u *manifestUsecase) resolveFCMToken(ctx context.Context, driverID uuid.UUID) string {
+	var tokenKeys []string
+	tokenKeys = append(tokenKeys, "fcm:"+driverID.String())
+
+	if u.driverRepo != nil {
+		driver, err := u.driverRepo.FindByID(ctx, driverID)
+		if err == nil && driver != nil && driver.UserID != nil {
+			tokenKeys = append(tokenKeys, "fcm:"+driver.UserID.String())
+			log.Printf("[FCM] Resolved driverID %s -> userID %s", driverID, driver.UserID.String())
+		}
+	}
+
+	tokenKeys = append(tokenKeys, "fcm:latest")
+
+	// Try each key until one has a valid token
+	for _, key := range tokenKeys {
+		token, err := u.rdb.Get(ctx, key).Result()
+		if err == nil && token != "" {
+			log.Printf("[FCM] Token resolved via key=%s", key)
+			return token
+		}
+	}
+
+	// Broadcast fallback: try all fcm:* keys
+	keys, err := u.rdb.Keys(ctx, "fcm:*").Result()
+	if err == nil && len(keys) > 0 {
+		for _, k := range keys {
+			t, e := u.rdb.Get(ctx, k).Result()
+			if e == nil && t != "" {
+				log.Printf("[FCM] Token resolved via broadcast key=%s", k)
+				return t
+			}
+		}
+	}
+
+	return ""
 }
