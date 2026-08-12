@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"backend-delivery/internal/domain"
@@ -44,10 +45,22 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 	now := time.Now()
 	slaDeadline := now.Add(time.Duration(slaHours) * time.Hour)
 
+	deliveryType := req.Type
+	if deliveryType != domain.DeliveryTypeInbound && deliveryType != domain.DeliveryTypeOutbound {
+		// Auto-detect based on destination address or notes
+		dest := req.DestinationAddress
+		if req.BtsSiteID == nil || (dest != "" && (timeContains(dest, "gudang") || timeContains(dest, "ericsson"))) {
+			deliveryType = domain.DeliveryTypeOutbound
+		} else {
+			deliveryType = domain.DeliveryTypeInbound
+		}
+	}
+
 	do := &domain.DeliveryOrder{
 		ID:                 uuid.New(),
 		DONumber:           req.DONumber,
 		BtsSiteID:          req.BtsSiteID,
+		Type:               deliveryType,
 		Description:        req.Description,
 		Status:             domain.DOStatusPending,
 		SLADays:            slaDays,
@@ -227,4 +240,8 @@ func populateSLADetail(do *domain.DeliveryOrder) {
 		RemainingFormatted: formatted,
 		IsOverdue:          isOverdue,
 	}
+}
+
+func timeContains(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }

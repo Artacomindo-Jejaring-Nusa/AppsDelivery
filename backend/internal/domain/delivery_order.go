@@ -7,12 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	DeliveryTypeInbound  = "inbound"
+	DeliveryTypeOutbound = "outbound"
+)
+
 // DeliveryOrder represents a Delivery Order (DO) from PT. Eriksin.
 type DeliveryOrder struct {
 	ID                 uuid.UUID          `json:"id"`
 	DONumber           string             `json:"do_number"`
 	BtsSiteID          *uuid.UUID         `json:"bts_site_id"`
 	BtsSite            *BtsSite           `json:"bts_site,omitempty"`
+	Type               string             `json:"type"` // "inbound" or "outbound"
 	Description        string             `json:"description"`
 	Status             string             `json:"status"`
 	SLADays            int                `json:"sla_days"`
@@ -46,6 +52,7 @@ type SLADetailResponse struct {
 type CreateDeliveryOrderRequest struct {
 	DONumber           string     `json:"do_number" binding:"required"`
 	BtsSiteID          *uuid.UUID `json:"bts_site_id"`
+	Type               string     `json:"type"` // "inbound" or "outbound"
 	Description        string     `json:"description"`
 	SLADays            int        `json:"sla_days"` // 1, 2, 3, 4, 5 days
 	SLAHours           int        `json:"sla_hours"`
@@ -66,6 +73,7 @@ type DOFilterRequest struct {
 	Status    string `form:"status"`
 	SLAStatus string `form:"sla_status"`
 	BtsSiteID string `form:"bts_site_id"`
+	Type      string `form:"type"`
 }
 
 // ---- Repository Interface ----

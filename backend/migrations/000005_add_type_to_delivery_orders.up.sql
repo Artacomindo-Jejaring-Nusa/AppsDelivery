@@ -1,0 +1,1 @@
+ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS type VARCHAR(20) NOT NULL DEFAULT 'inbound';

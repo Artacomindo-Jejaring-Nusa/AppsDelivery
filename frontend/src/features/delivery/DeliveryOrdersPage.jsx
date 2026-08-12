@@ -411,11 +411,22 @@ export default function DeliveryOrdersPage() {
 
     const podData = parsePODNotes(item.notes) || {
       receivedBy: 'Ericsson WH Agent',
-      notes: 'Handover dismantle complete',
+      notes: 'Handover complete',
       receiverSignatureUrl: null,
       driverSignatureUrl: null,
       photoUrl: null
     };
+
+    const isInbound = item.type === 'inbound' || (!item.type && !item.notes?.toLowerCase().includes('dismantle') && !item.description?.toLowerCase().includes('dismantle'));
+    const docTitle = isInbound 
+      ? 'SURAT JALAN PENGIRIMAN MATERIAL (INBOUND LOGISTICS)'
+      : 'BERITA ACARA SERAH TERIMA (BAST) DISMANTLE (OUTBOUND LOGISTICS)';
+    const docBadge = isInbound
+      ? '<span style="background:#00236f;color:white;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:bold;margin-left:8px;">INBOUND LOGISTICS</span>'
+      : '<span style="background:#d97706;color:white;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:bold;margin-left:8px;">OUTBOUND / DISMANTLE LOGISTICS</span>';
+    const docDescription = isInbound
+      ? `Pada hari ini, tanggal ${new Date(item.created_at || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, telah dilaksanakan pengiriman material/perangkat unit baru dari Gudang Utama Ericsson ke Site BTS Ericsson oleh pihak-pihak di bawah ini:`
+      : `Pada hari ini, tanggal ${new Date(item.updated_at || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, telah dilakukan serah terima barang pembongkaran (dismantle) dari Site BTS via Gudang Temporer AKS ke Gudang Utama Ericsson oleh pihak-pihak di bawah ini:`;
 
     const foundManifest = manifests.find(m => 
       m.items && m.items.some(mit => mit.delivery_order_id === item.id)
@@ -439,7 +450,7 @@ export default function DeliveryOrdersPage() {
             </td>
           </tr>
         `).join('')
-      : `<tr><td colspan="6" style="text-align:center;color:#64748b;font-style:italic;">Tidak ada detail asset dismantle terdaftar</td></tr>`;
+      : `<tr><td colspan="6" style="text-align:center;color:#64748b;font-style:italic;">Tidak ada detail asset ${isInbound ? 'material' : 'dismantle'} terdaftar</td></tr>`;
 
     const recSigImg = podData?.receiverSignatureUrl 
       ? `<img class="max-h-12 max-w-full object-contain" src="${getPODFileUrl(podData.receiverSignatureUrl)}" />`
@@ -456,7 +467,7 @@ export default function DeliveryOrdersPage() {
         <head>
           <meta charset="utf-8">
           <meta content="width=device-width, initial-scale=1.0" name="viewport">
-          <title>Berita Acara Serah Terima (BAST) - ${item?.do_number || ''}</title>
+          <title>${isInbound ? 'Surat Jalan Inbound' : 'BAST Dismantle Outbound'} - ${item?.do_number || ''}</title>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
           <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
           <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -597,7 +608,7 @@ export default function DeliveryOrdersPage() {
             <div class="flex gap-md">
               <button class="flex items-center gap-xs bg-primary text-on-primary px-md py-sm rounded-lg font-label-md hover:opacity-90 transition-all" onclick="window.print()">
                 <span class="material-symbols-outlined">print</span>
-                PRINT BAST
+                PRINT DOKUMEN ${isInbound ? 'INBOUND' : 'OUTBOUND'}
               </button>
             </div>
           </header>
@@ -614,15 +625,18 @@ export default function DeliveryOrdersPage() {
                     <p class="font-label-sm text-label-sm uppercase tracking-widest text-secondary mt-xs">Logistics & Supply Chain Operations Center</p>
                   </div>
                   <div class="text-right">
-                    <p class="font-label-md text-label-md font-bold text-primary tracking-tighter">BERITA ACARA SERAH TERIMA</p>
-                    <p class="font-data-mono text-data-mono text-on-surface-variant mt-xs">Ref: BAST-${item?.do_number || ''}</p>
+                    <p class="font-label-md text-label-md font-bold text-primary tracking-tighter">${isInbound ? 'SURAT JALAN PENGIRIMAN' : 'BERITA ACARA SERAH TERIMA'}</p>
+                    <p class="font-data-mono text-data-mono text-on-surface-variant mt-xs">Ref: ${isInbound ? 'SJ' : 'BAST'}-${item?.do_number || ''}</p>
                   </div>
                 </div>
 
                 <!-- 2. Title Section -->
                 <div class="mb-sm">
                   <div class="border-2 border-primary-container bg-surface-container-lowest p-sm text-center rounded-DEFAULT">
-                    <h1 class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight">BERITA ACARA SERAH TERIMA (BAST) BARANG DISMANTLE</h1>
+                    <h1 class="font-headline-sm text-headline-sm font-extrabold text-primary tracking-tight flex items-center justify-center gap-2">
+                      <span>${docTitle}</span>
+                      ${docBadge}
+                    </h1>
                     <div class="mt-xs flex justify-center items-center gap-xs">
                       <span class="font-label-md text-label-md uppercase text-secondary">MANIFEST NO:</span>
                       <span class="font-data-mono text-headline-sm font-bold text-primary tracking-widest">${manifestNum}</span>
@@ -632,7 +646,7 @@ export default function DeliveryOrdersPage() {
 
                 <!-- Pihak Info -->
                 <div class="border border-outline-variant rounded-lg p-sm bg-surface-container-low mb-sm text-[12px] leading-relaxed">
-                  <p class="font-semibold text-primary mb-xs">Pada hari ini, tanggal ${new Date(item.updated_at || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, telah dilakukan serah terima barang pembongkaran (dismantle) oleh pihak-pihak di bawah ini:</p>
+                  <p class="font-semibold text-primary mb-xs">${docDescription}</p>
                   <table class="w-full">
                     <tr>
                       <td class="font-medium text-secondary w-36">PIHAK PERTAMA (Pemberi):</td>
@@ -640,7 +654,7 @@ export default function DeliveryOrdersPage() {
                     </tr>
                     <tr>
                       <td class="font-medium text-secondary">PIHAK KEDUA (Penerima):</td>
-                      <td class="font-bold text-primary">${podData.receivedBy.toUpperCase()} (Warehouse Agent Ericsson)</td>
+                      <td class="font-bold text-primary">${podData.receivedBy.toUpperCase()} (${isInbound ? 'Penerima Site BTS Ericsson' : 'Warehouse Agent Ericsson'})</td>
                     </tr>
                   </table>
                 </div>
@@ -1411,10 +1425,19 @@ export default function DeliveryOrdersPage() {
     }
   };
 
-  const filteredOrders = orders.filter((doItem) =>
-    doItem.do_number.toLowerCase().includes(search.toLowerCase()) ||
-    doItem.description?.toLowerCase().includes(search.toLowerCase())
-  );
+  const [typeFilter, setTypeFilter] = useState(''); // '' | 'inbound' | 'outbound'
+
+  const filteredOrders = orders.filter((doItem) => {
+    const matchesSearch = doItem.do_number.toLowerCase().includes(search.toLowerCase()) ||
+      doItem.description?.toLowerCase().includes(search.toLowerCase());
+    
+    const isOutbound = doItem.type === 'outbound' || (!doItem.type && (doItem.notes?.toLowerCase().includes('dismantle') || doItem.description?.toLowerCase().includes('dismantle') || doItem.destination_address?.toLowerCase().includes('gudang')));
+    const isInbound = !isOutbound;
+    
+    if (typeFilter === 'inbound') return matchesSearch && isInbound;
+    if (typeFilter === 'outbound') return matchesSearch && isOutbound;
+    return matchesSearch;
+  });
 
   return (
     <div className="space-y-lg">
@@ -1424,10 +1447,10 @@ export default function DeliveryOrdersPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-md bg-surface-container-lowest p-lg rounded-xl border border-outline-variant shadow-xs">
             <div>
               <h1 className="font-headline-lg text-headline-lg text-on-surface">
-                Delivery Orders (Outbound Logistik)
+                Delivery Orders Logistik (Inbound & Outbound)
               </h1>
               <p className="font-body-md text-body-md text-secondary mt-xs">
-                Manajemen Surat Jalan, Pengelompokan Material & Target SLA Harian
+                Manajemen Surat Jalan Material Baru (Inbound) & BAST Pembongkaran (Outbound Dismantle)
               </p>
             </div>
             <div className="flex items-center gap-sm">
@@ -1449,63 +1472,99 @@ export default function DeliveryOrdersPage() {
           </div>
 
           {/* Filter & Search Bar */}
-          <div className="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-xs flex flex-col md:flex-row gap-md justify-between items-center">
-            {/* Search */}
-            <div className="relative w-full md:w-80">
-              <input
-                type="text"
-                placeholder="Cari No. DO atau Deskripsi..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-10 bg-surface px-md pl-10 border border-outline-variant focus:border-primary outline-none font-body-md rounded-lg text-body-md"
-              />
-              <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline text-[18px]">
-                search
-              </span>
-            </div>
+          <div className="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-xs flex flex-col gap-md">
+            <div className="flex flex-col md:flex-row gap-md justify-between items-center">
+              {/* Search */}
+              <div className="relative w-full md:w-80">
+                <input
+                  type="text"
+                  placeholder="Cari No. DO atau Deskripsi..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-10 bg-surface px-md pl-10 border border-outline-variant focus:border-primary outline-none font-body-md rounded-lg text-body-md"
+                />
+                <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline text-[18px]">
+                  search
+                </span>
+              </div>
 
-            {/* SLA Status Filter Buttons */}
-            <div className="flex items-center gap-xs overflow-x-auto w-full md:w-auto">
-              <button
-                onClick={() => setSlaFilter('')}
-                className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
-                  slaFilter === ''
-                    ? 'bg-primary text-on-primary'
-                    : 'bg-surface-container hover:bg-surface-container-high text-secondary'
-                }`}
-              >
-                Semua Status SLA
-              </button>
-              <button
-                onClick={() => setSlaFilter('green')}
-                className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
-                  slaFilter === 'green'
-                    ? 'bg-emerald-700 text-white'
-                    : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                }`}
-              >
-                🟢 SLA Aman
-              </button>
-              <button
-                onClick={() => setSlaFilter('yellow')}
-                className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
-                  slaFilter === 'yellow'
-                    ? 'bg-amber-700 text-white'
-                    : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                }`}
-              >
-                🟡 SLA Warning
-              </button>
-              <button
-                onClick={() => setSlaFilter('red')}
-                className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
-                  slaFilter === 'red'
-                    ? 'bg-error text-white'
-                    : 'bg-error-container text-error hover:bg-error-container/80'
-                }`}
-              >
-                🔴 SLA Overdue
-              </button>
+              {/* Logistik Type Filter Buttons (Inbound vs Outbound) */}
+              <div className="flex items-center gap-xs overflow-x-auto w-full md:w-auto">
+                <button
+                  onClick={() => setTypeFilter('')}
+                  className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
+                    typeFilter === ''
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container hover:bg-surface-container-high text-secondary'
+                  }`}
+                >
+                  Semua Logistik
+                </button>
+                <button
+                  onClick={() => setTypeFilter('inbound')}
+                  className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
+                    typeFilter === 'inbound'
+                      ? 'bg-blue-800 text-white'
+                      : 'bg-blue-100 text-blue-900 hover:bg-blue-200'
+                  }`}
+                >
+                  🟦 Inbound (Gudang ➔ Site)
+                </button>
+                <button
+                  onClick={() => setTypeFilter('outbound')}
+                  className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
+                    typeFilter === 'outbound'
+                      ? 'bg-amber-800 text-white'
+                      : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                  }`}
+                >
+                  🟧 Outbound (Dismantle ➔ Gudang)
+                </button>
+              </div>
+
+              {/* SLA Status Filter Buttons */}
+              <div className="flex items-center gap-xs overflow-x-auto w-full md:w-auto">
+                <button
+                  onClick={() => setSlaFilter('')}
+                  className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
+                    slaFilter === ''
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container hover:bg-surface-container-high text-secondary'
+                  }`}
+                >
+                  Semua SLA
+                </button>
+                <button
+                  onClick={() => setSlaFilter('green')}
+                  className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
+                    slaFilter === 'green'
+                      ? 'bg-emerald-700 text-white'
+                      : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                  }`}
+                >
+                  🟢 SLA Aman
+                </button>
+                <button
+                  onClick={() => setSlaFilter('yellow')}
+                  className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
+                    slaFilter === 'yellow'
+                      ? 'bg-amber-700 text-white'
+                      : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                  }`}
+                >
+                  🟡 Warning
+                </button>
+                <button
+                  onClick={() => setSlaFilter('red')}
+                  className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
+                    slaFilter === 'red'
+                      ? 'bg-error text-white'
+                      : 'bg-error-container text-error hover:bg-error-container/80'
+                  }`}
+                >
+                  🔴 Overdue
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1522,7 +1581,8 @@ export default function DeliveryOrdersPage() {
                   <thead>
                     <tr className="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-secondary uppercase">
                       <th className="py-md px-lg">No. DO</th>
-                      <th className="py-md px-lg">Site BTS</th>
+                      <th className="py-md px-lg">Kategori Logistik</th>
+                      <th className="py-md px-lg">Site BTS / Tujuan</th>
                       <th className="py-md px-lg">Deskripsi Material</th>
                       <th className="py-md px-lg">Target SLA (Hari)</th>
                       <th className="py-md px-lg">Sisa Waktu SLA</th>
@@ -1535,11 +1595,25 @@ export default function DeliveryOrdersPage() {
                       filteredOrders.map((item) => {
                         const isRed = item.sla_status === 'red' || item.sla_detail?.is_overdue;
                         const isYellow = item.sla_status === 'yellow';
+                        const isOutbound = item.type === 'outbound' || (!item.type && (item.notes?.toLowerCase().includes('dismantle') || item.description?.toLowerCase().includes('dismantle') || item.destination_address?.toLowerCase().includes('gudang')));
 
                         return (
                           <tr key={item.id} className="hover:bg-surface-container-low/50 transition-colors">
                             <td className="py-md px-lg font-data-mono font-bold text-primary">
                               {item.do_number}
+                            </td>
+                            <td className="py-md px-lg">
+                              {isOutbound ? (
+                                <span className="px-sm py-xs rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[13px]">outbound</span>
+                                  OUTBOUND / DISMANTLE
+                                </span>
+                              ) : (
+                                <span className="px-sm py-xs rounded-full text-[11px] font-bold bg-blue-100 text-blue-900 border border-blue-300 inline-flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[13px]">inbound</span>
+                                  INBOUND LOGISTICS
+                                </span>
+                              )}
                             </td>
                             <td className="py-md px-lg">
                               <span className="font-semibold text-on-surface font-data-mono block">
@@ -1884,6 +1958,18 @@ export default function DeliveryOrdersPage() {
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-md">
+              <div>
+                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-xs">Kategori Logistik (Jenis Pengiriman)</label>
+                <select
+                  value={formData.type || 'inbound'}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className="w-full h-10 bg-surface px-md border border-outline-variant rounded-lg font-body-md outline-none focus:border-primary font-bold text-primary"
+                >
+                  <option value="inbound">🟦 INBOUND LOGISTICS (Material Baru: Gudang Ericsson ➔ Site BTS)</option>
+                  <option value="outbound">🟧 OUTBOUND / DISMANTLE (Bongkaran: Site BTS ➔ Gudang AKS ➔ Gudang Ericsson)</option>
+                </select>
+              </div>
+
               <div>
                 <div className="flex justify-between items-center mb-xs">
                   <label className="font-label-sm text-label-sm text-on-surface-variant block">No. Surat Jalan (DO Number)</label>

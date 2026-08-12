@@ -20,9 +20,12 @@ func NewDeliveryOrderRepository(db *pgxpool.Pool) domain.DeliveryOrderRepository
 }
 
 func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.DeliveryOrder) error {
+	if do.Type == "" {
+		do.Type = domain.DeliveryTypeInbound
+	}
 	query := `
-		INSERT INTO delivery_orders (id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		INSERT INTO delivery_orders (id, do_number, bts_site_id, type, description, status, sla_days, sla_hours, sla_deadline, sla_status, origin_address, destination_address, notes, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		RETURNING created_at, updated_at`
 
 	if do.ID == uuid.Nil {
@@ -30,7 +33,7 @@ func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.Deliver
 	}
 
 	return r.db.QueryRow(ctx, query,
-		do.ID, do.DONumber, do.BtsSiteID, do.Description,
+		do.ID, do.DONumber, do.BtsSiteID, do.Type, do.Description,
 		do.Status, do.SLADays, do.SLAHours, do.SLADeadline, do.SLAStatus,
 		do.OriginAddress, do.DestinationAddress, do.Notes, do.CreatedBy,
 	).Scan(&do.CreatedAt, &do.UpdatedAt)
@@ -38,7 +41,7 @@ func (r *deliveryOrderRepository) Create(ctx context.Context, do *domain.Deliver
 
 func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.DeliveryOrder, error) {
 	query := `
-		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.description, dord.status,
+		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.type, dord.description, dord.status,
 			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status, dord.origin_address, dord.destination_address,
 			   dord.notes, dord.created_by, dord.created_at, dord.updated_at, dord.deleted_at,
 			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district,
@@ -58,7 +61,7 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 	var drvFullName, drvPlate, drvType *string
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&doEntity.ID, &doEntity.DONumber, &doEntity.BtsSiteID, &doEntity.Description,
+		&doEntity.ID, &doEntity.DONumber, &doEntity.BtsSiteID, &doEntity.Type, &doEntity.Description,
 		&doEntity.Status, &doEntity.SLADays, &doEntity.SLAHours, &doEntity.SLADeadline, &doEntity.SLAStatus,
 		&doEntity.OriginAddress, &doEntity.DestinationAddress, &doEntity.Notes,
 		&doEntity.CreatedBy, &doEntity.CreatedAt, &doEntity.UpdatedAt, &doEntity.DeletedAt,
@@ -108,13 +111,13 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 
 func (r *deliveryOrderRepository) FindByDONumber(ctx context.Context, doNumber string) (*domain.DeliveryOrder, error) {
 	query := `
-		SELECT id, do_number, bts_site_id, description, status, sla_days, sla_hours, sla_deadline, sla_status,
+		SELECT id, do_number, bts_site_id, type, description, status, sla_days, sla_hours, sla_deadline, sla_status,
 			   origin_address, destination_address, notes, created_by, created_at, updated_at, deleted_at
 		FROM delivery_orders WHERE do_number = $1 AND deleted_at IS NULL`
 
 	do := &domain.DeliveryOrder{}
 	err := r.db.QueryRow(ctx, query, doNumber).Scan(
-		&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
+		&do.ID, &do.DONumber, &do.BtsSiteID, &do.Type, &do.Description,
 		&do.Status, &do.SLADays, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
 		&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 		&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt, &do.DeletedAt,
@@ -152,6 +155,11 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 		args = append(args, filter.BtsSiteID)
 		argIndex++
 	}
+	if filter.Type != "" {
+		countQuery += fmt.Sprintf(` AND type = $%d`, argIndex)
+		args = append(args, filter.Type)
+		argIndex++
+	}
 
 	var total int64
 	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
@@ -159,7 +167,7 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 	}
 
 	dataQuery := `
-		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.description, dord.status,
+		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.type, dord.description, dord.status,
 			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status,
 			   dord.origin_address, dord.destination_address, dord.notes,
 			   dord.created_by, dord.created_at, dord.updated_at,
@@ -195,6 +203,11 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 		dataArgs = append(dataArgs, filter.BtsSiteID)
 		dataArgIndex++
 	}
+	if filter.Type != "" {
+		dataQuery += fmt.Sprintf(` AND dord.type = $%d`, dataArgIndex)
+		dataArgs = append(dataArgs, filter.Type)
+		dataArgIndex++
+	}
 
 	dataQuery += fmt.Sprintf(` ORDER BY dord.%s %s LIMIT $%d OFFSET $%d`,
 		sanitizeSortColumn(filter.SortBy, "created_at"),
@@ -218,7 +231,7 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 		var drvFullName, drvPlate, drvType *string
 
 		if err := rows.Scan(
-			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Description,
+			&do.ID, &do.DONumber, &do.BtsSiteID, &do.Type, &do.Description,
 			&do.Status, &do.SLADays, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
 			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,

@@ -36,6 +36,7 @@ class BtsSiteModel {
 class DeliveryOrderModel {
   final String id;
   final String doNumber;
+  final String type;
   final String description;
   final String status;
   final int slaHours;
@@ -49,6 +50,7 @@ class DeliveryOrderModel {
   DeliveryOrderModel({
     required this.id,
     required this.doNumber,
+    this.type = 'inbound',
     required this.description,
     required this.status,
     required this.slaHours,
@@ -64,6 +66,7 @@ class DeliveryOrderModel {
     return DeliveryOrderModel(
       id: json['id'] ?? '',
       doNumber: json['do_number'] ?? '',
+      type: json['type'] ?? 'inbound',
       description: json['description'] ?? '',
       status: json['status'] ?? '',
       slaHours: json['sla_hours'] ?? 72,

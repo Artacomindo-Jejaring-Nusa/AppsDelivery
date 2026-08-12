@@ -245,6 +245,15 @@ class _ScannerTabState extends State<ScannerTab> {
                   const SizedBox(width: 8),
                   Chip(
                     label: Text(
+                      activeDO.type == 'outbound' || activeDO.notes.toLowerCase().contains('dismantle') || activeDO.description.toLowerCase().contains('dismantle') ? "OUTBOUND / DISMANTLE" : "INBOUND LOGISTICS",
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    backgroundColor: activeDO.type == 'outbound' || activeDO.notes.toLowerCase().contains('dismantle') || activeDO.description.toLowerCase().contains('dismantle') ? const Color(0xFFD97706) : StitchColors.primary,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text(
                       activeDO.status.replaceAll('_', ' ').toUpperCase(),
                       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
