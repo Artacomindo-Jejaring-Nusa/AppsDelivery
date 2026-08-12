@@ -889,26 +889,6 @@ export default function DeliveryOrdersPage() {
     return `${prefix}${nextSeq}`;
   };
 
-  const handleOpenCreateModal = () => {
-    const autoNumber = generateAutoDONumber(orders);
-    const defaultSite = btsSitesList.length > 0 ? btsSitesList[0] : null;
-    setFormData({
-      do_number: autoNumber,
-      bts_site_id: defaultSite ? defaultSite.id : '',
-      description: '',
-      sla_days: 3,
-      origin_address: 'Gudang PT. AKS Banjarmasin',
-      destination_address: defaultSite ? `${defaultSite.site_name || defaultSite.name} (${defaultSite.city || defaultSite.province || 'Kalimantan'})` : 'Site BTS Telkomsel Kalimantan',
-      notes: '',
-    });
-    setShowCreateModal(true);
-  };
-
-  const handleOpenManifestModal = () => {
-    fetchManifestsAndDrivers();
-    setShowManifestModal(true);
-  };
-
   const handlePrintManifest = async (manifest) => {
     let manifestData = manifest;
     try {
@@ -1111,14 +1091,36 @@ export default function DeliveryOrdersPage() {
     }
   };
 
+  const handleOpenCreateModal = () => {
+    const autoNumber = generateAutoDONumber(orders);
+    const defaultSite = btsSitesList.length > 0 ? btsSitesList[0] : null;
+    setFormData({
+      do_number: autoNumber,
+      bts_site_id: defaultSite ? defaultSite.id : '',
+      type: 'inbound',
+      description: '',
+      sla_days: 3,
+      origin_address: 'Gudang PT. AKS Banjarmasin',
+      destination_address: defaultSite ? `${defaultSite.site_name || defaultSite.name} (${defaultSite.city || defaultSite.province || 'Kalimantan'})` : 'Site BTS Telkomsel Kalimantan',
+      notes: '',
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleOpenManifestModal = () => {
+    fetchManifestsAndDrivers();
+    setShowManifestModal(true);
+  };
+
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
       const payload = {
         ...formData,
-        sla_days: parseInt(formData.sla_days),
+        type: formData.type || 'inbound',
+        sla_days: parseInt(formData.sla_days) || 3,
       };
-      if (!payload.bts_site_id) {
+      if (!payload.bts_site_id || payload.bts_site_id.trim() === '') {
         delete payload.bts_site_id;
       }
       await api.post('/delivery-orders', payload);
@@ -1126,6 +1128,7 @@ export default function DeliveryOrdersPage() {
       setFormData({
         do_number: '',
         bts_site_id: '',
+        type: 'inbound',
         description: '',
         sla_days: 3,
         origin_address: 'Gudang PT. AKS Banjarmasin',
@@ -1134,7 +1137,7 @@ export default function DeliveryOrdersPage() {
       });
       fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create Delivery Order');
+      alert(err.response?.data?.message || err.response?.data?.error || 'Failed to create Delivery Order');
     }
   };
 

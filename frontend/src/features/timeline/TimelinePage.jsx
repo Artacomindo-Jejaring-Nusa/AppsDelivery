@@ -107,12 +107,12 @@ export default function TimelinePage() {
         </div>
 
         <div className="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-xs space-y-xs">
-          <span className="text-label-sm text-secondary font-label-sm uppercase tracking-wider">Manpower Lapangan</span>
+          <span className="text-label-sm text-secondary font-label-sm uppercase tracking-wider">Penyedia Logistik</span>
           <div className="flex justify-between items-end">
             <span className="font-headline-md text-headline-md text-indigo-700 font-bold">PT AKS</span>
             <span className="material-symbols-outlined text-indigo-600 text-3xl opacity-80">badge</span>
           </div>
-          <p className="text-body-sm text-secondary">Accountable & Responsible Lapangan</p>
+          <p className="text-body-sm text-secondary">Accountable & Responsible Logistik</p>
         </div>
 
         <div className="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-xs space-y-xs">
@@ -220,8 +220,8 @@ export default function TimelinePage() {
                   <th className="px-lg py-md w-12 text-center">No</th>
                   <th className="px-lg py-md">Aktivitas Proyek</th>
                   <th className="px-lg py-md">Fase</th>
-                  <th className="px-md py-md text-center bg-blue-50/50">PT Kubik Madani</th>
-                  <th className="px-md py-md text-center bg-purple-50/50">PT AKS (Manpower)</th>
+                  <th className="px-md py-md text-center bg-blue-50/50">PT Kubik Madani (Man Power)</th>
+                  <th className="px-md py-md text-center bg-purple-50/50">PT AKS</th>
                   <th className="px-md py-md text-center bg-indigo-50/50">PT Artacomindo (WebApps)</th>
                   <th className="px-md py-md text-center bg-slate-50/50">Ericsson</th>
                   <th className="px-lg py-md">Deliverable Output</th>

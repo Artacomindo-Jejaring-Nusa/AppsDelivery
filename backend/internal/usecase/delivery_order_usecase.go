@@ -16,13 +16,15 @@ import (
 
 type deliveryOrderUsecase struct {
 	doRepo   domain.DeliveryOrderRepository
+	btsRepo  domain.BtsSiteRepository
 	slaHours int
 }
 
 // NewDeliveryOrderUsecase creates a new DeliveryOrderUsecase implementation.
-func NewDeliveryOrderUsecase(doRepo domain.DeliveryOrderRepository, slaDefaultHours int) domain.DeliveryOrderUsecase {
+func NewDeliveryOrderUsecase(doRepo domain.DeliveryOrderRepository, btsRepo domain.BtsSiteRepository, slaDefaultHours int) domain.DeliveryOrderUsecase {
 	return &deliveryOrderUsecase{
 		doRepo:   doRepo,
+		btsRepo:  btsRepo,
 		slaHours: slaDefaultHours,
 	}
 }
@@ -45,11 +47,22 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 	now := time.Now()
 	slaDeadline := now.Add(time.Duration(slaHours) * time.Hour)
 
+	var btsSiteUUID *uuid.UUID
+	if req.BtsSiteID != "" {
+		if parsed, err := uuid.Parse(req.BtsSiteID); err == nil {
+			btsSiteUUID = &parsed
+		} else if u.btsRepo != nil {
+			if site, err := u.btsRepo.FindBySiteID(ctx, req.BtsSiteID); err == nil && site != nil {
+				btsSiteUUID = &site.ID
+			}
+		}
+	}
+
 	deliveryType := req.Type
 	if deliveryType != domain.DeliveryTypeInbound && deliveryType != domain.DeliveryTypeOutbound {
 		// Auto-detect based on destination address or notes
 		dest := req.DestinationAddress
-		if req.BtsSiteID == nil || (dest != "" && (timeContains(dest, "gudang") || timeContains(dest, "ericsson"))) {
+		if btsSiteUUID == nil || (dest != "" && (timeContains(dest, "gudang") || timeContains(dest, "ericsson"))) {
 			deliveryType = domain.DeliveryTypeOutbound
 		} else {
 			deliveryType = domain.DeliveryTypeInbound
@@ -59,7 +72,7 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 	do := &domain.DeliveryOrder{
 		ID:                 uuid.New(),
 		DONumber:           req.DONumber,
-		BtsSiteID:          req.BtsSiteID,
+		BtsSiteID:          btsSiteUUID,
 		Type:               deliveryType,
 		Description:        req.Description,
 		Status:             domain.DOStatusPending,

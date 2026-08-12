@@ -137,7 +137,7 @@ func main() {
 	authUsecase := usecase.NewAuthUsecase(userRepo, jwtManager)
 	btsSiteUsecase := usecase.NewBtsSiteUsecase(btsSiteRepo)
 	driverUsecase := usecase.NewDriverUsecase(driverRepo)
-	doUsecase := usecase.NewDeliveryOrderUsecase(doRepo, cfg.SLA.DefaultHours)
+	doUsecase := usecase.NewDeliveryOrderUsecase(doRepo, btsSiteRepo, cfg.SLA.DefaultHours)
 	manifestUsecase := usecase.NewManifestUsecase(manifestRepo, doRepo, driverRepo, rdb)
 	assetUsecase := usecase.NewDismantleAssetUsecase(assetRepo, doRepo)
 	barcodeUsecase := usecase.NewBarcodeUsecase(barcodeRepo, assetRepo, doRepo, barcodeGen)

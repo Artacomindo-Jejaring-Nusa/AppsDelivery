@@ -50,15 +50,15 @@ type SLADetailResponse struct {
 
 // CreateDeliveryOrderRequest represents the payload for creating a DO.
 type CreateDeliveryOrderRequest struct {
-	DONumber           string     `json:"do_number" binding:"required"`
-	BtsSiteID          *uuid.UUID `json:"bts_site_id"`
-	Type               string     `json:"type"` // "inbound" or "outbound"
-	Description        string     `json:"description"`
-	SLADays            int        `json:"sla_days"` // 1, 2, 3, 4, 5 days
-	SLAHours           int        `json:"sla_hours"`
-	OriginAddress      string     `json:"origin_address"`
-	DestinationAddress string     `json:"destination_address"`
-	Notes              string     `json:"notes"`
+	DONumber           string `json:"do_number" binding:"required"`
+	BtsSiteID          string `json:"bts_site_id"` // Can be UUID or text site_id (e.g. "AMT001")
+	Type               string `json:"type"`        // "inbound" or "outbound"
+	Description        string `json:"description"`
+	SLADays            int    `json:"sla_days"` // 1, 2, 3, 4, 5 days
+	SLAHours           int    `json:"sla_hours"`
+	OriginAddress      string `json:"origin_address"`
+	DestinationAddress string `json:"destination_address"`
+	Notes              string `json:"notes"`
 }
 
 // UpdateDOStatusRequest represents the payload for updating a DO status.

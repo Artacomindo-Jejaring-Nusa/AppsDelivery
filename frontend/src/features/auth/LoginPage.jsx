@@ -47,7 +47,7 @@ export default function LoginPage() {
             {/* Header Identity */}
             <div className="mb-md">
               <div className="font-headline-sm text-headline-sm text-secondary tracking-tight mb-xs">
-                AKS X ARTACOM
+                Merkurius Delivery
               </div>
               <h2 className="font-headline-lg text-headline-lg text-on-surface">
                 Employee Login
@@ -186,7 +186,7 @@ export default function LoginPage() {
       {/* Global Footer */}
       <footer className="w-full py-xs px-margin flex flex-col md:flex-row justify-between items-center gap-xs bg-surface-container-lowest border-t border-outline-variant shrink-0 text-xs">
         <div className="font-label-md font-semibold text-on-surface">
-          AKS X ARTACOM <span className="font-normal text-secondary ml-xs">LogisticsPro</span>
+          Merkurius Delivery <span className="font-normal text-secondary ml-xs">LogisticsPro</span>
         </div>
         <div className="text-secondary font-body-sm">
           © 2026 Logistics Pro Enterprise Solutions. All rights reserved.
