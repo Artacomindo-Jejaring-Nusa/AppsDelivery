@@ -37,7 +37,7 @@ func (r *btsSiteRepository) Create(ctx context.Context, site *domain.BtsSite) er
 
 func (r *btsSiteRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.BtsSite, error) {
 	query := `
-		SELECT id, site_id, site_name, address, province, city, district, latitude, longitude, is_active, created_at, updated_at
+		SELECT id, site_id, site_name, COALESCE(address, ''), COALESCE(province, ''), COALESCE(city, ''), COALESCE(district, ''), COALESCE(latitude, 0), COALESCE(longitude, 0), is_active, created_at, updated_at
 		FROM bts_sites WHERE id = $1`
 
 	site := &domain.BtsSite{}
@@ -55,7 +55,7 @@ func (r *btsSiteRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain
 
 func (r *btsSiteRepository) FindBySiteID(ctx context.Context, siteID string) (*domain.BtsSite, error) {
 	query := `
-		SELECT id, site_id, site_name, address, province, city, district, latitude, longitude, is_active, created_at, updated_at
+		SELECT id, site_id, site_name, COALESCE(address, ''), COALESCE(province, ''), COALESCE(city, ''), COALESCE(district, ''), COALESCE(latitude, 0), COALESCE(longitude, 0), is_active, created_at, updated_at
 		FROM bts_sites WHERE site_id = $1`
 
 	site := &domain.BtsSite{}
@@ -91,7 +91,7 @@ func (r *btsSiteRepository) FindAll(ctx context.Context, pagination *domain.Pagi
 	}
 
 	dataQuery := `
-		SELECT id, site_id, site_name, address, province, city, district, latitude, longitude, is_active, created_at, updated_at
+		SELECT id, site_id, site_name, COALESCE(address, ''), COALESCE(province, ''), COALESCE(city, ''), COALESCE(district, ''), COALESCE(latitude, 0), COALESCE(longitude, 0), is_active, created_at, updated_at
 		FROM bts_sites WHERE 1=1`
 
 	dataArgs := []interface{}{}
