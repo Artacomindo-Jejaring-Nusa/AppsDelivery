@@ -200,40 +200,42 @@ class _ScannerTabState extends State<ScannerTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. DO selection dropdown & indicators
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "DELIVERY ORDER",
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
-                  ),
-                  DropdownButton<String>(
-                    value: selectedDoId,
-                    onChanged: (newId) {
-                      if (newId != null) {
-                        setState(() {
-                          _selectedDO = scanReadyDOs.firstWhere((o) => o.id == newId);
-                          _scannedSerialNumbers.clear();
-                        });
-                      }
-                    },
-                    items: scanReadyDOs.map<DropdownMenuItem<String>>((order) {
-                      return DropdownMenuItem<String>(
-                        value: order.id,
-                        child: Text(
-                          order.doNumber,
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: StitchColors.primary),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "DELIVERY ORDER",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.onSurfaceVariant),
+                      ),
+                      DropdownButton<String>(
+                        isDense: true,
+                        value: selectedDoId,
+                        onChanged: (newId) {
+                          if (newId != null) {
+                            setState(() {
+                              _selectedDO = scanReadyDOs.firstWhere((o) => o.id == newId);
+                              _scannedSerialNumbers.clear();
+                            });
+                          }
+                        },
+                        items: scanReadyDOs.map<DropdownMenuItem<String>>((order) {
+                          return DropdownMenuItem<String>(
+                            value: order.id,
+                            child: Text(
+                              order.doNumber,
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: StitchColors.primary),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                   Chip(
                     label: Text(
                       syncProv.isOnline ? "SYNCED" : "OFFLINE",
@@ -242,26 +244,33 @@ class _ScannerTabState extends State<ScannerTab> {
                     backgroundColor: StitchColors.secondaryContainer,
                     visualDensity: VisualDensity.compact,
                   ),
-                  const SizedBox(width: 8),
-                  Chip(
-                    label: Text(
-                      activeDO.type == 'outbound' || activeDO.notes.toLowerCase().contains('dismantle') || activeDO.description.toLowerCase().contains('dismantle') ? "OUTBOUND / DISMANTLE" : "INBOUND LOGISTICS",
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    backgroundColor: activeDO.type == 'outbound' || activeDO.notes.toLowerCase().contains('dismantle') || activeDO.description.toLowerCase().contains('dismantle') ? const Color(0xFFD97706) : StitchColors.primary,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  const SizedBox(width: 8),
-                  Chip(
-                    label: Text(
-                      activeDO.status.replaceAll('_', ' ').toUpperCase(),
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    backgroundColor: StitchColors.primary,
-                    visualDensity: VisualDensity.compact,
-                  ),
                 ],
-              )
+              ),
+              const SizedBox(height: 6),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Chip(
+                      label: Text(
+                        activeDO.type == 'outbound' || activeDO.notes.toLowerCase().contains('dismantle') || activeDO.description.toLowerCase().contains('dismantle') ? "OUTBOUND / DISMANTLE" : "INBOUND LOGISTICS",
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      backgroundColor: activeDO.type == 'outbound' || activeDO.notes.toLowerCase().contains('dismantle') || activeDO.description.toLowerCase().contains('dismantle') ? const Color(0xFFD97706) : StitchColors.primary,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    const SizedBox(width: 8),
+                    Chip(
+                      label: Text(
+                        activeDO.status.replaceAll('_', ' ').toUpperCase(),
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      backgroundColor: StitchColors.primary,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
