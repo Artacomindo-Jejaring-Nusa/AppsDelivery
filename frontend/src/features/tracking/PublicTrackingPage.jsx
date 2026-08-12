@@ -258,7 +258,9 @@ export default function PublicTrackingPage() {
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[#00236f]">warehouse</span>
                       <p className="text-sm font-bold text-[#191c1e]">
-                        {trackingData.origin_address || 'Gudang PT. AKS Banjarmasin'}
+                        {trackingData.origin_address && !trackingData.origin_address.includes('PT. AKS')
+                          ? trackingData.origin_address
+                          : (trackingData.type === 'outbound' ? 'Site BTS (Dismantle)' : 'Gudang Utama Ericsson (Banjarmasin)')}
                       </p>
                     </div>
                   </div>

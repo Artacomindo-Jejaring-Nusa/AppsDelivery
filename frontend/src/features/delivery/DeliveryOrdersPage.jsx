@@ -773,7 +773,7 @@ export default function DeliveryOrdersPage() {
     bts_site_id: '',
     description: '',
     sla_days: 3,
-    origin_address: 'Gudang PT. AKS',
+    origin_address: 'Gudang Utama Ericsson (Banjarmasin)',
     destination_address: 'Site BTS Telkomsel Kalimantan',
     notes: '',
   });
@@ -1100,7 +1100,7 @@ export default function DeliveryOrdersPage() {
       type: 'inbound',
       description: '',
       sla_days: 3,
-      origin_address: 'Gudang PT. AKS Banjarmasin',
+      origin_address: 'Gudang Utama Ericsson (Banjarmasin)',
       destination_address: defaultSite ? `${defaultSite.site_name || defaultSite.name} (${defaultSite.city || defaultSite.province || 'Kalimantan'})` : 'Site BTS Telkomsel Kalimantan',
       notes: '',
     });
@@ -1131,7 +1131,7 @@ export default function DeliveryOrdersPage() {
         type: 'inbound',
         description: '',
         sla_days: 3,
-        origin_address: 'Gudang PT. AKS Banjarmasin',
+        origin_address: 'Gudang Utama Ericsson (Banjarmasin)',
         destination_address: 'Site BTS Telkomsel Kalimantan',
         notes: '',
       });
