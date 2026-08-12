@@ -220,12 +220,12 @@ export default function PublicTrackingPage() {
                       </h3>
                       {trackingData.type === 'outbound' || trackingData.notes?.toLowerCase().includes('dismantle') || trackingData.description?.toLowerCase().includes('dismantle') ? (
                         <span className="px-3 py-1 bg-amber-100 text-amber-900 border-2 border-amber-400 font-bold text-xs uppercase flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[16px]">outbound</span>
+                          <span className="material-symbols-outlined text-[16px]">north_east</span>
                           OUTBOUND / DISMANTLE
                         </span>
                       ) : (
                         <span className="px-3 py-1 bg-blue-100 text-blue-900 border-2 border-blue-400 font-bold text-xs uppercase flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[16px]">inbound</span>
+                          <span className="material-symbols-outlined text-[16px]">south_west</span>
                           INBOUND LOGISTICS
                         </span>
                       )}

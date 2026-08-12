@@ -1608,12 +1608,12 @@ export default function DeliveryOrdersPage() {
                             <td className="py-md px-lg">
                               {isOutbound ? (
                                 <span className="px-sm py-xs rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
-                                  <span className="material-symbols-outlined text-[13px]">outbound</span>
+                                  <span className="material-symbols-outlined text-[13px]">north_east</span>
                                   OUTBOUND / DISMANTLE
                                 </span>
                               ) : (
                                 <span className="px-sm py-xs rounded-full text-[11px] font-bold bg-blue-100 text-blue-900 border border-blue-300 inline-flex items-center gap-1">
-                                  <span className="material-symbols-outlined text-[13px]">inbound</span>
+                                  <span className="material-symbols-outlined text-[13px]">south_west</span>
                                   INBOUND LOGISTICS
                                 </span>
                               )}
