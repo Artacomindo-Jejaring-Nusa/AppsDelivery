@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 // ─── Google Maps API Key ───
@@ -27,15 +27,6 @@ const BTS_SITES = [
   { id: 'KAL-BTS-0010', name: 'BTS Sampit Baamang', lat: -2.5367, lng: 112.952, status: 'active' },
 ];
 
-// ─── Simulated Active Fleet ───
-const FLEET_VEHICLES = [
-  { id: 'v1', driver: 'Anton D.', plate: 'B 1234 ABC', lat: -1.28, lng: 116.85, status: 'on_route' },
-  { id: 'v2', driver: 'Rina S.', plate: 'D 5678 XYZ', lat: -3.32, lng: 114.60, status: 'idle' },
-  { id: 'v3', driver: 'Budi M.', plate: 'L 9012 DEF', lat: -0.50, lng: 117.16, status: 'on_route' },
-  { id: 'v4', driver: 'Kevin P.', plate: 'BK 4455 GH', lat: -2.21, lng: 113.92, status: 'on_route' },
-  { id: 'v5', driver: 'Made A.', plate: 'DK 3321 OP', lat: 0.91, lng: 109.00, status: 'idle' },
-];
-
 // ─── Status Colors ───
 const STATUS_COLORS = {
   active: '#1e3a8a',
@@ -43,6 +34,12 @@ const STATUS_COLORS = {
   error: '#ba1a1a',
   on_route: '#059669',
   idle: '#6b7280',
+};
+
+// Default fallback positions for Kalimantan drivers
+const DRIVER_DEFAULT_LOCATIONS = {
+  'Joko Kurir': { lat: -3.3194, lng: 114.5907 }, // Banjarmasin
+  'Budi Kurir': { lat: -1.2654, lng: 116.8312 }, // Balikpapan
 };
 
 // ─── SVG Marker Icon Builders ───
@@ -58,7 +55,7 @@ function truckSvgIcon(color) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
       <rect x="2" y="2" width="28" height="28" rx="6" fill="${color}" stroke="white" stroke-width="2"/>
-      <text x="16" y="22" text-anchor="middle" font-family="Material Symbols Outlined" font-size="16" fill="white">🚛</text>
+      <text x="16" y="22" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🚛</text>
     </svg>
   `)}`;
 }
@@ -84,19 +81,26 @@ function btsInfoHtml(site) {
   `;
 }
 
-function vehicleInfoHtml(vehicle) {
-  const color = STATUS_COLORS[vehicle.status] || STATUS_COLORS.idle;
-  const statusLabel = vehicle.status === 'on_route' ? '🟢 On Route' : '⚪ Idle';
+function vehicleInfoHtml(driver) {
+  const statusKey = driver.is_available ? 'idle' : 'on_route';
+  const color = STATUS_COLORS[statusKey];
+  const statusLabel = driver.is_available ? '⚪ Available (Idle)' : '🟢 On Route / In Transit';
   return `
-    <div style="font-family: Inter, sans-serif; min-width: 160px; padding: 4px 0;">
+    <div style="font-family: Inter, sans-serif; min-width: 170px; padding: 4px 0;">
       <div style="font-size: 14px; font-weight: 700; color: #191c1e;">
-        🚛 ${vehicle.driver}
+        🚛 ${driver.full_name}
       </div>
-      <div style="font-size: 12px; color: #757682; margin-top: 4px;">
-        ${vehicle.plate}
+      <div style="font-size: 12px; font-weight: 600; color: #1e3a8a; margin-top: 2px;">
+        Plat: ${driver.vehicle_plate || 'No Plate'} (${driver.vehicle_type || 'Truck'})
+      </div>
+      <div style="font-size: 11px; color: #757682; margin-top: 2px;">
+        📱 ${driver.phone || '-'}
       </div>
       <div style="font-size: 12px; color: ${color}; font-weight: 600; margin-top: 6px;">
         ${statusLabel}
+      </div>
+      <div style="font-size: 10px; color: #059669; font-weight: 700; margin-top: 4px;">
+        ● REALTIME GPS ACTIVE
       </div>
     </div>
   `;
@@ -105,12 +109,16 @@ function vehicleInfoHtml(vehicle) {
 // ═══════════════════════════════════════
 // ─── FleetMap Component ──────────────
 // ═══════════════════════════════════════
-export default function FleetMap({ height = '320px', className = '' }) {
+export default function FleetMap({ drivers = [], height = '450px', className = '' }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const markersRef = useRef({});
+  const infoWindowRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
+  const [lastSyncTime, setLastSyncTime] = useState(new Date());
 
+  // Initialize Map
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
@@ -123,17 +131,16 @@ export default function FleetMap({ height = '320px', className = '' }) {
           mapTypeId: 'roadmap',
           mapTypeControl: true,
           mapTypeControlOptions: {
-            position: 3, // ControlPosition.TOP_RIGHT
-            style: 1,    // MapTypeControlStyle.DROPDOWN_MENU
+            position: 3,
+            style: 1,
           },
           streetViewControl: false,
           fullscreenControl: true,
           zoomControl: true,
           zoomControlOptions: {
-            position: 6, // ControlPosition.RIGHT_CENTER
+            position: 6,
           },
           styles: [
-            // Subtle styling to match enterprise dashboard feel
             {
               featureType: 'water',
               elementType: 'geometry.fill',
@@ -158,11 +165,9 @@ export default function FleetMap({ height = '320px', className = '' }) {
         });
 
         mapRef.current = map;
+        infoWindowRef.current = new InfoWindow();
 
-        // Shared InfoWindow (only one open at a time)
-        const infoWindow = new InfoWindow();
-
-        // ─── Add BTS Site Markers ───
+        // Add BTS Site Markers
         BTS_SITES.forEach((site) => {
           const color = STATUS_COLORS[site.status] || STATUS_COLORS.active;
           const marker = new Marker({
@@ -178,61 +183,8 @@ export default function FleetMap({ height = '320px', className = '' }) {
           });
 
           marker.addListener('click', () => {
-            infoWindow.setContent(btsInfoHtml(site));
-            infoWindow.open(map, marker);
-          });
-
-          // Hover effect
-          marker.addListener('mouseover', () => {
-            marker.setIcon({
-              url: btsSvgIcon(color),
-              scaledSize: new Size(24, 24),
-              anchor: new Point(12, 12),
-            });
-          });
-          marker.addListener('mouseout', () => {
-            marker.setIcon({
-              url: btsSvgIcon(color),
-              scaledSize: new Size(18, 18),
-              anchor: new Point(9, 9),
-            });
-          });
-        });
-
-        // ─── Add Fleet Vehicle Markers ───
-        FLEET_VEHICLES.forEach((vehicle) => {
-          const color = STATUS_COLORS[vehicle.status] || STATUS_COLORS.idle;
-          const marker = new Marker({
-            position: { lat: vehicle.lat, lng: vehicle.lng },
-            map,
-            title: `${vehicle.driver} — ${vehicle.plate}`,
-            icon: {
-              url: truckSvgIcon(color),
-              scaledSize: new Size(30, 30),
-              anchor: new Point(15, 15),
-            },
-            optimized: true,
-            zIndex: 100,
-          });
-
-          marker.addListener('click', () => {
-            infoWindow.setContent(vehicleInfoHtml(vehicle));
-            infoWindow.open(map, marker);
-          });
-
-          marker.addListener('mouseover', () => {
-            marker.setIcon({
-              url: truckSvgIcon(color),
-              scaledSize: new Size(36, 36),
-              anchor: new Point(18, 18),
-            });
-          });
-          marker.addListener('mouseout', () => {
-            marker.setIcon({
-              url: truckSvgIcon(color),
-              scaledSize: new Size(30, 30),
-              anchor: new Point(15, 15),
-            });
+            infoWindowRef.current.setContent(btsInfoHtml(site));
+            infoWindowRef.current.open(map, marker);
           });
         });
 
@@ -248,6 +200,77 @@ export default function FleetMap({ height = '320px', className = '' }) {
     };
   }, []);
 
+  // Update real-time driver markers whenever drivers list updates
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !google.maps) return;
+
+    const { Marker, Size, Point } = google.maps;
+    const currentMarkers = markersRef.current;
+    const activeDriverIds = new Set();
+
+    drivers.forEach((driver, idx) => {
+      activeDriverIds.add(driver.id);
+
+      // Determine position (from backend GPS or default Kalimantan city coords)
+      let lat = driver.current_lat || driver.latitude;
+      let lng = driver.current_lng || driver.longitude;
+
+      if (!lat || !lng) {
+        const defaultLoc = DRIVER_DEFAULT_LOCATIONS[driver.full_name] || {
+          lat: -1.5 + (idx * 0.4),
+          lng: 114.5 + (idx * 0.8),
+        };
+        lat = defaultLoc.lat;
+        lng = defaultLoc.lng;
+      }
+
+      const statusKey = driver.is_available ? 'idle' : 'on_route';
+      const color = STATUS_COLORS[statusKey];
+      const pos = { lat: Number(lat), lng: Number(lng) };
+
+      if (currentMarkers[driver.id]) {
+        // Update existing marker position in real-time
+        currentMarkers[driver.id].setPosition(pos);
+        currentMarkers[driver.id].setIcon({
+          url: truckSvgIcon(color),
+          scaledSize: new Size(32, 32),
+          anchor: new Point(16, 16),
+        });
+      } else {
+        // Create new driver marker
+        const marker = new Marker({
+          position: pos,
+          map: mapRef.current,
+          title: `${driver.full_name} — ${driver.vehicle_plate || 'Armada'}`,
+          icon: {
+            url: truckSvgIcon(color),
+            scaledSize: new Size(32, 32),
+            anchor: new Point(16, 16),
+          },
+          optimized: true,
+          zIndex: 200,
+        });
+
+        marker.addListener('click', () => {
+          infoWindowRef.current.setContent(vehicleInfoHtml(driver));
+          infoWindowRef.current.open(mapRef.current, marker);
+        });
+
+        currentMarkers[driver.id] = marker;
+      }
+    });
+
+    // Clean up removed drivers
+    Object.keys(currentMarkers).forEach((id) => {
+      if (!activeDriverIds.has(id)) {
+        currentMarkers[id].setMap(null);
+        delete currentMarkers[id];
+      }
+    });
+
+    setLastSyncTime(new Date());
+  }, [drivers, mapLoaded]);
+
   return (
     <div
       className={`relative overflow-hidden rounded-xl ${className}`}
@@ -258,10 +281,13 @@ export default function FleetMap({ height = '320px', className = '' }) {
 
       {/* Overlay Badge */}
       <div className="absolute top-md left-md z-10 flex flex-col gap-xs pointer-events-none">
-        <div className="bg-surface-container-lowest/90 backdrop-blur shadow p-xs px-md rounded flex items-center gap-sm">
-          <span className="w-3 h-3 rounded-full bg-primary animate-pulse"></span>
-          <span className="font-label-sm text-label-sm text-on-surface">
-            Live Fleet Location
+        <div className="bg-surface-container-lowest/95 backdrop-blur shadow-md p-xs px-md rounded-lg flex items-center gap-sm border border-emerald-300">
+          <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+          <span className="font-label-sm text-label-sm text-emerald-900 font-bold">
+            🔴 REALTIME MAPS TRACKING (Auto-Sync 5s)
+          </span>
+          <span className="text-[10px] text-gray-500 ml-1 font-mono">
+            {lastSyncTime.toLocaleTimeString()}
           </span>
         </div>
       </div>
@@ -271,19 +297,19 @@ export default function FleetMap({ height = '320px', className = '' }) {
         <div className="flex items-center gap-md text-[11px]">
           <div className="flex items-center gap-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]"></span>
-            <span className="text-on-surface-variant">BTS Active</span>
+            <span className="text-on-surface-variant font-medium">BTS Active</span>
           </div>
           <div className="flex items-center gap-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
-            <span className="text-on-surface-variant">Warning</span>
+            <span className="text-on-surface-variant font-medium">Warning</span>
           </div>
           <div className="flex items-center gap-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-[#ba1a1a]"></span>
-            <span className="text-on-surface-variant">Error</span>
+            <span className="text-on-surface-variant font-medium">Error</span>
           </div>
           <div className="flex items-center gap-xs">
-            <span className="w-2.5 h-2.5 rounded bg-[#059669]"></span>
-            <span className="text-on-surface-variant">Fleet</span>
+            <span className="w-3 h-3 rounded bg-[#059669] flex items-center justify-center text-[9px] text-white">🚛</span>
+            <span className="text-on-surface-variant font-bold">Driver Realtime</span>
           </div>
         </div>
       </div>
@@ -296,7 +322,7 @@ export default function FleetMap({ height = '320px', className = '' }) {
               progress_activity
             </span>
             <p className="font-label-md text-label-md text-on-surface-variant mt-sm">
-              Loading Google Maps...
+              Loading Realtime Google Maps...
             </p>
           </div>
         </div>

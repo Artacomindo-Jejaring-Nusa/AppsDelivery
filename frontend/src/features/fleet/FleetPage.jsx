@@ -28,17 +28,21 @@ export default function FleetPage() {
 
   useEffect(() => {
     fetchDrivers();
+    const interval = setInterval(() => {
+      fetchDrivers(true);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchDrivers = async () => {
-    setLoading(true);
+  const fetchDrivers = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const res = await api.get('/drivers?per_page=100');
       setDrivers(res.data.data || []);
     } catch (err) {
       console.error('Failed to fetch drivers:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
@@ -282,7 +286,7 @@ export default function FleetPage() {
 
       {/* ─── Live Interactive Map ─── */}
       <div className="bg-white border border-outline-variant rounded-xl overflow-hidden shadow-xs w-full">
-        <FleetMap height="450px" />
+        <FleetMap height="450px" drivers={drivers} />
       </div>
 
       {/* ─── Vehicle Status Table ─── */}
@@ -320,14 +324,13 @@ export default function FleetPage() {
                 <th className="px-lg py-md">Tipe Kendaraan</th>
                 <th className="px-lg py-md">Pengemudi</th>
                 <th className="px-lg py-md">Status</th>
-                <th className="px-lg py-md">Lokasi Terakhir</th>
                 <th className="px-lg py-md text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant font-body-md text-body-md">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-xl text-center text-secondary">
+                  <td colSpan={5} className="py-xl text-center text-secondary">
                     <div className="flex justify-center items-center gap-sm">
                       <span className="material-symbols-outlined animate-spin">progress_activity</span>
                       <span>Memuat data armada...</span>
@@ -354,9 +357,6 @@ export default function FleetPage() {
                       </td>
                       <td className="px-lg py-md">
                         {getStatusBadge(driver)}
-                      </td>
-                      <td className="px-lg py-md text-on-surface-variant">
-                        {getLastLocation(driver)}
                       </td>
                       <td className="px-lg py-md text-right relative">
                         <button 
