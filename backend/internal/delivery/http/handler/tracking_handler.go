@@ -91,7 +91,7 @@ func (h *TrackingHandler) PublicTrack(c *gin.Context) {
 
 	var targetDO *domain.DeliveryOrder
 
-	cleanInput := strings.TrimPrefix(rawInput, "INB-")
+	cleanInput := strings.TrimPrefix(strings.TrimPrefix(rawInput, "INB-"), "OTB-")
 
 	// 1. Try finding directly by DO Number (e.g. DO-2026-08-002) or ID
 	if parsedUUID, uuidErr := uuid.Parse(cleanInput); uuidErr == nil {
@@ -104,8 +104,8 @@ func (h *TrackingHandler) PublicTrack(c *gin.Context) {
 		targetDO, _ = h.doRepo.FindByDONumber(ctx, rawInput)
 	}
 
-	// 2. If barcode format (e.g. INB-DO-...), find via barcode table
-	if targetDO == nil && strings.HasPrefix(strings.ToUpper(rawInput), "INB-") {
+	// 2. If barcode format (e.g. INB-DO-... or OTB-DO-...), find via barcode table
+	if targetDO == nil && (strings.HasPrefix(strings.ToUpper(rawInput), "INB-") || strings.HasPrefix(strings.ToUpper(rawInput), "OTB-")) {
 		bc, _ := h.barcodeRepo.FindByBarcodeData(ctx, rawInput)
 		if bc != nil {
 			asset, _ := h.assetRepo.FindByID(ctx, bc.AssetID)

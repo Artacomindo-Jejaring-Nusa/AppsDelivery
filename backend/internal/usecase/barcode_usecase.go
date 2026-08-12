@@ -61,7 +61,11 @@ func (u *barcodeUsecase) GenerateForAsset(ctx context.Context, assetID uuid.UUID
 
 	// Generate barcode data string
 	timestamp := time.Now().Format("20060102150405")
-	barcodeData := fmt.Sprintf("INB-%s-%s-%s", do.DONumber, assetID.String()[:8], timestamp)
+	prefix := "INB"
+	if do.Type == domain.DeliveryTypeOutbound {
+		prefix = "OTB"
+	}
+	barcodeData := fmt.Sprintf("%s-%s-%s-%s", prefix, do.DONumber, assetID.String()[:8], timestamp)
 	filename := fmt.Sprintf("qr_%s_%s", assetID.String()[:8], timestamp)
 
 	// Generate QR Code image
@@ -92,12 +96,16 @@ func (u *barcodeUsecase) LookupByCode(ctx context.Context, code string) (*domain
 		return barcode, nil
 	}
 
-	cleanCode := strings.TrimPrefix(code, "INB-")
+	cleanCode := strings.TrimPrefix(strings.TrimPrefix(code, "INB-"), "OTB-")
 	do, _ := u.doRepo.FindByDONumber(ctx, cleanCode)
 	if do != nil {
+		prefix := "INB"
+		if do.Type == domain.DeliveryTypeOutbound {
+			prefix = "OTB"
+		}
 		return &domain.Barcode{
 			ID:          do.ID,
-			BarcodeData: fmt.Sprintf("INB-%s", do.DONumber),
+			BarcodeData: fmt.Sprintf("%s-%s", prefix, do.DONumber),
 			BarcodeType: "QR_CODE",
 			CreatedAt:   do.CreatedAt,
 		}, nil

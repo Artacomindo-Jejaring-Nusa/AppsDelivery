@@ -1279,6 +1279,10 @@ export default function DeliveryOrdersPage() {
       }
     }, [barcode?.barcode_data]);
 
+    const isOutbound = barcode?.barcode_data?.startsWith('OTB-') || barcode?.type === 'outbound' || barcode?.notes?.toLowerCase().includes('dismantle') || barcode?.description?.toLowerCase().includes('dismantle');
+    const materialTitle = isOutbound ? 'Daftar Material Dismantle' : 'Daftar Material Inbound';
+    const paketTitle = isOutbound ? 'Paket Material Dismantle' : 'Paket Material Inbound';
+
     return (
       <div className="w-full border-2 border-outline-variant p-lg rounded-xl flex flex-col items-center justify-between bg-white text-center shadow-xs mx-auto space-y-md">
         <div className="border-b border-outline-variant pb-xs w-full">
@@ -1303,7 +1307,7 @@ export default function DeliveryOrdersPage() {
         {barcode.items && barcode.items.length > 0 ? (
           <div className="w-full bg-surface-container-low p-sm rounded-lg text-left text-body-sm border border-outline-variant">
             <div className="font-bold text-on-surface mb-xs flex justify-between">
-              <span>Daftar Material Inbound ({barcode.total_items || barcode.items.length} items):</span>
+              <span>{materialTitle} ({barcode.total_items || barcode.items.length} items):</span>
             </div>
             <ul className="max-h-36 overflow-y-auto space-y-1 font-data-mono text-[12px] text-secondary">
               {barcode.items.map((item, idx) => (
@@ -1317,10 +1321,10 @@ export default function DeliveryOrdersPage() {
         ) : (
           <div className="w-full bg-surface-container-low p-sm rounded-lg text-left text-body-sm border border-outline-variant">
             <div className="font-bold text-on-surface mb-xs">
-              <span>Paket Material Inbound (1 Master Koli):</span>
+              <span>{paketTitle} (1 Master Koli):</span>
             </div>
             <p className="text-[12px] text-secondary font-body-sm font-semibold">
-              {barcode.description || 'Material Pengiriman Inbound Ericsson'}
+              {barcode.description || (isOutbound ? 'Material Dismantle Site BTS' : 'Material Pengiriman Inbound Ericsson')}
             </p>
           </div>
         )}
@@ -1367,13 +1371,17 @@ export default function DeliveryOrdersPage() {
       const allAssets = refreshRes.data.data || [];
 
       // Generate 1 Master Barcode Object for this Delivery Order
-      const masterBarcodeData = `INB-${selectedDO.do_number}`;
+      const isOutbound = selectedDO?.type === 'outbound' || selectedDO?.notes?.toLowerCase().includes('dismantle') || selectedDO?.description?.toLowerCase().includes('dismantle');
+      const prefix = isOutbound ? 'OTB' : 'INB';
+      const masterBarcodeData = `${prefix}-${selectedDO.do_number}`;
       const masterBarcodeObj = {
         id: selectedDO.id,
         do_number: selectedDO.do_number,
+        type: selectedDO.type,
+        notes: selectedDO.notes,
+        description: selectedDO.description,
         barcode_data: masterBarcodeData,
         bts_site: selectedDO.bts_site,
-        description: selectedDO.description,
         total_items: allAssets.length > 0 ? allAssets.length : 1,
         items: allAssets,
       };
@@ -1412,13 +1420,17 @@ export default function DeliveryOrdersPage() {
         assets = [];
       }
 
-      const masterBarcodeData = `INB-${doItem.do_number}`;
+      const isOutbound = doItem?.type === 'outbound' || doItem?.notes?.toLowerCase().includes('dismantle') || doItem?.description?.toLowerCase().includes('dismantle');
+      const prefix = isOutbound ? 'OTB' : 'INB';
+      const masterBarcodeData = `${prefix}-${doItem.do_number}`;
       const masterBarcodeObj = {
         id: doItem.id,
         do_number: doItem.do_number,
+        type: doItem.type,
+        notes: doItem.notes,
+        description: doItem.description,
         barcode_data: masterBarcodeData,
         bts_site: doItem.bts_site,
-        description: doItem.description,
         total_items: assets.length > 0 ? assets.length : 1,
         items: assets,
       };
@@ -2102,7 +2114,7 @@ export default function DeliveryOrdersPage() {
 
             <div className="flex-1 overflow-y-auto py-md space-y-md">
               <p className="text-body-md text-secondary">
-                1 Master QR Code label berikut mewakili seluruh material dismantle untuk <strong>{selectedDO?.do_number}</strong>. Tempelkan label master ini pada kargo/pengiriman. QR Code ini dapat di-scan untuk memverifikasi seluruh isi daftar barang.
+                1 Master QR Code label berikut mewakili seluruh {selectedDO?.type === 'outbound' || selectedDO?.notes?.toLowerCase().includes('dismantle') || selectedDO?.description?.toLowerCase().includes('dismantle') ? 'material dismantle' : 'paket material inbound'} untuk <strong>{selectedDO?.do_number}</strong>. Tempelkan label master ini pada kargo/pengiriman. QR Code ini dapat di-scan untuk memverifikasi seluruh isi daftar barang.
               </p>
               
               {generatedBarcodes.map((barcode) => (
@@ -2125,6 +2137,8 @@ export default function DeliveryOrdersPage() {
                   if (!barcode) return;
 
                   const dataUrl = await generateQRDataUrl(barcode.barcode_data);
+                  const isOutboundModal = selectedDO?.type === 'outbound' || selectedDO?.notes?.toLowerCase().includes('dismantle') || selectedDO?.description?.toLowerCase().includes('dismantle');
+                  const printHeaderTitle = isOutboundModal ? 'LABEL MASTER OUTBOUND DISMANTLE' : 'LABEL MASTER INBOUND LOGISTICS';
                   
                   const itemsHtml = barcode.items?.map((item, idx) => 
                     '<tr>' +
@@ -2156,7 +2170,7 @@ export default function DeliveryOrdersPage() {
                     '</style></head><body>' +
                     '<div class="barcode-card">' +
                       '<div>' +
-                        '<h3>LABEL MASTER DELIVERY ORDER</h3>' +
+                        '<h3>' + printHeaderTitle + '</h3>' +
                         '<div class="title">' + (barcode.barcode_data || '') + '</div>' +
                         (barcode.bts_site ? '<div class="site-info">Site: ' + barcode.bts_site.site_id + ' - ' + barcode.bts_site.site_name + '</div>' : '') +
                       '</div>' +
