@@ -203,6 +203,7 @@ const DEMO_ALERTS = [
 // ─── Dashboard Page Component ────────
 // ═══════════════════════════════════════
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [dispatches, setDispatches] = useState([]);
   const [alerts, setAlerts] = useState([]);
