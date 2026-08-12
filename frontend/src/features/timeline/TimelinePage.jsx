@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
 export default function TimelinePage() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [timelineData, setTimelineData] = useState(null);
   const [phaseFilter, setPhaseFilter] = useState('');
@@ -63,14 +65,14 @@ export default function TimelinePage() {
         <div>
           <div className="flex items-center gap-sm">
             <h1 className="font-headline-md text-headline-md text-primary font-bold">
-              Project Timeline & RACI Matrix
+              {t('timeline.title', 'Lini Masa Proyek Logistik')}
             </h1>
             <span className="px-sm py-0.5 bg-primary/10 text-primary text-label-sm font-bold rounded-full border border-primary/20">
-              Ericsson ZTE Dismantle Proyek
+              Ericsson ZTE Dismantle
             </span>
           </div>
           <p className="text-body-md text-secondary mt-xs">
-            Standarisasi alur kerja 15 tahap antara PT Kubik Madani, PT AKS (Manpower/Lapangan), PT Artacomindo (WebApps System), dan Ericsson.
+            {t('timeline.subtitle', 'Jadwal dan alur waktu pengiriman material dismantle & inbound telekomunikasi')}
           </p>
         </div>
         <div className="flex items-center gap-sm">

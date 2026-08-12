@@ -154,10 +154,10 @@ export default function MainLayout() {
             </div>
             <div>
               <h1 className="font-headline-sm text-headline-sm text-primary leading-none">
-                Operations Center
+                {t('header.operations_center', 'Operations Center')}
               </h1>
               <p className="font-label-sm text-label-sm text-on-surface-variant opacity-70">
-                Global Logistics
+                {t('header.global_logistics', 'Global Logistics')}
               </p>
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function MainLayout() {
               </span>
               <input
                 className="w-full pl-10 pr-4 py-1.5 bg-surface-container-low border-none rounded-lg focus:ring-1 focus:ring-primary text-body-md"
-                placeholder="Search DO, Driver, or Hub..."
+                placeholder={t('header.search_placeholder', 'Search DO, Driver, or Hub...')}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -222,7 +222,7 @@ export default function MainLayout() {
             <div className="flex items-center gap-xs pr-md border-r border-outline-variant">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-                Live System: Active
+                {t('header.live_system', 'Live System: Active')}
               </span>
             </div>
 

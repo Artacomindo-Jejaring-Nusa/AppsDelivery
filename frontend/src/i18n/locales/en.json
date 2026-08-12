@@ -14,6 +14,12 @@
     "bts_sites": "Kalimantan BTS Sites",
     "logout": "Sign Out"
   },
+  "header": {
+    "search_placeholder": "Search DO, Driver, or Hub...",
+    "live_system": "Live System: Active",
+    "operations_center": "Operations Center",
+    "global_logistics": "Kalimantan Logistics"
+  },
   "dashboard": {
     "title": "Control Tower Dashboard",
     "subtitle": "Real-time oversight of global dispatch operations and SLA compliance across Kalimantan.",
@@ -30,7 +36,38 @@
     "status": "STATUS",
     "sla_countdown": "SLA COUNTDOWN",
     "filter": "Filter",
-    "export": "Export"
+    "export": "Export",
+    "last_updated": "Last updated",
+    "nodes_active": "Nodes Active"
+  },
+  "timeline": {
+    "title": "Logistics Project Timeline",
+    "subtitle": "Schedule and sequence of telecom inbound & dismantle material deliveries",
+    "phase": "Delivery Phase",
+    "completed": "Completed",
+    "in_progress": "In Progress",
+    "upcoming": "Upcoming"
+  },
+  "fleet": {
+    "title": "Fleet Management & GPS Tracking",
+    "subtitle": "Real-time driver location monitoring and vehicle delivery status",
+    "driver_name": "Driver Name",
+    "vehicle": "Vehicle",
+    "last_location": "Last Location",
+    "speed": "Speed",
+    "status": "Fleet Status",
+    "online": "Online / Active",
+    "offline": "Offline"
+  },
+  "bts": {
+    "title": "Kalimantan BTS Sites Directory",
+    "subtitle": "Tower locations of Ericsson Telkomsel BTS sites in Kalimantan (4,600+ locations)",
+    "site_id": "Site ID",
+    "site_name": "Site Name",
+    "city": "City / Regency",
+    "province": "Province",
+    "coordinates": "GPS Coordinates",
+    "import_excel": "Import Excel File"
   },
   "tracking": {
     "public_title": "Track Logistics Shipment",
@@ -46,7 +83,9 @@
     "material_inbound": "INBOUND / NEW MATERIAL LIST",
     "material_dismantle": "DISMANTLE MATERIAL LIST",
     "no_items_inbound": "No inbound material items recorded for this Delivery Order yet.",
-    "no_items_dismantle": "No dismantle items recorded for this Delivery Order yet."
+    "no_items_dismantle": "No dismantle items recorded for this Delivery Order yet.",
+    "public_tracking": "Public Tracking",
+    "staff_login": "Staff Login"
   },
   "delivery": {
     "title": "Delivery Order Management",
@@ -60,7 +99,10 @@
     "destination_site": "Destination Site",
     "sla_deadline": "SLA Deadline",
     "status": "Status",
-    "action": "Action"
+    "action": "Action",
+    "print_master": "Print Master DO Label",
+    "show_barcode": "Show Barcode",
+    "view_details": "View Details"
   },
   "common": {
     "language": "Language",

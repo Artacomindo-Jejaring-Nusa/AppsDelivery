@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import TrackingMap from '../../components/shared/TrackingMap';
 import LanguageSwitcher from '../../components/shared/LanguageSwitcher';
 
 export default function PublicTrackingPage() {
+  const { t } = useTranslation();
   const { trackingNumber: pathTrackingNumber } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -120,20 +122,20 @@ export default function PublicTrackingPage() {
           
           {/* Search Header Container */}
           <section className="bg-white border-2 border-[#c5c5d3] p-6 shadow-sm">
-            <h2 className="font-bold text-xl text-[#00236f] mb-1">Lacak Pengiriman Logistik</h2>
+            <h2 className="font-bold text-xl text-[#00236f] mb-1">{t('tracking.public_title', 'Lacak Pengiriman Logistik')}</h2>
             <p className="text-sm text-[#505f76] mb-6">
-              Masukkan Nomor Surat Jalan (DO), Nomor Manifest, atau Barcode Material untuk melacak status real-time.
+              {t('tracking.public_subtitle', 'Masukkan Nomor Surat Jalan (DO), Nomor Manifest, atau Barcode Material untuk melacak status real-time.')}
             </p>
 
             <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-grow">
                 <label className="absolute -top-3 left-3 bg-white px-1 text-xs font-bold text-[#505f76]">
-                  Nomor Surat Jalan / Manifest / Barcode
+                  {t('tracking.placeholder', 'Contoh: DO-2026-07-002 atau INB-DO-...')}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: DO-2026-07-002 atau INB-DO-..."
+                  placeholder={t('tracking.placeholder', 'Contoh: DO-2026-07-002 atau INB-DO-...')}
                   value={inputNumber}
                   onChange={(e) => setInputNumber(e.target.value)}
                   className="w-full h-14 px-4 border-2 border-[#00236f] bg-white font-mono text-sm focus:ring-0 focus:border-[#00236f] outline-none neo-brutalist-input transition-all"
@@ -149,7 +151,7 @@ export default function PublicTrackingPage() {
                 ) : (
                   <span className="material-symbols-outlined">search</span>
                 )}
-                <span>{loading ? 'Memproses...' : 'Lacak'}</span>
+                <span>{loading ? t('tracking.searching', 'Memproses...') : t('tracking.btn_track', 'Lacak')}</span>
               </button>
             </form>
           </section>

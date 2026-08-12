@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
 import api from '../../services/api';
 import zteBtsSites from '../../data/zte_bts_sites.json';
 
 export default function DeliveryOrdersPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1468,10 +1470,10 @@ export default function DeliveryOrdersPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-md bg-surface-container-lowest p-lg rounded-xl border border-outline-variant shadow-xs">
             <div>
               <h1 className="font-headline-lg text-headline-lg text-on-surface">
-                Delivery Orders Logistik (Inbound & Outbound)
+                {t('delivery.title', 'Manajemen Surat Jalan (DO)')}
               </h1>
               <p className="font-body-md text-body-md text-secondary mt-xs">
-                Manajemen Surat Jalan Material Baru (Inbound) & BAST Pembongkaran (Outbound Dismantle)
+                {t('delivery.subtitle', 'Kelola pengiriman Inbound & Outbound Dismantle material telekomunikasi Ericsson Telkomsel')}
               </p>
             </div>
             <div className="flex items-center gap-sm">
@@ -1480,14 +1482,14 @@ export default function DeliveryOrdersPage() {
                 className="flex items-center gap-xs px-md py-sm bg-secondary text-on-secondary font-label-md text-label-md rounded-lg shadow-sm hover:opacity-90 transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">assignment</span>
-                <span>Manifest Surat Jalan</span>
+                <span>{t('delivery.create_manifest', 'Buat Manifest')}</span>
               </button>
               <button
                 onClick={handleOpenCreateModal}
                 className="flex items-center gap-xs px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg shadow-sm hover:bg-primary-container transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">add</span>
-                <span>Buat DO Baru</span>
+                <span>{t('delivery.create_do', 'Buat Surat Jalan')}</span>
               </button>
             </div>
           </div>
@@ -1499,7 +1501,7 @@ export default function DeliveryOrdersPage() {
               <div className="relative w-full md:w-80">
                 <input
                   type="text"
-                  placeholder="Cari No. DO atau Deskripsi..."
+                  placeholder={t('common.search', 'Cari...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full h-10 bg-surface px-md pl-10 border border-outline-variant focus:border-primary outline-none font-body-md rounded-lg text-body-md"
@@ -1519,27 +1521,27 @@ export default function DeliveryOrdersPage() {
                       : 'bg-surface-container hover:bg-surface-container-high text-secondary'
                   }`}
                 >
-                  Semua Logistik
+                  {t('delivery.filter_all', 'Semua Jenis')}
                 </button>
                 <button
                   onClick={() => setTypeFilter('inbound')}
                   className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
                     typeFilter === 'inbound'
                       ? 'bg-blue-800 text-white'
-                      : 'bg-blue-100 text-blue-900 hover:bg-blue-200'
+                      : 'bg-surface-container hover:bg-surface-container-high text-secondary'
                   }`}
                 >
-                  🟦 Inbound (Gudang ➔ Site)
+                  {t('delivery.filter_inbound', 'Inbound Logistics')}
                 </button>
                 <button
                   onClick={() => setTypeFilter('outbound')}
                   className={`px-md py-xs rounded-lg font-label-md text-label-md transition-all ${
                     typeFilter === 'outbound'
-                      ? 'bg-amber-800 text-white'
-                      : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-surface-container hover:bg-surface-container-high text-secondary'
                   }`}
                 >
-                  🟧 Outbound (Dismantle ➔ Gudang)
+                  {t('delivery.filter_outbound', 'Outbound Dismantle')}
                 </button>
               </div>
 

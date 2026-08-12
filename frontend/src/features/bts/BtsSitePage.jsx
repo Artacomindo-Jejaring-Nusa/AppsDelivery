@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import TrackingMap from '../../components/shared/TrackingMap';
 import zteBtsSites from '../../data/zte_bts_sites.json';
 
 export default function BtsSitePage() {
+  const { t } = useTranslation();
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -327,8 +329,8 @@ export default function BtsSitePage() {
       <section className="mb-lg">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-md mb-md">
           <div>
-            <h1 className="font-headline-lg text-headline-lg text-primary font-bold">BTS Sites Inventory</h1>
-            <p className="text-body-md text-secondary mt-xs">Real-time status and operational metrics across national clusters.</p>
+            <h1 className="font-headline-lg text-headline-lg text-primary font-bold">{t('bts.title', 'Daftar Site BTS Kalimantan')}</h1>
+            <p className="text-body-md text-secondary mt-xs">{t('bts.subtitle', 'Titik lokasi tower BTS Ericsson Telkomsel di Kalimantan (4.600+ titik)')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-sm">
             <button

@@ -3,7 +3,7 @@
   "app_subtitle": "Sistem Manajemen & Pelacakan Logistik",
   "nav": {
     "dashboard": "Dashboard",
-    "timeline": "Timeline Proyek",
+    "timeline": "Lini Masa Proyek",
     "delivery_orders": "Surat Jalan (DO)",
     "fleet": "Armada Pengiriman",
     "fleet_tracking": "Armada & Tracking",
@@ -13,6 +13,12 @@
     "tracking_monitoring": "Tracking & Monitoring",
     "bts_sites": "Site BTS Kalimantan",
     "logout": "Keluar Aplikasi"
+  },
+  "header": {
+    "search_placeholder": "Cari DO, Driver, atau HUB...",
+    "live_system": "Sistem Real-Time: Aktif",
+    "operations_center": "Pusat Operasi",
+    "global_logistics": "Logistik Kalimantan"
   },
   "dashboard": {
     "title": "Dasbor Control Tower Logistik",
@@ -30,7 +36,38 @@
     "status": "STATUS",
     "sla_countdown": "HITUNG MUNDUR SLA",
     "filter": "Filter",
-    "export": "Ekspor Data"
+    "export": "Ekspor Data",
+    "last_updated": "Terakhir diperbarui",
+    "nodes_active": "Node Aktif"
+  },
+  "timeline": {
+    "title": "Lini Masa Proyek Logistik",
+    "subtitle": "Jadwal dan alur waktu pengiriman material dismantle & inbound telekomunikasi",
+    "phase": "Fase Pengiriman",
+    "completed": "Selesai",
+    "in_progress": "Dalam Proses",
+    "upcoming": "Akan Datang"
+  },
+  "fleet": {
+    "title": "Manajemen Armada & Pelacakan GPS",
+    "subtitle": "Monitoring lokasi driver real-time dan status kendaraan pengiriman",
+    "driver_name": "Nama Driver",
+    "vehicle": "Kendaraan",
+    "last_location": "Lokasi Terakhir",
+    "speed": "Kecepatan",
+    "status": "Status Armada",
+    "online": "Online / Aktif",
+    "offline": "Offline"
+  },
+  "bts": {
+    "title": "Daftar Site BTS Kalimantan",
+    "subtitle": "Titik lokasi tower BTS Ericsson Telkomsel di Kalimantan (4.600+ titik)",
+    "site_id": "ID Site",
+    "site_name": "Nama Site",
+    "city": "Kota / Kabupaten",
+    "province": "Provinsi",
+    "coordinates": "Koordinat GPS",
+    "import_excel": "Impor File Excel"
   },
   "tracking": {
     "public_title": "Lacak Pengiriman Logistik",
@@ -46,7 +83,9 @@
     "material_inbound": "DAFTAR MATERIAL INBOUND / BARU",
     "material_dismantle": "DAFTAR MATERIAL DISMANTLE",
     "no_items_inbound": "Belum ada item material inbound yang tercatat untuk Surat Jalan ini.",
-    "no_items_dismantle": "Belum ada item dismantle yang tercatat untuk Surat Jalan ini."
+    "no_items_dismantle": "Belum ada item dismantle yang tercatat untuk Surat Jalan ini.",
+    "public_tracking": "Lacak Publik",
+    "staff_login": "Login Staf"
   },
   "delivery": {
     "title": "Manajemen Surat Jalan (DO)",
@@ -60,7 +99,10 @@
     "destination_site": "Site Tujuan",
     "sla_deadline": "Batas SLA",
     "status": "Status",
-    "action": "Aksi"
+    "action": "Aksi",
+    "print_master": "Print Label Master DO",
+    "show_barcode": "Tampilkan Barcode",
+    "view_details": "Lihat Detail"
   },
   "common": {
     "language": "Bahasa",

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import FleetMap from '../../components/shared/FleetMap';
 
 export default function FleetPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -196,8 +198,8 @@ export default function FleetPage() {
       {/* ─── Page Title & Action Panel ─── */}
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="font-headline-md text-headline-md text-on-surface">Manajemen Armada</h2>
-          <p className="text-on-surface-variant">Pantau lokasi real-time dan status kesehatan operasional kendaraan Anda.</p>
+          <h2 className="font-headline-md text-headline-md text-on-surface">{t('fleet.title', 'Manajemen Armada & Pelacakan GPS')}</h2>
+          <p className="text-on-surface-variant">{t('fleet.subtitle', 'Monitoring lokasi driver real-time dan status kendaraan pengiriman')}</p>
         </div>
         <div className="flex space-x-md">
           <button 
