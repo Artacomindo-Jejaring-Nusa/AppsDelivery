@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+import api from '../../services/api';
+import zteBtsSites from '../../data/zte_bts_sites.json';
 
 // ─── Google Maps API Key ───
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCP9cX0PB6oA2MkereZlEzuYJd98bTrMOM';
@@ -13,20 +15,6 @@ setOptions({
 const KALIMANTAN_CENTER = { lat: -1.5, lng: 116.0 };
 const DEFAULT_ZOOM = 6;
 
-// ─── BTS Site Data (10 Kalimantan sites from DB seed) ───
-const BTS_SITES = [
-  { id: 'KAL-BTS-0001', name: 'BTS Banjarmasin Utara', lat: -3.3194, lng: 114.5907, status: 'active' },
-  { id: 'KAL-BTS-0002', name: 'BTS Balikpapan Tengah', lat: -1.2654, lng: 116.8312, status: 'active' },
-  { id: 'KAL-BTS-0003', name: 'BTS Samarinda Seberang', lat: -0.5022, lng: 117.1536, status: 'warning' },
-  { id: 'KAL-BTS-0004', name: 'BTS Pontianak Kota', lat: -0.0263, lng: 109.3425, status: 'active' },
-  { id: 'KAL-BTS-0005', name: 'BTS Palangkaraya Pahandut', lat: -2.2088, lng: 113.916, status: 'active' },
-  { id: 'KAL-BTS-0006', name: 'BTS Banjarbaru Selatan', lat: -3.4402, lng: 114.8304, status: 'active' },
-  { id: 'KAL-BTS-0007', name: 'BTS Tarakan Barat', lat: 3.3065, lng: 117.5925, status: 'error' },
-  { id: 'KAL-BTS-0008', name: 'BTS Singkawang Barat', lat: 0.9071, lng: 108.986, status: 'active' },
-  { id: 'KAL-BTS-0009', name: 'BTS Tenggarong Seberang', lat: -0.4189, lng: 117.0012, status: 'warning' },
-  { id: 'KAL-BTS-0010', name: 'BTS Sampit Baamang', lat: -2.5367, lng: 112.952, status: 'active' },
-];
-
 // ─── Status Colors ───
 const STATUS_COLORS = {
   active: '#1e3a8a',
@@ -36,7 +24,7 @@ const STATUS_COLORS = {
   idle: '#6b7280',
 };
 
-// Default fallback positions for Kalimantan drivers
+// Default fallback positions for Kalimantan drivers if GPS is not yet sent
 const DRIVER_DEFAULT_LOCATIONS = {
   'Joko Kurir': { lat: -3.3194, lng: 114.5907 }, // Banjarmasin
   'Budi Kurir': { lat: -1.2654, lng: 116.8312 }, // Balikpapan
@@ -45,7 +33,7 @@ const DRIVER_DEFAULT_LOCATIONS = {
 // ─── SVG Marker Icon Builders ───
 function btsSvgIcon(color) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ef4444" stroke="white" stroke-width="1.5"/>
     </svg>
   `)}`;
@@ -63,19 +51,25 @@ function truckSvgIcon(color) {
 // ─── InfoWindow HTML builders ───
 function btsInfoHtml(site) {
   const color = STATUS_COLORS[site.status] || STATUS_COLORS.active;
+  const siteId = site.site_id || site.id;
+  const siteName = site.site_name || site.name || 'Site BTS';
+  const location = site.city ? `${site.city}, ${site.province || ''}` : 'Kalimantan';
+  const lat = Number(site.lat || site.latitude || 0);
+  const lng = Number(site.lng || site.longitude || 0);
+
   return `
-    <div style="font-family: Inter, sans-serif; min-width: 180px; padding: 4px 0;">
+    <div style="font-family: Inter, sans-serif; min-width: 190px; padding: 4px 0;">
       <div style="font-size: 11px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
-        ${site.id}
+        📡 ${siteId}
       </div>
-      <div style="font-size: 14px; font-weight: 600; color: #191c1e;">
-        ${site.name}
+      <div style="font-size: 14px; font-weight: 700; color: #191c1e;">
+        ${siteName}
       </div>
-      <div style="font-size: 11px; color: #757682; margin-top: 6px;">
-        Status: <span style="color: ${color}; font-weight: 600;">${site.status.toUpperCase()}</span>
+      <div style="font-size: 11px; color: #555; margin-top: 4px;">
+        📍 ${location}
       </div>
       <div style="font-size: 11px; color: #757682; margin-top: 2px;">
-        📍 ${site.lat.toFixed(4)}, ${site.lng.toFixed(4)}
+        Koordinat: ${lat.toFixed(4)}, ${lng.toFixed(4)}
       </div>
     </div>
   `;
@@ -112,11 +106,32 @@ function vehicleInfoHtml(driver) {
 export default function FleetMap({ drivers = [], height = '450px', className = '' }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
-  const markersRef = useRef({});
+  const driverMarkersRef = useRef({});
+  const btsMarkersRef = useRef({});
   const infoWindowRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
+  const [btsSites, setBtsSites] = useState([]);
   const [lastSyncTime, setLastSyncTime] = useState(new Date());
+
+  // Fetch BTS Sites from API / database
+  useEffect(() => {
+    fetchBtsSites();
+  }, []);
+
+  const fetchBtsSites = async () => {
+    try {
+      const res = await api.get('/bts-sites?per_page=100');
+      if (res.data?.data && res.data.data.length > 0) {
+        setBtsSites(res.data.data);
+      } else {
+        setBtsSites(zteBtsSites.slice(0, 50));
+      }
+    } catch (err) {
+      console.warn('Using local BTS sites dataset:', err);
+      setBtsSites(zteBtsSites.slice(0, 50));
+    }
+  };
 
   // Initialize Map
   useEffect(() => {
@@ -124,7 +139,7 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
 
     importLibrary('maps')
       .then(({ Map }) => {
-        const { InfoWindow, Marker, Size, Point } = google.maps;
+        const { InfoWindow } = google.maps;
         const map = new Map(mapContainerRef.current, {
           center: KALIMANTAN_CENTER,
           zoom: DEFAULT_ZOOM,
@@ -166,28 +181,6 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
 
         mapRef.current = map;
         infoWindowRef.current = new InfoWindow();
-
-        // Add BTS Site Markers
-        BTS_SITES.forEach((site) => {
-          const color = STATUS_COLORS[site.status] || STATUS_COLORS.active;
-          const marker = new Marker({
-            position: { lat: site.lat, lng: site.lng },
-            map,
-            title: `${site.id} — ${site.name}`,
-            icon: {
-              url: btsSvgIcon(color),
-              scaledSize: new Size(36, 36),
-              anchor: new Point(18, 36),
-            },
-            optimized: true,
-          });
-
-          marker.addListener('click', () => {
-            infoWindowRef.current.setContent(btsInfoHtml(site));
-            infoWindowRef.current.open(map, marker);
-          });
-        });
-
         setMapLoaded(true);
       })
       .catch((err) => {
@@ -200,12 +193,49 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
     };
   }, []);
 
+  // Update BTS Site Markers dynamically from DB data
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !google.maps || btsSites.length === 0) return;
+
+    const { Marker, Size, Point } = google.maps;
+    const currentBtsMarkers = btsMarkersRef.current;
+
+    btsSites.forEach((site) => {
+      const lat = site.lat || site.latitude;
+      const lng = site.lng || site.longitude;
+      if (!lat || !lng) return;
+
+      const siteId = site.site_id || site.id;
+      if (!currentBtsMarkers[siteId]) {
+        const color = STATUS_COLORS[site.status] || STATUS_COLORS.active;
+        const marker = new Marker({
+          position: { lat: Number(lat), lng: Number(lng) },
+          map: mapRef.current,
+          title: `${siteId} — ${site.site_name || site.name}`,
+          icon: {
+            url: btsSvgIcon(color),
+            scaledSize: new Size(32, 32),
+            anchor: new Point(16, 32),
+          },
+          optimized: true,
+        });
+
+        marker.addListener('click', () => {
+          infoWindowRef.current.setContent(btsInfoHtml(site));
+          infoWindowRef.current.open(mapRef.current, marker);
+        });
+
+        currentBtsMarkers[siteId] = marker;
+      }
+    });
+  }, [btsSites, mapLoaded]);
+
   // Update real-time driver markers whenever drivers list updates
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !google.maps) return;
 
     const { Marker, Size, Point } = google.maps;
-    const currentMarkers = markersRef.current;
+    const currentMarkers = driverMarkersRef.current;
     const activeDriverIds = new Set();
 
     drivers.forEach((driver, idx) => {
@@ -229,7 +259,6 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
       const pos = { lat: Number(lat), lng: Number(lng) };
 
       if (currentMarkers[driver.id]) {
-        // Update existing marker position in real-time
         currentMarkers[driver.id].setPosition(pos);
         currentMarkers[driver.id].setIcon({
           url: truckSvgIcon(color),
@@ -237,7 +266,6 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
           anchor: new Point(16, 16),
         });
       } else {
-        // Create new driver marker
         const marker = new Marker({
           position: pos,
           map: mapRef.current,
@@ -284,7 +312,7 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
         <div className="bg-surface-container-lowest/95 backdrop-blur shadow-md p-xs px-md rounded-lg flex items-center gap-sm border border-emerald-300">
           <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
           <span className="font-label-sm text-label-sm text-emerald-900 font-bold">
-            🔴 REALTIME MAPS TRACKING (Auto-Sync 5s)
+            🔴 REALTIME MAPS TRACKING (Database Dynamic Sites)
           </span>
           <span className="text-[10px] text-gray-500 ml-1 font-mono">
             {lastSyncTime.toLocaleTimeString()}
@@ -297,15 +325,7 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
         <div className="flex items-center gap-md text-[11px]">
           <div className="flex items-center gap-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-[#1e3a8a]"></span>
-            <span className="text-on-surface-variant font-medium">BTS Active</span>
-          </div>
-          <div className="flex items-center gap-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
-            <span className="text-on-surface-variant font-medium">Warning</span>
-          </div>
-          <div className="flex items-center gap-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ba1a1a]"></span>
-            <span className="text-on-surface-variant font-medium">Error</span>
+            <span className="text-on-surface-variant font-medium">BTS Site (DB)</span>
           </div>
           <div className="flex items-center gap-xs">
             <span className="w-3 h-3 rounded bg-[#059669] flex items-center justify-center text-[9px] text-white">🚛</span>
