@@ -402,62 +402,71 @@ export default function PublicTrackingPage() {
               </div>
 
               {/* Material Table Section */}
-              <section className="bg-white border-2 border-[#c5c5d3] shadow-sm overflow-hidden">
-                <div className="p-6 border-b-2 border-[#c5c5d3] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#00236f]">inventory_2</span>
-                    <h4 className="font-bold text-lg text-[#00236f] uppercase tracking-wider">
-                      Daftar Material Dismantle ({trackingData.assets ? trackingData.assets.length : 0} Item)
-                    </h4>
-                  </div>
-                </div>
+              {(() => {
+                const isOutbound = trackingData.type === 'outbound' || trackingData.notes?.toLowerCase().includes('dismantle') || trackingData.description?.toLowerCase().includes('dismantle');
+                const count = trackingData.assets ? trackingData.assets.length : 0;
 
-                <div className="overflow-x-auto hide-scrollbar">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-[#f2f4f6] border-b-2 border-[#c5c5d3]">
-                        <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">No</th>
-                        <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">Kategori Material</th>
-                        <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">Nomor Serial</th>
-                        <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">Jumlah</th>
-                        <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest text-center">Status Verification</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y-2 divide-[#c5c5d3]">
-                      {trackingData.assets && trackingData.assets.length > 0 ? (
-                        trackingData.assets.map((asset, idx) => (
-                          <tr key={asset.id || idx} className="hover:bg-[#00236f]/5 transition-colors">
-                            <td className="px-6 py-4 text-sm text-[#444651] font-mono">
-                              {String(idx + 1).padStart(2, '0')}
-                            </td>
-                            <td className="px-6 py-4 text-sm font-bold text-[#00236f]">
-                              {asset.category ? asset.category.toUpperCase() : 'BATTERY UNIT'}
-                            </td>
-                            <td className="px-6 py-4 text-sm font-mono text-[#191c1e]">
-                              {asset.serial_number || 'SN-BAT-2026003'}
-                            </td>
-                            <td className="px-6 py-4 text-sm font-bold">
-                              {asset.quantity || 1} {asset.unit ? asset.unit.toUpperCase() : 'UNITS'}
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <span className="inline-flex items-center gap-1 bg-[#1e3a8a] text-white px-4 py-1 border-2 border-[#00236f] text-xs font-bold uppercase">
-                                <span className="material-symbols-outlined text-[16px]">verified</span>
-                                Scanned & Verified
-                              </span>
-                            </td>
+                return (
+                  <section className="bg-white border-2 border-[#c5c5d3] shadow-sm overflow-hidden">
+                    <div className="p-6 border-b-2 border-[#c5c5d3] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#00236f]">inventory_2</span>
+                        <h4 className="font-bold text-lg text-[#00236f] uppercase tracking-wider">
+                          {isOutbound ? `Daftar Material Dismantle (${count} Item)` : `Daftar Material Inbound / Baru (${count} Item)`}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto hide-scrollbar">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-[#f2f4f6] border-b-2 border-[#c5c5d3]">
+                            <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">No</th>
+                            <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">Kategori Material</th>
+                            <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">Nomor Serial</th>
+                            <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest">Jumlah</th>
+                            <th className="px-6 py-3 text-xs font-bold text-[#444651] uppercase tracking-widest text-center">Status Verification</th>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="py-6 text-center text-[#505f76] font-bold">
-                            Belum ada item dismantle yang tercatat untuk Surat Jalan ini.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                        </thead>
+                        <tbody className="divide-y-2 divide-[#c5c5d3]">
+                          {trackingData.assets && trackingData.assets.length > 0 ? (
+                            trackingData.assets.map((asset, idx) => (
+                              <tr key={asset.id || idx} className="hover:bg-[#00236f]/5 transition-colors">
+                                <td className="px-6 py-4 text-sm text-[#444651] font-mono">
+                                  {String(idx + 1).padStart(2, '0')}
+                                </td>
+                                <td className="px-6 py-4 text-sm font-bold text-[#00236f]">
+                                  {asset.category ? asset.category.toUpperCase() : 'MATERIAL UNIT'}
+                                </td>
+                                <td className="px-6 py-4 text-sm font-mono text-[#191c1e]">
+                                  {asset.serial_number || '-'}
+                                </td>
+                                <td className="px-6 py-4 text-sm font-bold">
+                                  {asset.quantity || 1} {asset.unit ? asset.unit.toUpperCase() : 'UNITS'}
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className="inline-flex items-center gap-1 bg-[#1e3a8a] text-white px-4 py-1 border-2 border-[#00236f] text-xs font-bold uppercase">
+                                    <span className="material-symbols-outlined text-[16px]">verified</span>
+                                    Scanned & Verified
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={5} className="py-6 text-center text-[#505f76] font-bold">
+                                {isOutbound 
+                                  ? 'Belum ada item dismantle yang tercatat untuk Surat Jalan ini.' 
+                                  : 'Belum ada item material inbound yang tercatat untuk Surat Jalan ini.'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                );
+              })()}
 
             </div>
           )}
