@@ -15,6 +15,54 @@ export default function DeliveryOrdersPage() {
   const [selectedDOForPOD, setSelectedDOForPOD] = useState(null);
   const [showPODModal, setShowPODModal] = useState(false);
 
+  // Mandor Proxy State
+  const [showMandorProxyModal, setShowMandorProxyModal] = useState(false);
+  const [proxyFormData, setProxyFormData] = useState({
+    do_id: '',
+    status: 'in_transit',
+    partner_driver_name: '',
+    partner_vehicle_plate: '',
+    notes: '',
+  });
+
+  const handleMandorProxySubmit = async (e) => {
+    e.preventDefault();
+    if (!proxyFormData.do_id) {
+      alert('Pilih Surat Jalan (DO) terlebih dahulu');
+      return;
+    }
+    try {
+      await api.put(`/delivery-orders/${proxyFormData.do_id}/status`, {
+        status: proxyFormData.status,
+        notes: proxyFormData.notes || `Input oleh Mandor Proxy: ${proxyFormData.partner_driver_name} (${proxyFormData.partner_vehicle_plate})`,
+        recording_method: 'MANDOR_PROXY',
+        partner_driver_name: proxyFormData.partner_driver_name,
+        partner_vehicle_plate: proxyFormData.partner_vehicle_plate,
+      });
+      alert('Pencatatan Mandor berhasil disimpan!');
+      setShowMandorProxyModal(false);
+      setProxyFormData({
+        do_id: '',
+        status: 'in_transit',
+        partner_driver_name: '',
+        partner_vehicle_plate: '',
+        notes: '',
+      });
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menyimpan pencatatan Mandor Proxy');
+    }
+  };
+
+  const handleShareWALink = (doItem) => {
+    const doNum = doItem?.do_number || 'DO-2026';
+    const siteName = doItem?.bts_site?.site_name || doItem?.destination_address || 'Site BTS Telkomsel';
+    const trackUrl = `https://delivery.artacomindo.com/track/${doNum}`;
+    const text = `Halo Mas Driver, berikut Rute Google Maps & Status Pengiriman Surat Jalan ${doNum} ke ${siteName}:\n\n${trackUrl}\n\nTerima kasih (PT AKS Logistik)`;
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
+  };
+
   const parsePODNotes = (notesStr) => {
     if (!notesStr) return null;
     
@@ -1478,6 +1526,13 @@ export default function DeliveryOrdersPage() {
             </div>
             <div className="flex items-center gap-sm">
               <button
+                onClick={() => setShowMandorProxyModal(true)}
+                className="flex items-center gap-xs px-md py-sm bg-amber-600 text-white font-label-md text-label-md rounded-lg shadow-sm hover:bg-amber-700 transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">assignment_ind</span>
+                <span>Mandor Proxy Input</span>
+              </button>
+              <button
                 onClick={handleOpenManifestModal}
                 className="flex items-center gap-xs px-md py-sm bg-secondary text-on-secondary font-label-md text-label-md rounded-lg shadow-sm hover:opacity-90 transition-all"
               >
@@ -2410,6 +2465,147 @@ export default function DeliveryOrdersPage() {
                 Selesai
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Mandor Proxy Modal ─── */}
+      {showMandorProxyModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-md">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl max-w-xl w-full p-lg shadow-xl space-y-md">
+            <div className="flex justify-between items-center pb-md border-b border-outline-variant">
+              <div className="flex items-center gap-sm">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-lg">assignment_ind</span>
+                </div>
+                <div>
+                  <h3 className="font-headline-sm text-headline-sm text-on-surface">Pencatatan Mandor (Proxy Driver Mitra)</h3>
+                  <p className="font-body-sm text-body-sm text-secondary">Catat status keberangkatan & pembongkaran atas nama armada vendor mitra</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMandorProxyModal(false)}
+                className="text-secondary hover:text-on-surface"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleMandorProxySubmit} className="space-y-md">
+              <div>
+                <label className="block text-label-md text-on-surface font-semibold mb-xs">
+                  Pilih Surat Jalan (DO) <span className="text-error">*</span>
+                </label>
+                <select
+                  required
+                  value={proxyFormData.do_id}
+                  onChange={(e) => {
+                    const doId = e.target.value;
+                    const selected = orders.find(o => o.id === doId);
+                    setProxyFormData({
+                      ...proxyFormData,
+                      do_id: doId,
+                      partner_driver_name: selected?.driver?.full_name || proxyFormData.partner_driver_name || '',
+                      partner_vehicle_plate: selected?.driver?.vehicle_plate || proxyFormData.partner_vehicle_plate || '',
+                    });
+                  }}
+                  className="w-full h-11 bg-surface px-md border border-outline-variant rounded-lg focus:border-primary outline-none text-body-md"
+                >
+                  <option value="">-- Pilih DO / Manifest Lapangan --</option>
+                  {orders.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.do_number} ({item.type === 'outbound' ? 'Outbound Dismantle' : 'Inbound Logistics'}) - {item.bts_site?.site_name || item.destination_address || 'BTS Site'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div>
+                  <label className="block text-label-md text-on-surface font-semibold mb-xs">
+                    Nama Driver Mitra (Vendor)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Mas Budi (Vendor Armada)"
+                    value={proxyFormData.partner_driver_name}
+                    onChange={(e) => setProxyFormData({ ...proxyFormData, partner_driver_name: e.target.value })}
+                    className="w-full h-11 bg-surface px-md border border-outline-variant rounded-lg focus:border-primary outline-none text-body-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-label-md text-on-surface font-semibold mb-xs">
+                    Nopol Truk Mitra
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: DA 8821 KL"
+                    value={proxyFormData.partner_vehicle_plate}
+                    onChange={(e) => setProxyFormData({ ...proxyFormData, partner_vehicle_plate: e.target.value })}
+                    className="w-full h-11 bg-surface px-md border border-outline-variant rounded-lg focus:border-primary outline-none text-body-md"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-label-md text-on-surface font-semibold mb-xs">
+                  Update Status Operasional
+                </label>
+                <select
+                  value={proxyFormData.status}
+                  onChange={(e) => setProxyFormData({ ...proxyFormData, status: e.target.value })}
+                  className="w-full h-11 bg-surface px-md border border-outline-variant rounded-lg focus:border-primary outline-none text-body-md"
+                >
+                  <option value="in_transit">🚚 Dalam Perjalanan (In Transit / Keberangkatan)</option>
+                  <option value="delivered">📍 Tiba di Site / Gudang (Delivered)</option>
+                  <option value="completed">✅ Pembongkaran / Dismantle Selesai (Completed BAST)</option>
+                  <option value="returned">⚠️ Diisi Kembali / Retur (Returned)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-label-md text-on-surface font-semibold mb-xs">
+                  Catatan Mandor Lapangan
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Catatan material, kondisi armada, atau serah terima BAST..."
+                  value={proxyFormData.notes}
+                  onChange={(e) => setProxyFormData({ ...proxyFormData, notes: e.target.value })}
+                  className="w-full bg-surface p-md border border-outline-variant rounded-lg focus:border-primary outline-none text-body-md"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-md border-t border-outline-variant">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedDO = orders.find(o => o.id === proxyFormData.do_id);
+                    handleShareWALink(selectedDO);
+                  }}
+                  className="px-md py-sm bg-emerald-700 text-white font-label-md rounded-lg hover:bg-emerald-800 flex items-center gap-xs text-[13px] shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-[18px]">share</span>
+                  <span>Kirim Link Navigasi WA Driver</span>
+                </button>
+
+                <div className="flex gap-sm">
+                  <button
+                    type="button"
+                    onClick={() => setShowMandorProxyModal(false)}
+                    className="px-md py-sm bg-surface-container text-on-surface font-label-md rounded-lg hover:bg-surface-container-high"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-md py-sm bg-amber-600 text-white font-label-md rounded-lg hover:bg-amber-700 font-semibold shadow-xs"
+                  >
+                    Simpan Pencatatan Mandor
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

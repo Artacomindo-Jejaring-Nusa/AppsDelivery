@@ -71,6 +71,34 @@ class _TripsTabState extends State<TripsTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Mandor Proxy Notification Banner
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: const Color(0xFFF59E0B)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.assignment_ind, color: Color(0xFFD97706), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Mandor Proxy Mode: Pencatatan armada & driver mitra aktif",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // 1. Bento Stats Bento layout
             Row(
               children: [

@@ -131,11 +131,23 @@ func (u *deliveryOrderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, r
 		return nil, errors.New("invalid status transition from " + do.Status + " to " + req.Status)
 	}
 
-	if err := u.doRepo.UpdateStatus(ctx, id, req.Status, req.Notes); err != nil {
+	method := req.RecordingMethod
+	if method == "" {
+		method = "DIRECT_DRIVER"
+	}
+
+	if err := u.doRepo.UpdateStatusWithProxy(ctx, id, req.Status, req.Notes, nil, method, req.PartnerDriverName, req.PartnerVehiclePlate); err != nil {
 		return nil, err
 	}
 
 	do.Status = req.Status
+	do.RecordingMethod = method
+	if req.PartnerDriverName != "" {
+		do.PartnerDriverName = req.PartnerDriverName
+	}
+	if req.PartnerVehiclePlate != "" {
+		do.PartnerVehiclePlate = req.PartnerVehiclePlate
+	}
 	populateSLADetail(do)
 
 	// Broadcast WebSocket notification to Admin Dashboard

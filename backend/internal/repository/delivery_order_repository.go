@@ -292,6 +292,20 @@ func (r *deliveryOrderRepository) UpdateStatus(ctx context.Context, id uuid.UUID
 	return err
 }
 
+func (r *deliveryOrderRepository) UpdateStatusWithProxy(ctx context.Context, id uuid.UUID, status, notes string, recordedBy *uuid.UUID, recordingMethod, partnerDriverName, partnerVehiclePlate string) error {
+	query := `
+		UPDATE delivery_orders 
+		SET status = $1, 
+		    notes = $2, 
+		    recorded_by = COALESCE($4, recorded_by), 
+		    recording_method = COALESCE(NULLIF($5, ''), recording_method), 
+		    partner_driver_name = COALESCE(NULLIF($6, ''), partner_driver_name), 
+		    partner_vehicle_plate = COALESCE(NULLIF($7, ''), partner_vehicle_plate)
+		WHERE id = $3 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, query, status, notes, id, recordedBy, recordingMethod, partnerDriverName, partnerVehiclePlate)
+	return err
+}
+
 func (r *deliveryOrderRepository) UpdateSLAStatus(ctx context.Context, id uuid.UUID, slaStatus string) error {
 	query := `UPDATE delivery_orders SET sla_status = $1 WHERE id = $2 AND deleted_at IS NULL`
 	_, err := r.db.Exec(ctx, query, slaStatus, id)

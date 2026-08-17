@@ -30,6 +30,10 @@ type DeliveryOrder struct {
 	DestinationAddress string             `json:"destination_address"`
 	Notes              string             `json:"notes"`
 	CreatedBy          *uuid.UUID         `json:"created_by"`
+	RecordedBy         *uuid.UUID         `json:"recorded_by,omitempty"`
+	RecordingMethod    string             `json:"recording_method,omitempty"` // "DIRECT_DRIVER" or "MANDOR_PROXY"
+	PartnerDriverName  string             `json:"partner_driver_name,omitempty"`
+	PartnerVehiclePlate string            `json:"partner_vehicle_plate,omitempty"`
 	CreatedAt          time.Time          `json:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at"`
 	DeletedAt          *time.Time         `json:"deleted_at,omitempty"`
@@ -59,12 +63,18 @@ type CreateDeliveryOrderRequest struct {
 	OriginAddress      string `json:"origin_address"`
 	DestinationAddress string `json:"destination_address"`
 	Notes              string `json:"notes"`
+	RecordingMethod    string `json:"recording_method"`
+	PartnerDriverName  string `json:"partner_driver_name"`
+	PartnerVehiclePlate string `json:"partner_vehicle_plate"`
 }
 
 // UpdateDOStatusRequest represents the payload for updating a DO status.
 type UpdateDOStatusRequest struct {
-	Status string `json:"status" binding:"required,oneof=pending assigned in_transit delivered returned completed cancelled"`
-	Notes  string `json:"notes"`
+	Status             string `json:"status" binding:"required,oneof=pending assigned in_transit delivered returned completed cancelled"`
+	Notes              string `json:"notes"`
+	RecordingMethod    string `json:"recording_method"`
+	PartnerDriverName  string `json:"partner_driver_name"`
+	PartnerVehiclePlate string `json:"partner_vehicle_plate"`
 }
 
 // DOFilterRequest holds filter parameters for listing DOs.
@@ -85,6 +95,7 @@ type DeliveryOrderRepository interface {
 	FindByDONumber(ctx context.Context, doNumber string) (*DeliveryOrder, error)
 	FindAll(ctx context.Context, filter *DOFilterRequest) ([]*DeliveryOrder, int64, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status, notes string) error
+	UpdateStatusWithProxy(ctx context.Context, id uuid.UUID, status, notes string, recordedBy *uuid.UUID, recordingMethod, partnerDriverName, partnerVehiclePlate string) error
 	UpdateSLAStatus(ctx context.Context, id uuid.UUID, slaStatus string) error
 	FindPendingForSLA(ctx context.Context) ([]*DeliveryOrder, error)
 	SoftDelete(ctx context.Context, id uuid.UUID) error
