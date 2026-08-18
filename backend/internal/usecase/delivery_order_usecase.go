@@ -218,6 +218,19 @@ func populateSLADetail(do *domain.DeliveryOrder) {
 		}
 	}
 
+	// SLA calculation stops when DO is completed, delivered, returned, or cancelled
+	if do.Status == domain.DOStatusCompleted || do.Status == domain.DOStatusDelivered || do.Status == domain.DOStatusReturned || do.Status == domain.DOStatusCancelled {
+		do.SLADetail = &domain.SLADetailResponse{
+			TargetDays:         targetDays,
+			TargetText:         fmt.Sprintf("%d Hari", targetDays),
+			RemainingDays:      0,
+			RemainingHours:     0,
+			RemainingFormatted: "✅ SLA Selesai",
+			IsOverdue:          false,
+		}
+		return
+	}
+
 	now := time.Now()
 	diff := do.SLADeadline.Sub(now)
 

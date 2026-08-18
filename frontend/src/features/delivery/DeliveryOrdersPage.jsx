@@ -1599,33 +1599,34 @@ export default function DeliveryOrdersPage() {
                 <span>Memuat data Surat Jalan DO...</span>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto custom-scrollbar w-full">
+                <table className="w-full text-left border-collapse min-w-[1250px]">
                   <thead>
-                    <tr className="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-secondary uppercase">
-                      <th className="py-md px-lg">No. DO</th>
-                      <th className="py-md px-lg">Kategori Logistik</th>
-                      <th className="py-md px-lg">Site BTS / Tujuan</th>
-                      <th className="py-md px-lg">Deskripsi Material</th>
-                      <th className="py-md px-lg">Target SLA (Hari)</th>
-                      <th className="py-md px-lg">Sisa Waktu SLA</th>
-                      <th className="py-md px-lg">Status</th>
-                      <th className="py-md px-lg text-right">Aksi</th>
+                    <tr className="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-secondary uppercase whitespace-nowrap">
+                      <th className="py-md px-lg w-36">No. DO</th>
+                      <th className="py-md px-lg w-48">Kategori Logistik</th>
+                      <th className="py-md px-lg w-64">Site BTS / Tujuan</th>
+                      <th className="py-md px-lg min-w-[180px]">Deskripsi Material</th>
+                      <th className="py-md px-lg w-36">Target SLA (Hari)</th>
+                      <th className="py-md px-lg w-44">Sisa Waktu SLA</th>
+                      <th className="py-md px-lg w-32">Status</th>
+                      <th className="py-md px-lg text-right min-w-[360px]">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant font-body-md text-body-md">
                     {filteredOrders.length > 0 ? (
                       filteredOrders.map((item) => {
-                        const isRed = item.sla_status === 'red' || item.sla_detail?.is_overdue;
-                        const isYellow = item.sla_status === 'yellow';
+                        const isFinished = item.status === 'completed' || item.status === 'delivered' || item.status === 'returned' || item.status === 'cancelled';
+                        const isRed = !isFinished && (item.sla_status === 'red' || item.sla_detail?.is_overdue);
+                        const isYellow = !isFinished && item.sla_status === 'yellow';
                         const isOutbound = item.type === 'outbound' || (!item.type && (item.notes?.toLowerCase().includes('dismantle') || item.description?.toLowerCase().includes('dismantle') || item.destination_address?.toLowerCase().includes('gudang')));
 
                         return (
                           <tr key={item.id} className="hover:bg-surface-container-low/50 transition-colors">
-                            <td className="py-md px-lg font-data-mono font-bold text-primary">
+                            <td className="py-md px-lg font-data-mono font-bold text-primary whitespace-nowrap">
                               {item.do_number}
                             </td>
-                            <td className="py-md px-lg">
+                            <td className="py-md px-lg whitespace-nowrap">
                               {isOutbound ? (
                                 <span className="px-sm py-xs rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
                                   <span className="material-symbols-outlined text-[13px]">north_east</span>
@@ -1638,42 +1639,46 @@ export default function DeliveryOrdersPage() {
                                 </span>
                               )}
                             </td>
-                            <td className="py-md px-lg">
+                            <td className="py-md px-lg whitespace-nowrap">
                               <span className="font-semibold text-on-surface font-data-mono block">
                                 {item.bts_site?.site_id || item.bts_site_id?.substring(0,8) || 'Site BTS'}
                               </span>
-                              <p className="font-body-sm text-body-sm text-secondary truncate max-w-[200px]" title={item.bts_site?.site_name || item.destination_address}>
+                              <p className="font-body-sm text-body-sm text-secondary truncate max-w-[220px]" title={item.bts_site?.site_name || item.destination_address}>
                                 {item.bts_site?.site_name || item.destination_address || 'Site Kalimantan'}
                               </p>
                             </td>
-                            <td className="py-md px-lg text-secondary max-w-xs truncate">
+                            <td className="py-md px-lg text-secondary max-w-xs truncate" title={item.description}>
                               {item.description}
                             </td>
-                            <td className="py-md px-lg font-data-mono font-medium">
+                            <td className="py-md px-lg font-data-mono font-medium whitespace-nowrap">
                               <span className="bg-surface-container px-sm py-xs rounded-md border border-outline-variant">
                                 {item.sla_days || 3} Hari ({item.sla_hours || 72} Jam)
                               </span>
                             </td>
-                            <td className="py-md px-lg font-data-mono">
+                            <td className="py-md px-lg font-data-mono whitespace-nowrap">
                               <span
                                 className={`px-sm py-xs rounded-md text-body-sm font-semibold border ${
-                                  isRed
+                                  isFinished
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : isRed
                                     ? 'bg-error-container text-error border-error/30'
                                     : isYellow
                                     ? 'bg-amber-100 text-amber-800 border-amber-300'
                                     : 'bg-emerald-100 text-emerald-800 border-emerald-300'
                                 }`}
                               >
-                                {item.sla_detail?.remaining_formatted || `${item.sla_days} Hari`}
+                                {isFinished ? '✅ SLA Selesai' : (item.sla_detail?.remaining_formatted || `${item.sla_days} Hari`)}
                               </span>
                             </td>
-                            <td className="py-md px-lg">
-                              <span className="capitalize px-sm py-xs rounded-full text-body-sm font-medium bg-surface-container border border-outline-variant">
+                            <td className="py-md px-lg whitespace-nowrap">
+                              <span className={`capitalize px-sm py-xs rounded-full text-body-sm font-medium border ${
+                                isFinished ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-surface-container border-outline-variant'
+                              }`}>
                                 {item.status.replace('_', ' ')}
                               </span>
                             </td>
-                            <td className="py-md px-lg text-right">
-                              <div className="flex items-center justify-end gap-xs">
+                            <td className="py-md px-lg text-right min-w-[360px] whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-xs flex-nowrap">
                                 {(item.status === 'delivered' || item.status === 'completed') && (
                                   <button
                                     onClick={() => {
@@ -1727,7 +1732,7 @@ export default function DeliveryOrdersPage() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={7} className="py-xl text-center text-secondary">
+                        <td colSpan={8} className="py-xl text-center text-secondary">
                           Tidak ada data Surat Jalan DO ditemukan.
                         </td>
                       </tr>
