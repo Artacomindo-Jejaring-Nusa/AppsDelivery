@@ -165,6 +165,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 		deliveryOrders := protected.Group("/delivery-orders")
 		{
 			deliveryOrders.POST("", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.doHandler.Create)
+			deliveryOrders.POST("/bulk", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.doHandler.BulkCreate)
 			deliveryOrders.POST("/import", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.importExportHandler.ImportDeliveryOrders)
 			deliveryOrders.GET("", r.doHandler.GetAll)
 			deliveryOrders.GET("/:id", r.doHandler.GetByID)

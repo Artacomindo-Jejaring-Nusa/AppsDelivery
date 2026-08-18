@@ -94,6 +94,29 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 	return do, nil
 }
 
+func (u *deliveryOrderUsecase) BulkCreate(ctx context.Context, req *domain.BulkCreateDeliveryOrderRequest, createdBy uuid.UUID) ([]*domain.DeliveryOrder, error) {
+	if len(req.Orders) == 0 {
+		return nil, errors.New("tidak ada data DO yang dikirim untuk import")
+	}
+	if len(req.Orders) > 10 {
+		return nil, errors.New("maksimal 10 Delivery Order per sekali import Excel")
+	}
+
+	createdOrders := make([]*domain.DeliveryOrder, 0, len(req.Orders))
+	for i, orderReq := range req.Orders {
+		if orderReq.DONumber == "" {
+			return nil, fmt.Errorf("baris ke-%d: No DO wajib diisi", i+1)
+		}
+		created, err := u.Create(ctx, &orderReq, createdBy)
+		if err != nil {
+			return nil, fmt.Errorf("gagal membuat DO No. %s (baris %d): %w", orderReq.DONumber, i+1, err)
+		}
+		createdOrders = append(createdOrders, created)
+	}
+
+	return createdOrders, nil
+}
+
 func (u *deliveryOrderUsecase) GetByID(ctx context.Context, id uuid.UUID) (*domain.DeliveryOrder, error) {
 	do, err := u.doRepo.FindByID(ctx, id)
 	if err != nil {

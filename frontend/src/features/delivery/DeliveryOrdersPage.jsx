@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
 import api from '../../services/api';
 import zteBtsSites from '../../data/zte_bts_sites.json';
+import BulkImportDOModal from './BulkImportDOModal';
 
 export default function DeliveryOrdersPage() {
   const { t } = useTranslation();
@@ -11,6 +12,7 @@ export default function DeliveryOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [selectedPOD, setSelectedPOD] = useState(null);
   const [selectedDOForPOD, setSelectedDOForPOD] = useState(null);
   const [showPODModal, setShowPODModal] = useState(false);
@@ -1485,6 +1487,13 @@ export default function DeliveryOrdersPage() {
                 <span>{t('delivery.create_manifest', 'Buat Manifest')}</span>
               </button>
               <button
+                onClick={() => setShowBulkImportModal(true)}
+                className="flex items-center gap-xs px-md py-sm bg-emerald-600 text-white font-label-md text-label-md rounded-lg shadow-sm hover:bg-emerald-700 transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">file_upload</span>
+                <span>Import Bulk Excel</span>
+              </button>
+              <button
                 onClick={handleOpenCreateModal}
                 className="flex items-center gap-xs px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg shadow-sm hover:bg-primary-container transition-all"
               >
@@ -2418,6 +2427,13 @@ export default function DeliveryOrdersPage() {
           </div>
         </div>
       )}
+
+      {/* Bulk Import Modal */}
+      <BulkImportDOModal
+        isOpen={showBulkImportModal}
+        onClose={() => setShowBulkImportModal(false)}
+        onSuccess={() => fetchOrders()}
+      />
     </div>
   );
 }

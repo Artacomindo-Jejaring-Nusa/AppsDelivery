@@ -90,11 +90,17 @@ type DeliveryOrderRepository interface {
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 }
 
+// BulkCreateDeliveryOrderRequest represents the batch creation request (max 10 rows).
+type BulkCreateDeliveryOrderRequest struct {
+	Orders []CreateDeliveryOrderRequest `json:"orders" binding:"required,min=1,max=10"`
+}
+
 // ---- Usecase Interface ----
 
 // DeliveryOrderUsecase defines the contract for DO business logic.
 type DeliveryOrderUsecase interface {
 	Create(ctx context.Context, req *CreateDeliveryOrderRequest, createdBy uuid.UUID) (*DeliveryOrder, error)
+	BulkCreate(ctx context.Context, req *BulkCreateDeliveryOrderRequest, createdBy uuid.UUID) ([]*DeliveryOrder, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*DeliveryOrder, error)
 	GetAll(ctx context.Context, filter *DOFilterRequest) ([]*DeliveryOrder, int64, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, req *UpdateDOStatusRequest) (*DeliveryOrder, error)

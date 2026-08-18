@@ -40,6 +40,26 @@ func (h *DeliveryOrderHandler) Create(c *gin.Context) {
 	response.Success(c, http.StatusCreated, "Delivery order created successfully", do)
 }
 
+// BulkCreate handles POST /api/v1/delivery-orders/bulk
+func (h *DeliveryOrderHandler) BulkCreate(c *gin.Context) {
+	var req domain.BulkCreateDeliveryOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Request format tidak valid. Maksimal 10 DO per import.", err.Error())
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	uid := userID.(uuid.UUID)
+
+	orders, err := h.doUsecase.BulkCreate(c.Request.Context(), &req, uid)
+	if err != nil {
+		response.BadRequest(c, err.Error(), nil)
+		return
+	}
+
+	response.Success(c, http.StatusCreated, "Berhasil mengimpor Delivery Orders", orders)
+}
+
 // GetByID handles GET /api/v1/delivery-orders/:id
 func (h *DeliveryOrderHandler) GetByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
