@@ -46,6 +46,7 @@ export default function App() {
           <Route path="delivery-orders" element={<DeliveryOrdersPage />} />
           <Route path="fleet" element={<FleetPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="compliance" element={<AnalyticsPage />} />
           <Route path="user" element={<UserPage />} />
           <Route path="tracking" element={<TrackingPage />} />
           <Route path="bts-sites" element={<BtsSitePage />} />

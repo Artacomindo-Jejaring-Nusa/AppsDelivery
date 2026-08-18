@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import LanguageSwitcher from '../components/shared/LanguageSwitcher';
@@ -82,7 +82,7 @@ export default function MainLayout() {
     { key: 'delivery_orders', label: t('nav.delivery_orders', 'Shipments'), path: '/delivery-orders', icon: 'local_shipping' },
     { key: 'fleet', label: t('nav.fleet', 'Fleet'), path: '/fleet', icon: 'directions_bus' },
     { key: 'analytics', label: t('nav.analytics', 'Analytics'), path: '/analytics', icon: 'analytics' },
-    { key: 'compliance', label: t('nav.compliance', 'Compliance'), path: '/dashboard', icon: 'verified_user' },
+    { key: 'compliance', label: t('nav.compliance', 'Compliance'), path: '/compliance', icon: 'verified_user' },
     { key: 'user_accounts', label: t('nav.user_accounts', 'User & Accounts'), path: '/user', icon: 'people' },
     { key: 'tracking_monitoring', label: t('nav.tracking_monitoring', 'Tracking & Monitoring'), path: '/tracking', icon: 'location_searching' },
     { key: 'bts_sites', label: t('nav.bts_sites', 'BTS Sites'), path: '/bts-sites', icon: 'cell_tower' },
@@ -123,9 +123,9 @@ export default function MainLayout() {
       case 'in_transit':
       default:
         return {
-          borderClass: 'border-blue-500',
-          bgClass: 'bg-blue-100 text-blue-700',
-          icon: 'local_shipping'
+          borderClass: 'border-primary',
+          bgClass: 'bg-primary-container text-primary',
+          icon: 'info'
         };
     }
   };
@@ -145,9 +145,9 @@ export default function MainLayout() {
       <nav className="w-60 h-screen fixed left-0 top-0 bg-surface-container-low border-r border-outline-variant flex flex-col py-lg px-md z-50">
         {/* Brand */}
         <div className="mb-xl px-sm">
-          <div
-            className="flex items-center gap-sm cursor-pointer"
-            onClick={() => navigate('/dashboard')}
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-sm cursor-pointer group"
           >
             <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary">
               <span className="material-symbols-outlined text-lg">hub</span>
@@ -160,28 +160,27 @@ export default function MainLayout() {
                 {t('header.global_logistics', 'Global Logistics')}
               </p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Navigation list */}
         <div className="flex-1 space-y-xs overflow-y-auto custom-scrollbar">
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
-            return (
-              <button
-                key={item.key || item.label}
-                onClick={() => navigate(item.path)}
-                className={`flex items-center gap-md w-full px-md py-sm rounded-lg text-left transition-colors font-semibold text-body-md ${
+          {navItems.map((item) => (
+            <NavLink
+              key={item.key || item.label}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-md w-full px-md py-sm rounded-lg text-left transition-colors font-semibold text-body-md ${
                   isActive
                     ? 'bg-secondary-container text-on-secondary-container'
                     : 'text-on-surface-variant hover:bg-surface-container-high'
-                }`}
-              >
-                <span className="material-symbols-outlined">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+                }`
+              }
+            >
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
         </div>
 
         {/* Footer info/Sign out */}
