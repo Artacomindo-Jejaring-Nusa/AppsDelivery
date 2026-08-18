@@ -70,6 +70,11 @@ export default function MainLayout() {
     };
   }, []);
 
+  useEffect(() => {
+    setActiveDropdown(null);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
+
   const handleLogout = async () => {
     setActiveDropdown(null);
     await logout();
@@ -396,7 +401,7 @@ export default function MainLayout() {
 
         {/* Page Content */}
         <div className="p-lg">
-          <Outlet />
+          <Outlet key={location.pathname} />
         </div>
       </main>
     </div>
