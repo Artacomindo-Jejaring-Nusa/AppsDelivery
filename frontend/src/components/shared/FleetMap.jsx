@@ -189,6 +189,17 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
       });
 
     return () => {
+      if (driverMarkersRef.current) {
+        Object.values(driverMarkersRef.current).forEach((m) => m && m.setMap && m.setMap(null));
+        driverMarkersRef.current = {};
+      }
+      if (btsMarkersRef.current) {
+        Object.values(btsMarkersRef.current).forEach((m) => m && m.setMap && m.setMap(null));
+        btsMarkersRef.current = {};
+      }
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+      }
       mapRef.current = null;
     };
   }, []);

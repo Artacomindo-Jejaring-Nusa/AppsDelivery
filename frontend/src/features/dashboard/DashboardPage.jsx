@@ -6,28 +6,32 @@ import FleetMap from '../../components/shared/FleetMap';
 // ─── Countdown Timer Hook ───
 function useCountdownTimers(dispatches) {
   const [timers, setTimers] = useState({});
-  const intervalRef = useRef(null);
 
   useEffect(() => {
-    // Initialize timers from dispatches
+    if (!dispatches || dispatches.length === 0) return;
+
     const initial = {};
     dispatches.forEach((d) => {
       initial[d.id] = d.countdownSeconds;
     });
     setTimers(initial);
 
-    intervalRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       setTimers((prev) => {
         const next = { ...prev };
+        let updated = false;
         Object.keys(next).forEach((key) => {
-          if (next[key] > 0) next[key] -= 1;
+          if (next[key] > 0) {
+            next[key] -= 1;
+            updated = true;
+          }
         });
-        return next;
+        return updated ? next : prev;
       });
     }, 1000);
 
-    return () => clearInterval(intervalRef.current);
-  }, [dispatches]);
+    return () => clearInterval(interval);
+  }, [dispatches.length]);
 
   return timers;
 }
