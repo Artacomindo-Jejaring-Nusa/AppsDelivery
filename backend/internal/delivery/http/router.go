@@ -169,6 +169,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			deliveryOrders.POST("/import", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.importExportHandler.ImportDeliveryOrders)
 			deliveryOrders.GET("", r.doHandler.GetAll)
 			deliveryOrders.GET("/:id", r.doHandler.GetByID)
+			deliveryOrders.PUT("/batch-status", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher), r.doHandler.BatchUpdateStatus)
 			deliveryOrders.PUT("/:id/status", middleware.RoleMiddleware(domain.RoleAdmin, domain.RoleDispatcher, domain.RoleDriver), r.doHandler.UpdateStatus)
 
 			// Dismantle Assets (nested under DO)

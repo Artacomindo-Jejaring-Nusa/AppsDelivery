@@ -44,6 +44,8 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 		SELECT dord.id, dord.do_number, dord.bts_site_id, dord.type, dord.description, dord.status,
 			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status, dord.origin_address, dord.destination_address,
 			   dord.notes, dord.created_by, dord.created_at, dord.updated_at, dord.deleted_at,
+			   dord.assigned_at, dord.in_transit_at, dord.delivered_at,
+			   dord.completed_at, dord.returned_at, dord.cancelled_at,
 			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district,
 			   drv.id, drv.full_name, drv.vehicle_plate, drv.vehicle_type
 		FROM delivery_orders dord
@@ -65,6 +67,8 @@ func (r *deliveryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 		&doEntity.Status, &doEntity.SLADays, &doEntity.SLAHours, &doEntity.SLADeadline, &doEntity.SLAStatus,
 		&doEntity.OriginAddress, &doEntity.DestinationAddress, &doEntity.Notes,
 		&doEntity.CreatedBy, &doEntity.CreatedAt, &doEntity.UpdatedAt, &doEntity.DeletedAt,
+		&doEntity.AssignedAt, &doEntity.InTransitAt, &doEntity.DeliveredAt,
+		&doEntity.CompletedAt, &doEntity.ReturnedAt, &doEntity.CancelledAt,
 		&btsID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
 		&drvUUID, &drvFullName, &drvPlate, &drvType,
 	)
@@ -171,6 +175,8 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 			   dord.sla_days, dord.sla_hours, dord.sla_deadline, dord.sla_status,
 			   dord.origin_address, dord.destination_address, dord.notes,
 			   dord.created_by, dord.created_at, dord.updated_at,
+			   dord.assigned_at, dord.in_transit_at, dord.delivered_at,
+			   dord.completed_at, dord.returned_at, dord.cancelled_at,
 			   bs.id, bs.site_id, bs.site_name, bs.address, bs.province, bs.city, bs.district,
 			   drv.id, drv.full_name, drv.vehicle_plate, drv.vehicle_type
 		FROM delivery_orders dord
@@ -235,6 +241,8 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 			&do.Status, &do.SLADays, &do.SLAHours, &do.SLADeadline, &do.SLAStatus,
 			&do.OriginAddress, &do.DestinationAddress, &do.Notes,
 			&do.CreatedBy, &do.CreatedAt, &do.UpdatedAt,
+			&do.AssignedAt, &do.InTransitAt, &do.DeliveredAt,
+			&do.CompletedAt, &do.ReturnedAt, &do.CancelledAt,
 			&btsUUID, &btsSiteID, &btsSiteName, &btsAddress, &btsProvince, &btsCity, &btsDistrict,
 			&drvUUID, &drvFullName, &drvPlate, &drvType,
 		); err != nil {
@@ -287,7 +295,29 @@ func (r *deliveryOrderRepository) FindAll(ctx context.Context, filter *domain.DO
 }
 
 func (r *deliveryOrderRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status, notes string) error {
-	query := `UPDATE delivery_orders SET status = $1, notes = $2 WHERE id = $3 AND deleted_at IS NULL`
+	// Determine which timestamp column to set based on the target status
+	timestampCol := ""
+	switch status {
+	case "assigned":
+		timestampCol = "assigned_at"
+	case "in_transit":
+		timestampCol = "in_transit_at"
+	case "delivered":
+		timestampCol = "delivered_at"
+	case "completed":
+		timestampCol = "completed_at"
+	case "returned":
+		timestampCol = "returned_at"
+	case "cancelled":
+		timestampCol = "cancelled_at"
+	}
+
+	var query string
+	if timestampCol != "" {
+		query = fmt.Sprintf(`UPDATE delivery_orders SET status = $1, notes = $2, %s = NOW(), updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL`, timestampCol)
+	} else {
+		query = `UPDATE delivery_orders SET status = $1, notes = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL`
+	}
 	_, err := r.db.Exec(ctx, query, status, notes, id)
 	return err
 }
@@ -304,7 +334,7 @@ func (r *deliveryOrderRepository) FindPendingForSLA(ctx context.Context) ([]*dom
 			   origin_address, destination_address, notes, created_by, created_at, updated_at
 		FROM delivery_orders
 		WHERE deleted_at IS NULL
-		  AND status NOT IN ('completed', 'cancelled')
+		  AND status NOT IN ('delivered', 'completed', 'returned', 'cancelled')
 		  AND sla_deadline IS NOT NULL`
 
 	rows, err := r.db.Query(ctx, query)

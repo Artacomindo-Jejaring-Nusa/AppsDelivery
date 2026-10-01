@@ -3,37 +3,31 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import FleetMap from '../../components/shared/FleetMap';
 
-// ─── Countdown Timer Hook ───
-function useCountdownTimers(dispatches) {
-  const [timers, setTimers] = useState({});
+// ─── Isolated Countdown Badge Component (avoids full-page re-renders) ───
+function CountdownBadge({ initialSeconds = 3600 }) {
+  const [seconds, setSeconds] = useState(initialSeconds);
 
   useEffect(() => {
-    if (!dispatches || dispatches.length === 0) return;
+    setSeconds(initialSeconds);
+  }, [initialSeconds]);
 
-    const initial = {};
-    dispatches.forEach((d) => {
-      initial[d.id] = d.countdownSeconds;
-    });
-    setTimers(initial);
-
+  useEffect(() => {
+    if (seconds <= 0) return;
     const interval = setInterval(() => {
-      setTimers((prev) => {
-        const next = { ...prev };
-        let updated = false;
-        Object.keys(next).forEach((key) => {
-          if (next[key] > 0) {
-            next[key] -= 1;
-            updated = true;
-          }
-        });
-        return updated ? next : prev;
-      });
+      setSeconds((prev) => Math.max(0, prev - 1));
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [dispatches.length]);
+  }, [seconds > 0]);
 
-  return timers;
+  return (
+    <div
+      className={`inline-block px-md py-1 rounded font-data-mono text-data-mono font-bold ${countdownColorClass(
+        seconds
+      )}`}
+    >
+      {formatCountdown(seconds)}
+    </div>
+  );
 }
 
 // ─── Format Countdown ───
@@ -212,8 +206,6 @@ export default function DashboardPage() {
   const [dispatches, setDispatches] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const timers = useCountdownTimers(dispatches);
 
   useEffect(() => {
     fetchDashboardData();
@@ -513,7 +505,6 @@ export default function DashboardPage() {
                 </tr>
               ) : (
                 dispatches.map((d, idx) => {
-                  const remaining = timers[d.id] ?? d.countdownSeconds;
                   return (
                     <tr
                       key={d.id}
@@ -551,13 +542,7 @@ export default function DashboardPage() {
                         <StatusBadge status={d.status} />
                       </td>
                       <td className="px-lg py-sm text-right">
-                        <div
-                          className={`inline-block px-md py-1 rounded font-data-mono text-data-mono font-bold ${countdownColorClass(
-                            remaining
-                          )}`}
-                        >
-                          {formatCountdown(remaining)}
-                        </div>
+                        <CountdownBadge initialSeconds={d.countdownSeconds} />
                       </td>
                     </tr>
                   );

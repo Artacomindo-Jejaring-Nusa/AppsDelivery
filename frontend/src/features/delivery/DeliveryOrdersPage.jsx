@@ -17,6 +17,58 @@ export default function DeliveryOrdersPage() {
   const [selectedDOForPOD, setSelectedDOForPOD] = useState(null);
   const [showPODModal, setShowPODModal] = useState(false);
 
+  // Batch Selection State
+  const [selectedBatchDOIds, setSelectedBatchDOIds] = useState([]);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchTargetStatus, setBatchTargetStatus] = useState('completed');
+  const [batchNotes, setBatchNotes] = useState('');
+  const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
+
+  // Timeline Modal State
+  const [selectedDOForTimeline, setSelectedDOForTimeline] = useState(null);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+
+  const handleSelectAllBatch = (e) => {
+    if (e.target.checked) {
+      setSelectedBatchDOIds(filteredOrders.map(o => o.id));
+    } else {
+      setSelectedBatchDOIds([]);
+    }
+  };
+
+  const handleToggleSelectBatch = (id) => {
+    setSelectedBatchDOIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const openBatchModal = (status) => {
+    setBatchTargetStatus(status);
+    setBatchNotes('');
+    setShowBatchModal(true);
+  };
+
+  const handleBatchUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (selectedBatchDOIds.length === 0) return;
+    setIsSubmittingBatch(true);
+    try {
+      const res = await api.put('/delivery-orders/batch-status', {
+        ids: selectedBatchDOIds,
+        status: batchTargetStatus,
+        notes: batchNotes || `Batch update status ke ${batchTargetStatus}`,
+      });
+      alert(`Berhasil memperbarui ${res.data.data?.updated_count || selectedBatchDOIds.length} Delivery Order ke status "${batchTargetStatus.toUpperCase()}"`);
+      setShowBatchModal(false);
+      setSelectedBatchDOIds([]);
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.message || err.response?.data?.error || 'Gagal melakukan batch update status.');
+    } finally {
+      setIsSubmittingBatch(false);
+    }
+  };
+
   const parsePODNotes = (notesStr) => {
     if (!notesStr) return null;
     
@@ -1612,6 +1664,15 @@ export default function DeliveryOrdersPage() {
                 <table className="w-full text-left border-collapse min-w-[1250px]">
                   <thead>
                     <tr className="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-secondary uppercase whitespace-nowrap">
+                      <th className="py-md px-md w-12 text-center">
+                        <input
+                          type="checkbox"
+                          checked={filteredOrders.length > 0 && selectedBatchDOIds.length === filteredOrders.length}
+                          onChange={handleSelectAllBatch}
+                          className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+                          title="Pilih Semua DO"
+                        />
+                      </th>
                       <th className="py-md px-lg w-36">No. DO</th>
                       <th className="py-md px-lg w-48">Kategori Logistik</th>
                       <th className="py-md px-lg w-64">Site BTS / Tujuan</th>
@@ -1619,7 +1680,7 @@ export default function DeliveryOrdersPage() {
                       <th className="py-md px-lg w-36">Target SLA (Hari)</th>
                       <th className="py-md px-lg w-44">Sisa Waktu SLA</th>
                       <th className="py-md px-lg w-32">Status</th>
-                      <th className="py-md px-lg text-right min-w-[360px]">Aksi</th>
+                      <th className="py-md px-lg text-right min-w-[420px]">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant font-body-md text-body-md">
@@ -1632,6 +1693,14 @@ export default function DeliveryOrdersPage() {
 
                         return (
                           <tr key={item.id} className="hover:bg-surface-container-low/50 transition-colors">
+                            <td className="py-md px-md text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedBatchDOIds.includes(item.id)}
+                                onChange={() => handleToggleSelectBatch(item.id)}
+                                className="w-4 h-4 text-primary rounded border-outline-variant focus:ring-primary cursor-pointer"
+                              />
+                            </td>
                             <td className="py-md px-lg font-data-mono font-bold text-primary whitespace-nowrap">
                               {item.do_number}
                             </td>
@@ -1686,8 +1755,19 @@ export default function DeliveryOrdersPage() {
                                 {item.status.replace('_', ' ')}
                               </span>
                             </td>
-                            <td className="py-md px-lg text-right min-w-[360px] whitespace-nowrap">
+                            <td className="py-md px-lg text-right min-w-[420px] whitespace-nowrap">
                               <div className="flex items-center justify-end gap-xs flex-nowrap">
+                                <button
+                                  onClick={() => {
+                                    setSelectedDOForTimeline(item);
+                                    setShowTimelineModal(true);
+                                  }}
+                                  className="px-sm py-xs bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 font-label-md text-label-md rounded flex items-center gap-xs inline-flex shadow-xs"
+                                  title="Lihat Timeline Perjalanan Pengiriman"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">timeline</span>
+                                  <span>Timeline</span>
+                                </button>
                                 {(item.status === 'delivered' || item.status === 'completed') && (
                                   <button
                                     onClick={() => {
@@ -1741,7 +1821,7 @@ export default function DeliveryOrdersPage() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={8} className="py-xl text-center text-secondary">
+                        <td colSpan={9} className="py-xl text-center text-secondary">
                           Tidak ada data Surat Jalan DO ditemukan.
                         </td>
                       </tr>
@@ -2422,6 +2502,389 @@ export default function DeliveryOrdersPage() {
                 className="px-md py-sm bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-container"
               >
                 Selesai
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Bar for Batch Update */}
+      {selectedBatchDOIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-5 animate-in slide-in-from-bottom-5 duration-300">
+          <div className="flex items-center gap-2.5 font-medium">
+            <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white shadow-xs">
+              {selectedBatchDOIds.length}
+            </span>
+            <span className="text-sm font-semibold tracking-wide">DO Terpilih</span>
+          </div>
+          <div className="h-6 w-px bg-slate-700" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => openBatchModal('delivered')}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[16px]">local_shipping</span>
+              <span>Set Delivered</span>
+            </button>
+            <button
+              onClick={() => openBatchModal('completed')}
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[16px]">task_alt</span>
+              <span>Set Completed</span>
+            </button>
+            <button
+              onClick={() => openBatchModal('cancelled')}
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[16px]">cancel</span>
+              <span>Batalkan</span>
+            </button>
+          </div>
+          <div className="h-6 w-px bg-slate-700" />
+          <button
+            onClick={() => setSelectedBatchDOIds([])}
+            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">close</span>
+            <span>Batal</span>
+          </button>
+        </div>
+      )}
+
+      {/* Batch Status Update Modal */}
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-on-surface/50 backdrop-blur-xs flex items-center justify-center p-md z-50 animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest p-xl rounded-2xl border border-outline-variant max-w-md w-full space-y-lg shadow-2xl">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-md">
+              <div className="flex items-center gap-sm">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined text-2xl">published_with_changes</span>
+                </div>
+                <div>
+                  <h3 className="font-headline-sm text-headline-sm font-bold text-primary">Konfirmasi Batch Update</h3>
+                  <p className="text-body-sm text-secondary">Ubah status banyak DO sekaligus</p>
+                </div>
+              </div>
+              <button onClick={() => setShowBatchModal(false)} className="text-secondary hover:text-on-surface">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-md">
+              <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant space-y-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-body-sm text-secondary">Target Status:</span>
+                  <span className={`px-sm py-xs rounded-full text-xs font-bold uppercase tracking-wider ${
+                    batchTargetStatus === 'completed'
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                      : batchTargetStatus === 'delivered'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-rose-100 text-rose-800 border border-rose-200'
+                  }`}>
+                    {batchTargetStatus}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-body-sm text-secondary">Jumlah DO Terpilih:</span>
+                  <span className="font-bold text-body-md text-primary font-data-mono">{selectedBatchDOIds.length} DO</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-label-sm font-bold text-secondary uppercase block mb-xs">
+                  Catatan / Keterangan (Opsional)
+                </label>
+                <textarea
+                  value={batchNotes}
+                  onChange={(e) => setBatchNotes(e.target.value)}
+                  placeholder={`Contoh: Selesai diverifikasi serah terima massal (${batchTargetStatus})...`}
+                  rows={3}
+                  className="w-full px-md py-sm bg-surface rounded-xl border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-md"
+                />
+              </div>
+
+              <div className="p-sm bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                <span className="material-symbols-outlined text-base text-amber-600 shrink-0 mt-0.5">info</span>
+                <span>Perubahan status akan otomatis mencatat timestamp timeline dan mengirimkan notifikasi WebSocket/FCM ke sistem.</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-md pt-md border-t border-outline-variant">
+              <button
+                type="button"
+                onClick={() => setShowBatchModal(false)}
+                disabled={isSubmittingBatch}
+                className="px-md py-sm border border-outline-variant rounded-xl font-label-md text-secondary hover:bg-surface-container-low transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchUpdateSubmit}
+                disabled={isSubmittingBatch}
+                className="px-lg py-sm bg-primary text-on-primary font-label-md rounded-xl hover:opacity-90 flex items-center gap-xs shadow-sm disabled:opacity-50 transition-all"
+              >
+                {isSubmittingBatch ? (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[16px]">check</span>
+                    <span>Terapkan ({selectedBatchDOIds.length} DO)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery Timeline Modal */}
+      {showTimelineModal && selectedDOForTimeline && (
+        <div className="fixed inset-0 bg-on-surface/50 backdrop-blur-xs flex items-center justify-center p-md z-50 animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest p-xl rounded-2xl border border-outline-variant max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-lg shadow-2xl custom-scrollbar">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-outline-variant pb-md">
+              <div className="flex items-center gap-md">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0">
+                  <span className="material-symbols-outlined text-2xl">timeline</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-sm">
+                    <h3 className="font-headline-sm text-headline-sm font-bold text-primary">Timeline Pengiriman DO</h3>
+                    <span className="px-sm py-0.5 rounded-full text-xs font-bold uppercase bg-surface-container border border-outline-variant text-secondary">
+                      {selectedDOForTimeline.type === 'outbound' ? 'Outbound' : 'Inbound'}
+                    </span>
+                  </div>
+                  <p className="font-data-mono text-body-md font-bold text-indigo-900 mt-0.5">{selectedDOForTimeline.do_number}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTimelineModal(false);
+                  setSelectedDOForTimeline(null);
+                }}
+                className="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container-low transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Top Metrics Cards */}
+            <div className="grid grid-cols-3 gap-sm bg-surface-container-low p-md rounded-xl border border-outline-variant">
+              <div>
+                <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">Site BTS Tujuan</span>
+                <span className="font-semibold text-body-sm text-on-surface block mt-1 truncate" title={selectedDOForTimeline.bts_site?.site_name || selectedDOForTimeline.destination_address}>
+                  {selectedDOForTimeline.bts_site?.site_id || 'BTS'} - {selectedDOForTimeline.bts_site?.site_name || selectedDOForTimeline.destination_address || 'Kalimantan'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">Status Pengiriman</span>
+                <span className="inline-block mt-1 px-sm py-0.5 rounded-full text-xs font-bold uppercase bg-primary/10 text-primary border border-primary/20">
+                  {selectedDOForTimeline.status?.replace('_', ' ')}
+                </span>
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">Total Durasi</span>
+                <span className="font-bold text-body-sm text-indigo-700 block mt-1 font-data-mono">
+                  ⏱️ {selectedDOForTimeline.duration_info?.total_duration || 'Sedang berjalan'}
+                </span>
+              </div>
+            </div>
+
+            {/* Stepper Timeline Visual */}
+            <div className="relative pl-6 space-y-6 before:absolute before:left-[17px] before:top-3 before:bottom-3 before:w-0.5 before:bg-outline-variant">
+              {/* Step 1: Created */}
+              <div className="relative flex items-start gap-4">
+                <div className="absolute -left-6 top-0 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-emerald-100">
+                  <span className="material-symbols-outlined text-[14px]">done</span>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-outline-variant flex-1 shadow-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-body-md text-on-surface">1. DO Diterbitkan (Created)</span>
+                    <span className="text-xs text-secondary font-data-mono">
+                      {selectedDOForTimeline.created_at ? new Date(selectedDOForTimeline.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
+                    </span>
+                  </div>
+                  <p className="text-body-sm text-secondary mt-1">Surat Jalan DO diterbitkan di sistem logistics.</p>
+                  {selectedDOForTimeline.duration_info?.pending_to_assigned && (
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-surface-container rounded-full text-[11px] font-semibold text-secondary border border-outline-variant">
+                      <span className="material-symbols-outlined text-[13px]">timer</span>
+                      <span>Menunggu penugasan: {selectedDOForTimeline.duration_info.pending_to_assigned}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 2: Assigned */}
+              {(() => {
+                const isPassed = !!selectedDOForTimeline.assigned_at;
+                const isCurrent = selectedDOForTimeline.status === 'assigned';
+                return (
+                  <div className="relative flex items-start gap-4">
+                    <div className={`absolute -left-6 top-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-4 ${
+                      isPassed ? 'bg-emerald-500 text-white ring-emerald-100' : isCurrent ? 'bg-primary text-white ring-primary/20 animate-pulse' : 'bg-surface-container text-secondary ring-outline-variant/50'
+                    }`}>
+                      {isPassed ? <span className="material-symbols-outlined text-[14px]">done</span> : '2'}
+                    </div>
+                    <div className={`p-3 rounded-xl border flex-1 shadow-xs ${isPassed || isCurrent ? 'bg-white border-outline-variant' : 'bg-surface-container-low border-dashed border-outline-variant/80 opacity-75'}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-body-md text-on-surface">2. Driver Ditugaskan (Assigned)</span>
+                        <span className="text-xs text-secondary font-data-mono">
+                          {selectedDOForTimeline.assigned_at ? new Date(selectedDOForTimeline.assigned_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Menunggu Manifest'}
+                        </span>
+                      </div>
+                      <p className="text-body-sm text-secondary mt-1">
+                        {selectedDOForTimeline.driver ? `Driver: ${selectedDOForTimeline.driver.full_name} (${selectedDOForTimeline.driver.vehicle_plate || 'Armada'})` : 'DO dialokasikan ke kurir armada.'}
+                      </p>
+                      {selectedDOForTimeline.duration_info?.assigned_to_in_transit && (
+                        <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-surface-container rounded-full text-[11px] font-semibold text-secondary border border-outline-variant">
+                          <span className="material-symbols-outlined text-[13px]">timer</span>
+                          <span>Waktu persiapan armada: {selectedDOForTimeline.duration_info.assigned_to_in_transit}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Step 3: In Transit */}
+              {(() => {
+                const isPassed = !!selectedDOForTimeline.in_transit_at;
+                const isCurrent = selectedDOForTimeline.status === 'in_transit';
+                return (
+                  <div className="relative flex items-start gap-4">
+                    <div className={`absolute -left-6 top-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-4 ${
+                      isPassed ? 'bg-emerald-500 text-white ring-emerald-100' : isCurrent ? 'bg-primary text-white ring-primary/20 animate-pulse' : 'bg-surface-container text-secondary ring-outline-variant/50'
+                    }`}>
+                      {isPassed ? <span className="material-symbols-outlined text-[14px]">done</span> : '3'}
+                    </div>
+                    <div className={`p-3 rounded-xl border flex-1 shadow-xs ${isPassed || isCurrent ? 'bg-white border-outline-variant' : 'bg-surface-container-low border-dashed border-outline-variant/80 opacity-75'}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-body-md text-on-surface">3. Dalam Perjalanan (In Transit)</span>
+                        <span className="text-xs text-secondary font-data-mono">
+                          {selectedDOForTimeline.in_transit_at ? new Date(selectedDOForTimeline.in_transit_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Menunggu Keberangkatan'}
+                        </span>
+                      </div>
+                      <p className="text-body-sm text-secondary mt-1">Driver sedang mengantar muatan menuju lokasi tujuan.</p>
+                      {selectedDOForTimeline.duration_info?.in_transit_to_delivered && (
+                        <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-surface-container rounded-full text-[11px] font-semibold text-secondary border border-outline-variant">
+                          <span className="material-symbols-outlined text-[13px]">timer</span>
+                          <span>Waktu tempuh perjalanan: {selectedDOForTimeline.duration_info.in_transit_to_delivered}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Step 4: Delivered */}
+              {(() => {
+                const isPassed = !!selectedDOForTimeline.delivered_at;
+                const isCurrent = selectedDOForTimeline.status === 'delivered';
+                return (
+                  <div className="relative flex items-start gap-4">
+                    <div className={`absolute -left-6 top-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-4 ${
+                      isPassed ? 'bg-emerald-500 text-white ring-emerald-100' : isCurrent ? 'bg-primary text-white ring-primary/20 animate-pulse' : 'bg-surface-container text-secondary ring-outline-variant/50'
+                    }`}>
+                      {isPassed ? <span className="material-symbols-outlined text-[14px]">done</span> : '4'}
+                    </div>
+                    <div className={`p-3 rounded-xl border flex-1 shadow-xs ${isPassed || isCurrent ? 'bg-white border-outline-variant' : 'bg-surface-container-low border-dashed border-outline-variant/80 opacity-75'}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-body-md text-on-surface">4. Sampai di Lokasi (Delivered)</span>
+                        <span className="text-xs text-secondary font-data-mono">
+                          {selectedDOForTimeline.delivered_at ? new Date(selectedDOForTimeline.delivered_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Belum Sampai'}
+                        </span>
+                      </div>
+                      <p className="text-body-sm text-secondary mt-1">Barang telah tiba di site tujuan dan bukti POD dicatat.</p>
+                      {selectedDOForTimeline.duration_info?.delivered_to_completed && (
+                        <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-surface-container rounded-full text-[11px] font-semibold text-secondary border border-outline-variant">
+                          <span className="material-symbols-outlined text-[13px]">timer</span>
+                          <span>Waktu verifikasi dokumen: {selectedDOForTimeline.duration_info.delivered_to_completed}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Step 5: Completed */}
+              {(() => {
+                const isPassed = !!selectedDOForTimeline.completed_at;
+                const isCurrent = selectedDOForTimeline.status === 'completed';
+                return (
+                  <div className="relative flex items-start gap-4">
+                    <div className={`absolute -left-6 top-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ring-4 ${
+                      isPassed ? 'bg-emerald-500 text-white ring-emerald-100' : isCurrent ? 'bg-emerald-600 text-white ring-emerald-200' : 'bg-surface-container text-secondary ring-outline-variant/50'
+                    }`}>
+                      {isPassed ? <span className="material-symbols-outlined text-[14px]">done_all</span> : '5'}
+                    </div>
+                    <div className={`p-3 rounded-xl border flex-1 shadow-xs ${isPassed || isCurrent ? 'bg-white border-outline-variant' : 'bg-surface-container-low border-dashed border-outline-variant/80 opacity-75'}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-body-md text-on-surface">5. Selesai & Terverifikasi (Completed)</span>
+                        <span className="text-xs text-secondary font-data-mono">
+                          {selectedDOForTimeline.completed_at ? new Date(selectedDOForTimeline.completed_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Menunggu Verifikasi'}
+                        </span>
+                      </div>
+                      <p className="text-body-sm text-secondary mt-1">Dokumen BAST & data dismantle/inbound telah divalidasi final.</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Handle Returned / Cancelled if applicable */}
+              {selectedDOForTimeline.returned_at && (
+                <div className="relative flex items-start gap-4">
+                  <div className="absolute -left-6 top-0 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-amber-100">
+                    <span className="material-symbols-outlined text-[14px]">replay</span>
+                  </div>
+                  <div className="p-3 rounded-xl border border-amber-300 bg-amber-50 flex-1 shadow-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-body-md text-amber-900">Barang Dikembalikan (Returned)</span>
+                      <span className="text-xs text-amber-800 font-data-mono">
+                        {new Date(selectedDOForTimeline.returned_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                    <p className="text-body-sm text-amber-800 mt-1">Pengiriman dikembalikan ke gudang asal atau di-reschedule.</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedDOForTimeline.cancelled_at && (
+                <div className="relative flex items-start gap-4">
+                  <div className="absolute -left-6 top-0 w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-rose-100">
+                    <span className="material-symbols-outlined text-[14px]">cancel</span>
+                  </div>
+                  <div className="p-3 rounded-xl border border-rose-300 bg-rose-50 flex-1 shadow-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-body-md text-rose-900">Pesanan Dibatalkan (Cancelled)</span>
+                      <span className="text-xs text-rose-800 font-data-mono">
+                        {new Date(selectedDOForTimeline.cancelled_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                    <p className="text-body-sm text-rose-800 mt-1">Surat Jalan ini telah dibatalkan oleh dispatcher/admin.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-between items-center pt-md border-t border-outline-variant">
+              <span className="text-xs text-secondary">
+                Catatan: {selectedDOForTimeline.notes || 'Tidak ada catatan khusus.'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTimelineModal(false);
+                  setSelectedDOForTimeline(null);
+                }}
+                className="px-lg py-sm bg-primary text-on-primary font-label-md rounded-xl hover:opacity-90 shadow-sm"
+              >
+                Tutup Timeline
               </button>
             </div>
           </div>

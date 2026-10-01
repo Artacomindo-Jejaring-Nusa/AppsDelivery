@@ -103,7 +103,9 @@ function vehicleInfoHtml(driver) {
 // ═══════════════════════════════════════
 // ─── FleetMap Component ──────────────
 // ═══════════════════════════════════════
-export default function FleetMap({ drivers = [], height = '450px', className = '' }) {
+const EMPTY_DRIVERS = [];
+
+export default function FleetMap({ drivers = EMPTY_DRIVERS, height = '450px', className = '' }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const driverMarkersRef = useRef({});
@@ -133,14 +135,22 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
     }
   };
 
-  // Initialize Map
+  // Initialize Map safely with isolated DOM container
   useEffect(() => {
-    if (mapRef.current || !mapContainerRef.current) return;
+    let isMounted = true;
+    if (!mapContainerRef.current) return;
+
+    // Create unmanaged DOM child for Google Maps to avoid React reconciliation conflicts
+    const mapDiv = document.createElement('div');
+    mapDiv.style.width = '100%';
+    mapDiv.style.height = '100%';
+    mapContainerRef.current.appendChild(mapDiv);
 
     importLibrary('maps')
       .then(({ Map }) => {
+        if (!isMounted) return;
         const { InfoWindow } = google.maps;
-        const map = new Map(mapContainerRef.current, {
+        const map = new Map(mapDiv, {
           center: KALIMANTAN_CENTER,
           zoom: DEFAULT_ZOOM,
           mapTypeId: 'roadmap',
@@ -181,24 +191,43 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
 
         mapRef.current = map;
         infoWindowRef.current = new InfoWindow();
-        setMapLoaded(true);
+        if (isMounted) {
+          setMapLoaded(true);
+        }
       })
       .catch((err) => {
         console.error('Google Maps load error:', err);
-        setMapError('Failed to load Google Maps. Check API key or network.');
+        if (isMounted) {
+          setMapError('Failed to load Google Maps. Check API key or network.');
+        }
       });
 
     return () => {
-      if (driverMarkersRef.current) {
-        Object.values(driverMarkersRef.current).forEach((m) => m && m.setMap && m.setMap(null));
-        driverMarkersRef.current = {};
-      }
-      if (btsMarkersRef.current) {
-        Object.values(btsMarkersRef.current).forEach((m) => m && m.setMap && m.setMap(null));
-        btsMarkersRef.current = {};
-      }
-      if (infoWindowRef.current) {
-        infoWindowRef.current.close();
+      isMounted = false;
+      try {
+        if (window.google?.maps?.event && mapRef.current) {
+          window.google.maps.event.clearInstanceListeners(mapRef.current);
+        }
+        if (driverMarkersRef.current) {
+          Object.values(driverMarkersRef.current).forEach((m) => {
+            try { if (m?.setMap) m.setMap(null); } catch (e) {}
+          });
+          driverMarkersRef.current = {};
+        }
+        if (btsMarkersRef.current) {
+          Object.values(btsMarkersRef.current).forEach((m) => {
+            try { if (m?.setMap) m.setMap(null); } catch (e) {}
+          });
+          btsMarkersRef.current = {};
+        }
+        if (infoWindowRef.current) {
+          try { infoWindowRef.current.close(); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // Cleanly remove unmanaged map container before React reconciliation
+      if (mapDiv.parentNode) {
+        mapDiv.parentNode.removeChild(mapDiv);
       }
       mapRef.current = null;
     };

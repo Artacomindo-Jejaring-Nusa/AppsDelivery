@@ -34,6 +34,24 @@ type DeliveryOrder struct {
 	UpdatedAt          time.Time          `json:"updated_at"`
 	DeletedAt          *time.Time         `json:"deleted_at,omitempty"`
 	Driver             *Driver            `json:"driver,omitempty"`
+
+	// Status transition timestamps for delivery timeline
+	AssignedAt   *time.Time `json:"assigned_at,omitempty"`
+	InTransitAt  *time.Time `json:"in_transit_at,omitempty"`
+	DeliveredAt  *time.Time `json:"delivered_at,omitempty"`
+	CompletedAt  *time.Time `json:"completed_at,omitempty"`
+	ReturnedAt   *time.Time `json:"returned_at,omitempty"`
+	CancelledAt  *time.Time `json:"cancelled_at,omitempty"`
+	DurationInfo *DurationInfoResponse `json:"duration_info,omitempty"`
+}
+
+// DurationInfoResponse contains calculated durations between status transitions.
+type DurationInfoResponse struct {
+	PendingToAssigned   string `json:"pending_to_assigned,omitempty"`
+	AssignedToInTransit string `json:"assigned_to_in_transit,omitempty"`
+	InTransitToDelivered string `json:"in_transit_to_delivered,omitempty"`
+	DeliveredToCompleted string `json:"delivered_to_completed,omitempty"`
+	TotalDuration       string `json:"total_duration,omitempty"`
 }
 
 // SLADetailResponse contains granular day and hour SLA metrics when requested.
@@ -95,6 +113,13 @@ type BulkCreateDeliveryOrderRequest struct {
 	Orders []CreateDeliveryOrderRequest `json:"orders" binding:"required,min=1,max=10"`
 }
 
+// BatchUpdateStatusRequest represents batch status update from admin dashboard.
+type BatchUpdateStatusRequest struct {
+	IDs    []uuid.UUID `json:"ids" binding:"required,min=1,max=50"`
+	Status string      `json:"status" binding:"required,oneof=delivered completed cancelled"`
+	Notes  string      `json:"notes"`
+}
+
 // ---- Usecase Interface ----
 
 // DeliveryOrderUsecase defines the contract for DO business logic.
@@ -104,4 +129,5 @@ type DeliveryOrderUsecase interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*DeliveryOrder, error)
 	GetAll(ctx context.Context, filter *DOFilterRequest) ([]*DeliveryOrder, int64, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, req *UpdateDOStatusRequest) (*DeliveryOrder, error)
+	BatchUpdateStatus(ctx context.Context, req *BatchUpdateStatusRequest) ([]*DeliveryOrder, []error)
 }

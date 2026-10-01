@@ -127,3 +127,26 @@ func (h *DeliveryOrderHandler) UpdateStatus(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Delivery order status updated", do)
 }
+
+// BatchUpdateStatus handles PUT /api/v1/delivery-orders/batch-status
+func (h *DeliveryOrderHandler) BatchUpdateStatus(c *gin.Context) {
+	var req domain.BatchUpdateStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Data tidak valid. Minimal 1 DO dan maksimal 50 DO.", err.Error())
+		return
+	}
+
+	orders, errs := h.doUsecase.BatchUpdateStatus(c.Request.Context(), &req)
+	var errStrings []string
+	for _, e := range errs {
+		errStrings = append(errStrings, e.Error())
+	}
+
+	response.Success(c, http.StatusOK, "Batch status update selesai", gin.H{
+		"updated_count": len(orders),
+		"failed_count":  len(errs),
+		"orders":        orders,
+		"errors":        errStrings,
+	})
+}
+

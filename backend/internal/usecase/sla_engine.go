@@ -36,6 +36,12 @@ func (u *slaEngineUsecase) EvaluateAll(ctx context.Context) error {
 
 	now := time.Now()
 	for _, do := range orders {
+		// Double check SLA Freeze: never evaluate completed, delivered, returned, or cancelled DOs
+		if do.Status == domain.DOStatusDelivered || do.Status == domain.DOStatusCompleted ||
+			do.Status == domain.DOStatusReturned || do.Status == domain.DOStatusCancelled {
+			continue
+		}
+
 		if do.SLADeadline == nil {
 			continue
 		}

@@ -91,6 +91,7 @@ func (u *deliveryOrderUsecase) Create(ctx context.Context, req *domain.CreateDel
 	}
 
 	populateSLADetail(do)
+	populateDurationInfo(do)
 	return do, nil
 }
 
@@ -126,6 +127,7 @@ func (u *deliveryOrderUsecase) GetByID(ctx context.Context, id uuid.UUID) (*doma
 		return nil, err
 	}
 	populateSLADetail(do)
+	populateDurationInfo(do)
 	return do, nil
 }
 
@@ -136,6 +138,7 @@ func (u *deliveryOrderUsecase) GetAll(ctx context.Context, filter *domain.DOFilt
 	}
 	for _, do := range dos {
 		populateSLADetail(do)
+		populateDurationInfo(do)
 	}
 	return dos, total, nil
 }
@@ -158,8 +161,25 @@ func (u *deliveryOrderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, r
 		return nil, err
 	}
 
+	now := time.Now()
+	switch req.Status {
+	case domain.DOStatusAssigned:
+		do.AssignedAt = &now
+	case domain.DOStatusInTransit:
+		do.InTransitAt = &now
+	case domain.DOStatusDelivered:
+		do.DeliveredAt = &now
+	case domain.DOStatusCompleted:
+		do.CompletedAt = &now
+	case domain.DOStatusReturned:
+		do.ReturnedAt = &now
+	case domain.DOStatusCancelled:
+		do.CancelledAt = &now
+	}
+
 	do.Status = req.Status
 	populateSLADetail(do)
+	populateDurationInfo(do)
 
 	// Broadcast WebSocket notification to Admin Dashboard
 	go func(doNum, status string) {
@@ -204,12 +224,36 @@ func (u *deliveryOrderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, r
 	return do, nil
 }
 
+// BatchUpdateStatus updates multiple DOs' status in batch.
+func (u *deliveryOrderUsecase) BatchUpdateStatus(ctx context.Context, req *domain.BatchUpdateStatusRequest) ([]*domain.DeliveryOrder, []error) {
+	if len(req.IDs) == 0 {
+		return nil, []error{errors.New("tidak ada DO yang dipilih")}
+	}
+
+	var updated []*domain.DeliveryOrder
+	var errs []error
+
+	for _, id := range req.IDs {
+		do, err := u.UpdateStatus(ctx, id, &domain.UpdateDOStatusRequest{
+			Status: req.Status,
+			Notes:  req.Notes,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("DO %s: %w", id.String()[:8], err))
+		} else {
+			updated = append(updated, do)
+		}
+	}
+
+	return updated, errs
+}
+
 // isValidStatusTransition validates allowed status transitions.
 func isValidStatusTransition(current, target string) bool {
 	transitions := map[string][]string{
 		domain.DOStatusPending:   {domain.DOStatusAssigned, domain.DOStatusCancelled},
 		domain.DOStatusAssigned:  {domain.DOStatusInTransit, domain.DOStatusCancelled},
-		domain.DOStatusInTransit: {domain.DOStatusDelivered, domain.DOStatusReturned, domain.DOStatusCancelled},
+		domain.DOStatusInTransit: {domain.DOStatusDelivered, domain.DOStatusReturned, domain.DOStatusCancelled, domain.DOStatusCompleted},
 		domain.DOStatusDelivered: {domain.DOStatusCompleted, domain.DOStatusReturned},
 		domain.DOStatusReturned:  {domain.DOStatusCompleted},
 	}
@@ -225,6 +269,92 @@ func isValidStatusTransition(current, target string) bool {
 		}
 	}
 	return false
+}
+
+// populateDurationInfo calculates durations between timeline steps.
+func populateDurationInfo(do *domain.DeliveryOrder) {
+	if do == nil {
+		return
+	}
+
+	info := &domain.DurationInfoResponse{}
+	hasAny := false
+
+	// Pending -> Assigned
+	if do.AssignedAt != nil {
+		d := do.AssignedAt.Sub(do.CreatedAt)
+		info.PendingToAssigned = formatDuration(d)
+		hasAny = true
+	}
+
+	// Assigned -> In Transit
+	if do.AssignedAt != nil && do.InTransitAt != nil {
+		d := do.InTransitAt.Sub(*do.AssignedAt)
+		info.AssignedToInTransit = formatDuration(d)
+		hasAny = true
+	}
+
+	// In Transit -> Delivered
+	if do.InTransitAt != nil && do.DeliveredAt != nil {
+		d := do.DeliveredAt.Sub(*do.InTransitAt)
+		info.InTransitToDelivered = formatDuration(d)
+		hasAny = true
+	}
+
+	// Delivered -> Completed
+	if do.DeliveredAt != nil && do.CompletedAt != nil {
+		d := do.CompletedAt.Sub(*do.DeliveredAt)
+		info.DeliveredToCompleted = formatDuration(d)
+		hasAny = true
+	}
+
+	// Total Duration
+	var endPoint *time.Time
+	if do.CompletedAt != nil {
+		endPoint = do.CompletedAt
+	} else if do.DeliveredAt != nil {
+		endPoint = do.DeliveredAt
+	}
+
+	if endPoint != nil {
+		d := endPoint.Sub(do.CreatedAt)
+		info.TotalDuration = formatDuration(d)
+		hasAny = true
+	} else if do.Status == domain.DOStatusInTransit || do.Status == domain.DOStatusAssigned {
+		d := time.Since(do.CreatedAt)
+		info.TotalDuration = formatDuration(d) + " (berjalan)"
+		hasAny = true
+	}
+
+	if hasAny {
+		do.DurationInfo = info
+	}
+}
+
+func formatDuration(d time.Duration) string {
+	if d < 0 {
+		d = 0
+	}
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+
+	if days > 0 {
+		if hours > 0 {
+			return fmt.Sprintf("%d hr %d jam", days, hours)
+		}
+		return fmt.Sprintf("%d hr", days)
+	}
+	if hours > 0 {
+		if minutes > 0 {
+			return fmt.Sprintf("%d jam %d mnt", hours, minutes)
+		}
+		return fmt.Sprintf("%d jam", hours)
+	}
+	if minutes > 0 {
+		return fmt.Sprintf("%d mnt", minutes)
+	}
+	return "< 1 mnt"
 }
 
 // populateSLADetail calculates granular day and hour SLA metrics for a DO.

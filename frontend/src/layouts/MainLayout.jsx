@@ -83,7 +83,6 @@ export default function MainLayout() {
 
   const navItems = [
     { key: 'dashboard', label: t('nav.dashboard', 'Dashboard'), path: '/dashboard', icon: 'dashboard' },
-    { key: 'timeline', label: t('nav.timeline', 'Project Timeline'), path: '/timeline', icon: 'account_tree' },
     { key: 'delivery_orders', label: t('nav.delivery_orders', 'Shipments'), path: '/delivery-orders', icon: 'local_shipping' },
     { key: 'fleet', label: t('nav.fleet', 'Fleet'), path: '/fleet', icon: 'directions_bus' },
     { key: 'analytics', label: t('nav.analytics', 'Analytics'), path: '/analytics', icon: 'analytics' },
@@ -401,7 +400,7 @@ export default function MainLayout() {
 
         {/* Page Content */}
         <div className="p-lg">
-          <Outlet key={location.pathname} />
+          <Outlet />
         </div>
       </main>
     </div>

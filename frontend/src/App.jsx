@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import LoginPage from './features/auth/LoginPage';
 import MainLayout from './layouts/MainLayout';
 import DashboardPage from './features/dashboard/DashboardPage';
@@ -13,48 +13,44 @@ import BtsSitePage from './features/bts/BtsSitePage';
 import TimelinePage from './features/timeline/TimelinePage';
 import { useAuthStore } from './store/authStore';
 
-// ProtectedRoute component
-const ProtectedRoute = ({ children }) => {
+// ProtectedLayout checks authentication and renders MainLayout
+const ProtectedLayout = () => {
   const token = useAuthStore((state) => state.token) || localStorage.getItem('token');
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  return children;
+  return <MainLayout />;
 };
 
+const router = createBrowserRouter([
+  // Public Routes (No Login Required)
+  { path: '/login', element: <LoginPage /> },
+  { path: '/track', element: <PublicTrackingPage /> },
+  { path: '/track/:trackingNumber', element: <PublicTrackingPage /> },
+
+  // Protected Dashboard & App Routes
+  {
+    path: '/',
+    element: <ProtectedLayout />,
+    children: [
+      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'timeline', element: <TimelinePage /> },
+      { path: 'delivery-orders', element: <DeliveryOrdersPage /> },
+      { path: 'fleet', element: <FleetPage /> },
+      { path: 'analytics', element: <AnalyticsPage /> },
+      { path: 'compliance', element: <AnalyticsPage /> },
+      { path: 'user', element: <UserPage /> },
+      { path: 'tracking', element: <TrackingPage /> },
+      { path: 'bts-sites', element: <BtsSitePage /> },
+    ],
+  },
+
+  // Catch-all redirect
+  { path: '*', element: <Navigate to="/login" replace /> },
+]);
+
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Routes (No Login Required) */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/track" element={<PublicTrackingPage />} />
-        <Route path="/track/:trackingNumber" element={<PublicTrackingPage />} />
-
-        {/* Protected Dashboard & App Routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="timeline" element={<TimelinePage />} />
-          <Route path="delivery-orders" element={<DeliveryOrdersPage />} />
-          <Route path="fleet" element={<FleetPage />} />
-          <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="compliance" element={<AnalyticsPage />} />
-          <Route path="user" element={<UserPage />} />
-          <Route path="tracking" element={<TrackingPage />} />
-          <Route path="bts-sites" element={<BtsSitePage />} />
-        </Route>
-
-        {/* Catch-all redirect */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
+
