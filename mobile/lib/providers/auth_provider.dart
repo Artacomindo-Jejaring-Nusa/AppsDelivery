@@ -66,7 +66,17 @@ class AuthProvider extends ChangeNotifier {
         return true;
       }
     } on DioException catch (e) {
-      _errorMessage = e.response?.data['message'] ?? 'Login failed. Please check your credentials.';
+      if (e.response != null && e.response?.data is Map) {
+        _errorMessage = e.response?.data['message'] ?? 'Login failed. Please check your credentials.';
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        _errorMessage = 'Connection timeout to ${apiClient.dio.options.baseUrl}. Please check server settings.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        _errorMessage = 'Cannot reach server at ${apiClient.dio.options.baseUrl}. Please check IP in settings.';
+      } else {
+        _errorMessage = e.message ?? 'Network error occurred.';
+      }
     } catch (e) {
       _errorMessage = 'An unexpected error occurred: $e';
     }

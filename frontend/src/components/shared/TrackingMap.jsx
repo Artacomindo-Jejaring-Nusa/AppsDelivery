@@ -38,22 +38,39 @@ function btsSvgIcon(color) {
   `)}`;
 }
 
-function truckSvgIcon(color) {
+function truckSvgIcon(color, isOnline = true) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <rect x="2" y="2" width="28" height="28" rx="6" fill="${color}" stroke="white" stroke-width="2"/>
-      <text x="16" y="22" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🚛</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="16" fill="${color}" stroke="white" stroke-width="2.5"/>
+      <text x="18" y="23" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🚛</text>
+      ${isOnline ? '<circle cx="28" cy="8" r="4" fill="#10b981" stroke="white" stroke-width="1.5"/>' : ''}
     </svg>
   `)}`;
 }
 
-export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = null }) {
+export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = null, driverLat, driverLng, driverName }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const driverMarkersRef = useRef({});
   const btsMarkersRef = useRef({});
   const infoWindowRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Compute effective driver list
+  const effectiveDrivers = React.useMemo(() => {
+    if (drivers && drivers.length > 0) return drivers;
+    if (driverLat != null && driverLng != null) {
+      return [{
+        id: 'single_driver',
+        full_name: driverName || 'Driver Courier',
+        latitude: driverLat,
+        longitude: driverLng,
+        is_online: true,
+        is_available: false,
+      }];
+    }
+    return [];
+  }, [drivers, driverLat, driverLng, driverName]);
 
   useEffect(() => {
     importLibrary('maps').then(({ Map }) => {
@@ -63,6 +80,17 @@ export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = 
       const mapOptions = {
         center: KALIMANTAN_CENTER,
         zoom: DEFAULT_ZOOM,
+        minZoom: 5,
+        maxZoom: 18,
+        restriction: {
+          latLngBounds: {
+            north: 8.5,
+            south: -12.0,
+            west: 95.0,
+            east: 141.5,
+          },
+          strictBounds: false,
+        },
         mapTypeId: 'terrain',
         disableDefaultUI: false,
         zoomControl: true,
@@ -86,9 +114,14 @@ export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = 
 
     activeSites.forEach((site) => {
       const siteId = site.site_id || site.id;
-      const lat = Number(site.lat || site.latitude);
-      const lng = Number(site.lng || site.longitude);
+      let lat = Number(site.lat || site.latitude);
+      let lng = Number(site.lng || site.longitude);
       if (!lat || !lng) return;
+
+      // Ensure valid Indonesia coordinates
+      if (lat > 8.0 || lat < -12.0 || lng < 94.0 || lng > 142.0) {
+        return;
+      }
 
       if (!currentBtsMarkers[siteId]) {
         const marker = new Marker({
@@ -125,12 +158,13 @@ export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = 
     const currentMarkers = driverMarkersRef.current;
     const activeDriverIds = new Set();
 
-    drivers.forEach((driver, idx) => {
+    effectiveDrivers.forEach((driver, idx) => {
       activeDriverIds.add(driver.id);
-      let lat = driver.current_lat || driver.latitude;
-      let lng = driver.current_lng || driver.longitude;
+      let lat = Number(driver.latitude || driver.current_lat);
+      let lng = Number(driver.longitude || driver.current_lng);
 
-      if (!lat || !lng) {
+      // If coordinate is missing, invalid, or outside Indonesia (e.g. Mountain View 37.4220), normalize to Kalimantan
+      if (!lat || !lng || lat > 8.0 || lat < -12.0 || lng < 94.0 || lng > 142.0) {
         const defaultLoc = DRIVER_DEFAULT_LOCATIONS[driver.full_name] || {
           lat: -1.5 + (idx * 0.4),
           lng: 114.5 + (idx * 0.8),
@@ -139,21 +173,27 @@ export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = 
         lng = defaultLoc.lng;
       }
 
-      const statusKey = driver.is_available ? 'idle' : 'on_route';
-      const color = STATUS_COLORS[statusKey];
+      const isOnline = driver.is_online || Boolean(driver.latitude || driver.current_lat);
+      const statusKey = !driver.is_available ? 'on_route' : isOnline ? 'online' : 'idle';
+      const color = STATUS_COLORS[statusKey] || STATUS_COLORS.active;
       const pos = { lat: Number(lat), lng: Number(lng) };
 
       if (currentMarkers[driver.id]) {
         currentMarkers[driver.id].setPosition(pos);
+        currentMarkers[driver.id].setIcon({
+          url: truckSvgIcon(color, isOnline),
+          scaledSize: new Size(36, 36),
+          anchor: new Point(18, 18),
+        });
       } else {
         const marker = new Marker({
           position: pos,
           map: mapInstanceRef.current,
           title: `🚛 ${driver.full_name} (${driver.vehicle_plate || 'Box Truck'})`,
           icon: {
-            url: truckSvgIcon(color),
-            scaledSize: new Size(32, 32),
-            anchor: new Point(16, 16),
+            url: truckSvgIcon(color, isOnline),
+            scaledSize: new Size(36, 36),
+            anchor: new Point(18, 18),
           },
           zIndex: 200,
         });
@@ -163,8 +203,9 @@ export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = 
             <div style="font-family: 'Inter', sans-serif; padding: 6px;">
               <h4 style="margin: 0; font-weight: 700; color: #00236f;">🚛 ${driver.full_name}</h4>
               <p style="margin: 2px 0; font-size: 11px; color: #475569;">Plat: ${driver.vehicle_plate || 'No Plate'} (${driver.vehicle_type || 'Truck'})</p>
+              <p style="margin: 2px 0; font-size: 11px; color: #64748b; font-family: monospace;">📍 ${lat ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : 'Kalimantan'}</p>
               <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: bold; color: ${color};">
-                ${driver.is_available ? '⚪ AVAILABLE (IDLE)' : '🟢 ON ROUTE / IN TRANSIT'}
+                ${!driver.is_available ? '🟢 ON ROUTE / IN TRANSIT' : isOnline ? '🔵 ONLINE (SIAP JALAN)' : '⚪ STANDBY (IDLE)'}
               </p>
             </div>
           `);
@@ -181,7 +222,7 @@ export default function TrackingMap({ drivers = [], btsSites = [], selectedDO = 
         delete currentMarkers[id];
       }
     });
-  }, [drivers, mapLoaded]);
+  }, [effectiveDrivers, mapLoaded]);
 
   return <div ref={mapRef} className="w-full h-full" />;
 }

@@ -1168,6 +1168,18 @@ export default function DeliveryOrdersPage() {
     setShowManifestModal(true);
   };
 
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'create') {
+      handleOpenCreateModal();
+    } else if (action === 'manifest') {
+      handleOpenManifestModal();
+    } else if (action === 'scan') {
+      // Assuming you'd have logic to open the scan tool, or you need to select a DO first
+      // Let's scroll to the DO list and show a toast/focus for now since it needs a DO to start scanning
+    }
+  }, [searchParams]);
+
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -1179,7 +1191,9 @@ export default function DeliveryOrdersPage() {
       if (!payload.bts_site_id || payload.bts_site_id.trim() === '') {
         delete payload.bts_site_id;
       }
-      await api.post('/delivery-orders', payload);
+      const res = await api.post('/delivery-orders', payload);
+      const newDO = res.data.data;
+      
       setShowCreateModal(false);
       setFormData({
         do_number: '',
@@ -1192,6 +1206,15 @@ export default function DeliveryOrdersPage() {
         notes: '',
       });
       fetchOrders();
+
+      // WIZARD FLOW: Automatically proceed to Manifest creation
+      if (newDO && newDO.id) {
+        setSelectedDOIds([newDO.id]);
+        handleOpenManifestModal();
+      } else {
+        // Fallback if ID is missing
+        alert('Delivery Order berhasil dibuat. Silakan centang DO tersebut untuk membuat Manifest.');
+      }
     } catch (err) {
       alert(err.response?.data?.message || err.response?.data?.error || 'Failed to create Delivery Order');
     }

@@ -46,7 +46,8 @@ class ManifestProvider extends ChangeNotifier {
       final response = await apiClient.dio.get('/api/v1/manifests?per_page=100');
       debugPrint("FETCH MANIFESTS STATUS: ${response.statusCode}");
       if (response.statusCode == 200) {
-        final list = response.data['data'] as List;
+        final rawData = response.data['data'];
+        final List list = (rawData is List) ? rawData : [];
         debugPrint("FETCHED MANIFESTS LIST COUNT: ${list.length}");
 
         // 2. Filter manifests for this driver with active status (dispatched, in_transit, draft, assigned)

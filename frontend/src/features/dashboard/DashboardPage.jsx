@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import FleetMap from '../../components/shared/FleetMap';
 
@@ -202,22 +203,77 @@ const DEMO_ALERTS = [
 // ═══════════════════════════════════════
 export default function DashboardPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [dispatches, setDispatches] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Auto-poll dashboard and fleet status every 5 seconds for live realtime sync
+    const interval = setInterval(() => {
+      fetchDashboardData(true);
+    }, 5000);
+
+    // Also listen to instant WebSocket GPS updates from mobile drivers
+    const handleDriverLocationUpdate = (e) => {
+      const update = e.detail;
+      if (!update) return;
+      setDrivers((prevDrivers) => {
+        const found = prevDrivers.find((d) => d.id === update.driver_id);
+        if (found) {
+          return prevDrivers.map((d) =>
+            d.id === update.driver_id
+              ? {
+                  ...d,
+                  latitude: update.latitude,
+                  longitude: update.longitude,
+                  current_lat: update.latitude,
+                  current_lng: update.longitude,
+                  is_online: true,
+                  is_available: update.status !== 'on_route',
+                }
+              : d
+          );
+        }
+        return [
+          ...prevDrivers,
+          {
+            id: update.driver_id,
+            full_name: update.full_name,
+            vehicle_plate: update.vehicle_plate,
+            latitude: update.latitude,
+            longitude: update.longitude,
+            is_online: true,
+            is_available: update.status !== 'on_route',
+          },
+        ];
+      });
+    };
+
+    window.addEventListener('driver-location-updated', handleDriverLocationUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('driver-location-updated', handleDriverLocationUpdate);
+    };
   }, []);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
+  const fetchDashboardData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
-      const [statsRes, dosRes] = await Promise.all([
+      const [statsRes, dosRes, driversRes] = await Promise.all([
         api.get('/dashboard/stats').catch(() => null),
         api.get('/delivery-orders?per_page=15').catch(() => null),
+        api.get('/drivers?per_page=100').catch(() => null),
       ]);
+
+      if (driversRes && driversRes.data?.data) {
+        setDrivers(driversRes.data.data);
+      }
 
       if (statsRes && statsRes.data?.data) {
         setStats(statsRes.data.data);
@@ -322,6 +378,28 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-sm">
+            <button 
+              onClick={() => navigate('/delivery-orders?action=create')}
+              className="px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg flex items-center gap-xs hover:bg-primary/90 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-sm">add_box</span>
+              {t('dashboard.quick_do', 'Buat DO')}
+            </button>
+            <button 
+              onClick={() => navigate('/delivery-orders?action=manifest')}
+              className="px-md py-sm bg-secondary text-on-secondary font-label-md text-label-md rounded-lg flex items-center gap-xs hover:bg-secondary/90 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-sm">assignment</span>
+              {t('dashboard.quick_manifest', 'Buat Manifest')}
+            </button>
+            <button 
+              onClick={() => navigate('/delivery-orders?action=scan')}
+              className="px-md py-sm bg-tertiary text-on-tertiary font-label-md text-label-md rounded-lg flex items-center gap-xs hover:bg-tertiary/90 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
+              {t('dashboard.quick_scan', 'Scan Barcode')}
+            </button>
+            <div className="w-px bg-outline-variant mx-1 self-stretch"></div>
             <button className="px-md py-sm bg-surface-container-highest text-on-surface-variant font-label-md text-label-md rounded-lg flex items-center gap-xs hover:opacity-80 transition-all">
               <span className="material-symbols-outlined text-sm">
                 filter_list
@@ -416,7 +494,9 @@ export default function DashboardPage() {
                 {t('dashboard.active_drivers', 'Active Drivers')}
               </p>
               <h3 className="font-headline-lg text-headline-lg text-on-surface">
-                {stats?.active_drivers ?? 0}
+                {drivers.length > 0
+                  ? drivers.filter((d) => d.is_online || !d.is_available || d.latitude).length
+                  : stats?.active_drivers ?? 0}
               </h3>
             </div>
           </div>
@@ -464,7 +544,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-xs bg-surface-container-high rounded-full px-sm py-1">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
               <span className="font-label-sm text-label-sm">
-                {stats?.active_drivers ?? 84} Nodes Active
+                {drivers.filter((d) => d.is_online || !d.is_available || d.latitude).length || stats?.active_drivers || 1} Nodes Active
               </span>
             </div>
           </div>
@@ -578,7 +658,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
         {/* Live Fleet Map (Google Maps API) */}
         <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-          <FleetMap height="320px" />
+          <FleetMap height="320px" drivers={drivers} />
         </div>
 
         {/* Critical Alerts */}

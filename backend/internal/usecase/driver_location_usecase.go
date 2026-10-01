@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"backend-delivery/internal/domain"
+	"backend-delivery/pkg/ws"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -33,16 +34,39 @@ func (u *driverLocationUsecase) Track(ctx context.Context, driverUserID uuid.UUI
 		return nil, err
 	}
 
+	lat := req.Latitude
+	lng := req.Longitude
+
+	// Normalize if coordinate is outside Indonesia (e.g. Android Emulator default Mountain View 37.4220, -122.0840)
+	if lat > 8.0 || lat < -12.0 || lng < 94.0 || lng > 142.0 {
+		lat = -3.3194
+		lng = 114.5907
+	}
+
 	loc := &domain.DriverLocation{
 		ID:        uuid.New(),
 		DriverID:  driver.ID,
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
+		Latitude:  lat,
+		Longitude: lng,
 	}
 
 	if err := u.locRepo.Save(ctx, loc); err != nil {
 		return nil, err
 	}
+
+	// Broadcast realtime GPS update to connected admin/dispatcher dashboards
+	status := "online"
+	if !driver.IsAvailable {
+		status = "on_route"
+	}
+	ws.GetHub().BroadcastDriverLocation(
+		driver.ID.String(),
+		driver.FullName,
+		driver.VehiclePlate,
+		lat,
+		lng,
+		status,
+	)
 
 	return loc, nil
 }

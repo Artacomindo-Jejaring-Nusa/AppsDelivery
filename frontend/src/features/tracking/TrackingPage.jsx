@@ -17,7 +17,33 @@ export default function TrackingPage() {
     const interval = setInterval(() => {
       fetchAllData(true); // Silent background auto-polling every 5s
     }, 5000);
-    return () => clearInterval(interval);
+
+    const handleDriverLocationUpdate = (e) => {
+      const update = e.detail;
+      if (!update) return;
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((d) =>
+          d.id === update.driver_id
+            ? {
+                ...d,
+                latitude: update.latitude,
+                longitude: update.longitude,
+                current_lat: update.latitude,
+                current_lng: update.longitude,
+                is_online: true,
+                is_available: update.status !== 'on_route',
+              }
+            : d
+        )
+      );
+    };
+
+    window.addEventListener('driver-location-updated', handleDriverLocationUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('driver-location-updated', handleDriverLocationUpdate);
+    };
   }, []);
 
   const fetchAllData = async (isSilent = false) => {
@@ -303,13 +329,28 @@ export default function TrackingPage() {
                         </div>
                       </td>
                       <td className="py-sm">
-                        <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${
-                          !isAvailable 
-                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
-                            : 'bg-amber-100 text-amber-900 border-amber-300'
-                        }`}>
-                          {!isAvailable ? '🟢 ON ROUTE / IN TRANSIT' : '⚪ AVAILABLE (IDLE)'}
-                        </span>
+                        {(() => {
+                          const isOnline = driver.is_online || Boolean(driver.latitude || driver.current_lat);
+                          if (!isAvailable) {
+                            return (
+                              <span className="text-[10px] px-2 py-0.5 rounded border font-bold bg-emerald-100 text-emerald-900 border-emerald-300">
+                                🟢 ON ROUTE / IN TRANSIT
+                              </span>
+                            );
+                          }
+                          if (isOnline) {
+                            return (
+                              <span className="text-[10px] px-2 py-0.5 rounded border font-bold bg-blue-100 text-blue-900 border-blue-300">
+                                🔵 ONLINE (SIAP JALAN)
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="text-[10px] px-2 py-0.5 rounded border font-bold bg-slate-100 text-slate-800 border-slate-300">
+                              ⚪ STANDBY (IDLE)
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="py-sm">
                         <div className="w-32">

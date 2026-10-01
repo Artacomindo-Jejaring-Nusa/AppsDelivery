@@ -30,8 +30,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final manifestProv = Provider.of<ManifestProvider>(context, listen: false);
     final syncProv = Provider.of<SyncProvider>(context, listen: false);
 
-    // 1. Resolve Driver ID via coordinate ping
-    final driverId = await locProv.pingLocation();
+    // 1. Auto-start GPS tracking on dashboard open to make driver online immediately
+    if (!locProv.isTracking) {
+      locProv.startTracking();
+    } else {
+      await locProv.pingLocation();
+    }
+
+    final driverId = locProv.driverId;
     
     // 2. Fetch manifest if driverId exists
     if (driverId != null) {
