@@ -18,6 +18,7 @@ const DEFAULT_ZOOM = 6;
 // ─── Status Colors ───
 const STATUS_COLORS = {
   active: '#1e3a8a',
+  online: '#1e3a8a',
   warning: '#d97706',
   error: '#ba1a1a',
   on_route: '#059669',
@@ -39,11 +40,12 @@ function btsSvgIcon(color) {
   `)}`;
 }
 
-function truckSvgIcon(color) {
+function truckSvgIcon(color, isOnline = true) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <rect x="2" y="2" width="28" height="28" rx="6" fill="${color}" stroke="white" stroke-width="2"/>
-      <text x="16" y="22" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🚛</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="16" fill="${color}" stroke="white" stroke-width="2.5"/>
+      <text x="18" y="23" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🚛</text>
+      ${isOnline ? '<circle cx="28" cy="8" r="4" fill="#10b981" stroke="white" stroke-width="1.5"/>' : ''}
     </svg>
   `)}`;
 }
@@ -76,11 +78,20 @@ function btsInfoHtml(site) {
 }
 
 function vehicleInfoHtml(driver) {
-  const statusKey = driver.is_available ? 'idle' : 'on_route';
+  const isOnline = driver.is_online || Boolean(driver.latitude || driver.current_lat);
+  const statusKey = !driver.is_available ? 'on_route' : isOnline ? 'online' : 'idle';
   const color = STATUS_COLORS[statusKey];
-  const statusLabel = driver.is_available ? '⚪ Available (Idle)' : '🟢 On Route / In Transit';
+  const statusLabel = !driver.is_available 
+    ? '🟢 On Route / In Transit' 
+    : isOnline 
+      ? '🔵 Online (Siap Jalan)' 
+      : '⚪ Standby (Idle)';
+  
+  const lat = Number(driver.latitude || driver.current_lat || 0);
+  const lng = Number(driver.longitude || driver.current_lng || 0);
+
   return `
-    <div style="font-family: Inter, sans-serif; min-width: 170px; padding: 4px 0;">
+    <div style="font-family: Inter, sans-serif; min-width: 190px; padding: 4px 0;">
       <div style="font-size: 14px; font-weight: 700; color: #191c1e;">
         🚛 ${driver.full_name}
       </div>
@@ -90,11 +101,14 @@ function vehicleInfoHtml(driver) {
       <div style="font-size: 11px; color: #757682; margin-top: 2px;">
         📱 ${driver.phone || '-'}
       </div>
-      <div style="font-size: 12px; color: ${color}; font-weight: 600; margin-top: 6px;">
+      <div style="font-size: 11px; color: #475569; margin-top: 2px; font-family: monospace;">
+        📍 ${lat ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : 'Kalimantan'}
+      </div>
+      <div style="font-size: 12px; color: ${color}; font-weight: 700; margin-top: 6px;">
         ${statusLabel}
       </div>
-      <div style="font-size: 10px; color: #059669; font-weight: 700; margin-top: 4px;">
-        ● REALTIME GPS ACTIVE
+      <div style="font-size: 10px; color: ${isOnline ? '#059669' : '#6b7280'}; font-weight: 700; margin-top: 4px;">
+        ● ${isOnline ? 'REALTIME GPS SYNCED' : 'GPS STANDBY'}
       </div>
     </div>
   `;
@@ -143,6 +157,17 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
         const map = new Map(mapContainerRef.current, {
           center: KALIMANTAN_CENTER,
           zoom: DEFAULT_ZOOM,
+          minZoom: 5,
+          maxZoom: 18,
+          restriction: {
+            latLngBounds: {
+              north: 8.5,
+              south: -12.0,
+              west: 95.0,
+              east: 141.5,
+            },
+            strictBounds: false,
+          },
           mapTypeId: 'roadmap',
           mapTypeControl: true,
           mapTypeControlOptions: {
@@ -212,9 +237,14 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
     const currentBtsMarkers = btsMarkersRef.current;
 
     btsSites.forEach((site) => {
-      const lat = site.lat || site.latitude;
-      const lng = site.lng || site.longitude;
+      let lat = Number(site.lat || site.latitude);
+      let lng = Number(site.lng || site.longitude);
       if (!lat || !lng) return;
+
+      // Ensure valid Indonesia coordinates
+      if (lat > 8.0 || lat < -12.0 || lng < 94.0 || lng > 142.0) {
+        return;
+      }
 
       const siteId = site.site_id || site.id;
       if (!currentBtsMarkers[siteId]) {
@@ -253,10 +283,11 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
       activeDriverIds.add(driver.id);
 
       // Determine position (from backend GPS or default Kalimantan city coords)
-      let lat = driver.current_lat || driver.latitude;
-      let lng = driver.current_lng || driver.longitude;
+      let lat = Number(driver.latitude || driver.current_lat);
+      let lng = Number(driver.longitude || driver.current_lng);
 
-      if (!lat || !lng) {
+      // Normalize if missing, invalid, or outside Indonesia (e.g. Mountain View 37.4220)
+      if (!lat || !lng || lat > 8.0 || lat < -12.0 || lng < 94.0 || lng > 142.0) {
         const defaultLoc = DRIVER_DEFAULT_LOCATIONS[driver.full_name] || {
           lat: -1.5 + (idx * 0.4),
           lng: 114.5 + (idx * 0.8),
@@ -265,16 +296,17 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
         lng = defaultLoc.lng;
       }
 
-      const statusKey = driver.is_available ? 'idle' : 'on_route';
-      const color = STATUS_COLORS[statusKey];
+      const isOnline = driver.is_online || Boolean(driver.latitude || driver.current_lat);
+      const statusKey = !driver.is_available ? 'on_route' : isOnline ? 'online' : 'idle';
+      const color = STATUS_COLORS[statusKey] || STATUS_COLORS.online;
       const pos = { lat: Number(lat), lng: Number(lng) };
 
       if (currentMarkers[driver.id]) {
         currentMarkers[driver.id].setPosition(pos);
         currentMarkers[driver.id].setIcon({
-          url: truckSvgIcon(color),
-          scaledSize: new Size(32, 32),
-          anchor: new Point(16, 16),
+          url: truckSvgIcon(color, isOnline),
+          scaledSize: new Size(36, 36),
+          anchor: new Point(18, 18),
         });
       } else {
         const marker = new Marker({
@@ -282,9 +314,9 @@ export default function FleetMap({ drivers = [], height = '450px', className = '
           map: mapRef.current,
           title: `${driver.full_name} — ${driver.vehicle_plate || 'Armada'}`,
           icon: {
-            url: truckSvgIcon(color),
-            scaledSize: new Size(32, 32),
-            anchor: new Point(16, 16),
+            url: truckSvgIcon(color, isOnline),
+            scaledSize: new Size(36, 36),
+            anchor: new Point(18, 18),
           },
           optimized: true,
           zIndex: 200,

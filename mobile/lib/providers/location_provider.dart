@@ -40,19 +40,27 @@ class LocationProvider extends ChangeNotifier {
       double lat = -3.31940000;  // Default seed (Banjarmasin)
       double lng = 114.59070000;
 
-      // Try fetching device coordinates
+      // Try fetching real device coordinates
       try {
         final hasPermission = await _handlePermission();
         if (hasPermission) {
-          final position = await Geolocator.getCurrentPosition(
+          Position? position = await Geolocator.getLastKnownPosition();
+          position ??= await Geolocator.getCurrentPosition(
             locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              timeLimit: Duration(seconds: 5),
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 4),
             ),
           );
-          _currentPosition = position;
-          lat = position.latitude;
-          lng = position.longitude;
+          if (position != null) {
+            // Check if position is from Android Emulator default (e.g. Mountain View 37.4220, -122.0840) or outside Indonesia
+            if (position.latitude > 8.0 || position.latitude < -12.0 || position.longitude < 94.0 || position.longitude > 142.0) {
+              debugPrint("GPS location is outside Indonesia (Emulator GPS detected: ${position.latitude}, ${position.longitude}). Using Kalimantan coordinate.");
+            } else {
+              _currentPosition = position;
+              lat = position.latitude;
+              lng = position.longitude;
+            }
+          }
         }
       } catch (e) {
         debugPrint("Could not fetch real device location, using fallback coordinate: $e");
@@ -63,10 +71,14 @@ class LocationProvider extends ChangeNotifier {
         'longitude': lng,
       });
 
-      if (response.statusCode == 201) {
-        final id = response.data['data']['driver_id'] as String;
-        await setDriverId(id);
-        return id;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data != null && response.data['data'] != null) {
+          final id = response.data['data']['driver_id'] as String?;
+          if (id != null) {
+            await setDriverId(id);
+            return id;
+          }
+        }
       }
     } catch (e) {
       debugPrint("Failed to ping driver location: $e");
@@ -103,8 +115,12 @@ class LocationProvider extends ChangeNotifier {
     _isTracking = true;
     notifyListeners();
 
-    // Start timer for posting coordinates every 15 seconds
-    _timer = Timer.periodic(const Duration(seconds: 15), (timer) async {
+    // Trigger immediate ping
+    pingLocation();
+
+    // Start timer for posting coordinates every 10 seconds
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) async {
       await pingLocation();
     });
   }

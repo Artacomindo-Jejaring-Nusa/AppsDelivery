@@ -37,8 +37,18 @@ func (r *driverRepository) Create(ctx context.Context, driver *domain.Driver) er
 
 func (r *driverRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Driver, error) {
 	query := `
-		SELECT id, user_id, full_name, phone, vehicle_plate, vehicle_type, is_available, is_active, created_at, updated_at
-		FROM drivers WHERE id = $1 AND is_active = true`
+		SELECT 
+			d.id, d.user_id, d.full_name, d.phone, d.vehicle_plate, d.vehicle_type, d.is_available, d.is_active, d.created_at, d.updated_at,
+			dl.latitude, dl.longitude, dl.recorded_at
+		FROM drivers d
+		LEFT JOIN LATERAL (
+			SELECT latitude, longitude, recorded_at
+			FROM driver_locations 
+			WHERE driver_id = d.id 
+			ORDER BY recorded_at DESC 
+			LIMIT 1
+		) dl ON true
+		WHERE d.id = $1 AND d.is_active = true`
 
 	driver := &domain.Driver{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
@@ -46,17 +56,31 @@ func (r *driverRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 		&driver.VehiclePlate, &driver.VehicleType,
 		&driver.IsAvailable, &driver.IsActive,
 		&driver.CreatedAt, &driver.UpdatedAt,
+		&driver.Latitude, &driver.Longitude, &driver.LastSeenAt,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if driver.LastSeenAt != nil {
+		driver.IsOnline = true
 	}
 	return driver, nil
 }
 
 func (r *driverRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*domain.Driver, error) {
 	query := `
-		SELECT id, user_id, full_name, phone, vehicle_plate, vehicle_type, is_available, is_active, created_at, updated_at
-		FROM drivers WHERE user_id = $1 AND is_active = true`
+		SELECT 
+			d.id, d.user_id, d.full_name, d.phone, d.vehicle_plate, d.vehicle_type, d.is_available, d.is_active, d.created_at, d.updated_at,
+			dl.latitude, dl.longitude, dl.recorded_at
+		FROM drivers d
+		LEFT JOIN LATERAL (
+			SELECT latitude, longitude, recorded_at
+			FROM driver_locations 
+			WHERE driver_id = d.id 
+			ORDER BY recorded_at DESC 
+			LIMIT 1
+		) dl ON true
+		WHERE d.user_id = $1 AND d.is_active = true`
 
 	driver := &domain.Driver{}
 	err := r.db.QueryRow(ctx, query, userID).Scan(
@@ -64,9 +88,13 @@ func (r *driverRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (
 		&driver.VehiclePlate, &driver.VehicleType,
 		&driver.IsAvailable, &driver.IsActive,
 		&driver.CreatedAt, &driver.UpdatedAt,
+		&driver.Latitude, &driver.Longitude, &driver.LastSeenAt,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if driver.LastSeenAt != nil {
+		driver.IsOnline = true
 	}
 	return driver, nil
 }
@@ -91,20 +119,30 @@ func (r *driverRepository) FindAll(ctx context.Context, pagination *domain.Pagin
 	}
 
 	dataQuery := `
-		SELECT id, user_id, full_name, phone, vehicle_plate, vehicle_type, is_available, is_active, created_at, updated_at
-		FROM drivers WHERE is_active = true`
+		SELECT 
+			d.id, d.user_id, d.full_name, d.phone, d.vehicle_plate, d.vehicle_type, d.is_available, d.is_active, d.created_at, d.updated_at,
+			dl.latitude, dl.longitude, dl.recorded_at
+		FROM drivers d
+		LEFT JOIN LATERAL (
+			SELECT latitude, longitude, recorded_at
+			FROM driver_locations 
+			WHERE driver_id = d.id 
+			ORDER BY recorded_at DESC 
+			LIMIT 1
+		) dl ON true
+		WHERE d.is_active = true`
 
 	dataArgs := []interface{}{}
 	dataArgIndex := 1
 
 	if pagination.Search != "" {
-		dataQuery += fmt.Sprintf(` AND (full_name ILIKE $%d OR phone ILIKE $%d OR vehicle_plate ILIKE $%d)`,
+		dataQuery += fmt.Sprintf(` AND (d.full_name ILIKE $%d OR d.phone ILIKE $%d OR d.vehicle_plate ILIKE $%d)`,
 			dataArgIndex, dataArgIndex, dataArgIndex)
 		dataArgs = append(dataArgs, "%"+pagination.Search+"%")
 		dataArgIndex++
 	}
 
-	dataQuery += fmt.Sprintf(` ORDER BY %s %s LIMIT $%d OFFSET $%d`,
+	dataQuery += fmt.Sprintf(` ORDER BY d.%s %s LIMIT $%d OFFSET $%d`,
 		sanitizeSortColumn(pagination.SortBy, "created_at"),
 		sanitizeOrder(pagination.Order),
 		dataArgIndex, dataArgIndex+1)
@@ -124,8 +162,12 @@ func (r *driverRepository) FindAll(ctx context.Context, pagination *domain.Pagin
 			&driver.VehiclePlate, &driver.VehicleType,
 			&driver.IsAvailable, &driver.IsActive,
 			&driver.CreatedAt, &driver.UpdatedAt,
+			&driver.Latitude, &driver.Longitude, &driver.LastSeenAt,
 		); err != nil {
 			return nil, 0, err
+		}
+		if driver.LastSeenAt != nil {
+			driver.IsOnline = true
 		}
 		drivers = append(drivers, driver)
 	}
@@ -135,9 +177,19 @@ func (r *driverRepository) FindAll(ctx context.Context, pagination *domain.Pagin
 
 func (r *driverRepository) FindAvailable(ctx context.Context) ([]*domain.Driver, error) {
 	query := `
-		SELECT id, user_id, full_name, phone, vehicle_plate, vehicle_type, is_available, is_active, created_at, updated_at
-		FROM drivers WHERE is_active = true AND is_available = true
-		ORDER BY full_name ASC`
+		SELECT 
+			d.id, d.user_id, d.full_name, d.phone, d.vehicle_plate, d.vehicle_type, d.is_available, d.is_active, d.created_at, d.updated_at,
+			dl.latitude, dl.longitude, dl.recorded_at
+		FROM drivers d
+		LEFT JOIN LATERAL (
+			SELECT latitude, longitude, recorded_at
+			FROM driver_locations 
+			WHERE driver_id = d.id 
+			ORDER BY recorded_at DESC 
+			LIMIT 1
+		) dl ON true
+		WHERE d.is_active = true AND d.is_available = true
+		ORDER BY d.full_name ASC`
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -153,8 +205,12 @@ func (r *driverRepository) FindAvailable(ctx context.Context) ([]*domain.Driver,
 			&driver.VehiclePlate, &driver.VehicleType,
 			&driver.IsAvailable, &driver.IsActive,
 			&driver.CreatedAt, &driver.UpdatedAt,
+			&driver.Latitude, &driver.Longitude, &driver.LastSeenAt,
 		); err != nil {
 			return nil, err
+		}
+		if driver.LastSeenAt != nil {
+			driver.IsOnline = true
 		}
 		drivers = append(drivers, driver)
 	}

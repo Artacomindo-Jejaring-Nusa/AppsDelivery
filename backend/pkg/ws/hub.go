@@ -104,6 +104,26 @@ func (h *Hub) BroadcastNotification(title, message, notificationType string, met
 	h.broadcast <- bytes
 }
 
+// BroadcastDriverLocation sends live GPS coordinates and driver status to all connected clients.
+func (h *Hub) BroadcastDriverLocation(driverID, fullName, vehiclePlate string, lat, lng float64, status string) {
+	payload := map[string]interface{}{
+		"type":          "driver_location_update",
+		"driver_id":     driverID,
+		"full_name":     fullName,
+		"vehicle_plate":  vehiclePlate,
+		"latitude":      lat,
+		"longitude":     lng,
+		"status":        status,
+		"timestamp":     "Just now",
+	}
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("[WS Hub] Failed to marshal location update: %v", err)
+		return
+	}
+	h.broadcast <- bytes
+}
+
 // HandleWS upgrades HTTP to WebSocket and registers the client.
 func HandleWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)

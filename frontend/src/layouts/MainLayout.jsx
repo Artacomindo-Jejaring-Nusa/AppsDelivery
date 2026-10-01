@@ -13,6 +13,7 @@ export default function MainLayout() {
   const [activeDropdown, setActiveDropdown] = useState(null); // 'notifications' | 'settings' | 'user' | null
   const [newCount, setNewCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
+  const [activeBanner, setActiveBanner] = useState(null);
 
   // Construct WebSocket URL dynamically
   const getWsUrl = () => {
@@ -34,10 +35,24 @@ export default function MainLayout() {
         try {
           const newNotif = JSON.parse(event.data);
           newNotif.id = Date.now();
-          console.log('[WS Notification Received]', newNotif);
+          console.log('[WS Message Received]', newNotif);
+
+          // If it's a driver location GPS update, dispatch event for live map & dashboard reactivity
+          if (newNotif.type === 'driver_location_update') {
+            window.dispatchEvent(new CustomEvent('driver-location-updated', { detail: newNotif }));
+            return;
+          }
 
           setNotifications((prev) => [newNotif, ...prev]);
           setNewCount((prev) => prev + 1);
+
+          // If it's an SLA breach/warning, show banner
+          if (newNotif.type === 'sla_breach' || newNotif.type === 'error') {
+            setActiveBanner(newNotif);
+            setTimeout(() => {
+              setActiveBanner(null);
+            }, 6000); // hide after 6s
+          }
 
           // Trigger browser notification if allowed
           if ('Notification' in window && Notification.permission === 'granted') {
@@ -81,16 +96,31 @@ export default function MainLayout() {
     navigate('/login');
   };
 
-  const navItems = [
-    { key: 'dashboard', label: t('nav.dashboard', 'Dashboard'), path: '/dashboard', icon: 'dashboard' },
-    { key: 'timeline', label: t('nav.timeline', 'Project Timeline'), path: '/timeline', icon: 'account_tree' },
-    { key: 'delivery_orders', label: t('nav.delivery_orders', 'Shipments'), path: '/delivery-orders', icon: 'local_shipping' },
-    { key: 'fleet', label: t('nav.fleet', 'Fleet'), path: '/fleet', icon: 'directions_bus' },
-    { key: 'analytics', label: t('nav.analytics', 'Analytics'), path: '/analytics', icon: 'analytics' },
-    { key: 'compliance', label: t('nav.compliance', 'Compliance'), path: '/compliance', icon: 'verified_user' },
-    { key: 'user_accounts', label: t('nav.user_accounts', 'User & Accounts'), path: '/user', icon: 'people' },
-    { key: 'tracking_monitoring', label: t('nav.tracking_monitoring', 'Tracking & Monitoring'), path: '/tracking', icon: 'location_searching' },
-    { key: 'bts_sites', label: t('nav.bts_sites', 'BTS Sites'), path: '/bts-sites', icon: 'cell_tower' },
+  const navGroups = [
+    {
+      title: 'Monitoring',
+      items: [
+        { key: 'dashboard', label: t('nav.dashboard', 'Dashboard'), path: '/dashboard', icon: 'dashboard' },
+        { key: 'tracking_monitoring', label: t('nav.tracking_monitoring', 'Tracking & Monitoring'), path: '/tracking', icon: 'location_searching' },
+      ],
+    },
+    {
+      title: 'Outbound & Inbound',
+      items: [
+        { key: 'delivery_orders', label: t('nav.delivery_orders', 'Shipments & DO'), path: '/delivery-orders', icon: 'local_shipping' },
+      ],
+    },
+    {
+      title: 'Master Data & Reports',
+      items: [
+        { key: 'fleet', label: t('nav.fleet', 'Fleet & Drivers'), path: '/fleet', icon: 'directions_bus' },
+        { key: 'bts_sites', label: t('nav.bts_sites', 'BTS Sites'), path: '/bts-sites', icon: 'cell_tower' },
+        { key: 'user_accounts', label: t('nav.user_accounts', 'User Accounts'), path: '/user', icon: 'people' },
+        { key: 'timeline', label: t('nav.timeline', 'Project Timeline'), path: '/timeline', icon: 'account_tree' },
+        { key: 'analytics', label: t('nav.analytics', 'Analytics'), path: '/analytics', icon: 'analytics' },
+        { key: 'compliance', label: t('nav.compliance', 'Compliance'), path: '/compliance', icon: 'verified_user' },
+      ],
+    }
   ];
 
   const userInitials = (user?.full_name || user?.username || 'A')
@@ -169,22 +199,29 @@ export default function MainLayout() {
         </div>
 
         {/* Navigation list */}
-        <div className="flex-1 space-y-xs overflow-y-auto custom-scrollbar">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.key || item.label}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-md w-full px-md py-sm rounded-lg text-left transition-colors font-semibold text-body-md ${
-                  isActive
-                    ? 'bg-secondary-container text-on-secondary-container'
-                    : 'text-on-surface-variant hover:bg-surface-container-high'
-                }`
-              }
-            >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
+        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2 mt-4">
+          {navGroups.map((group) => (
+            <div key={group.title} className="space-y-1">
+              <p className="px-sm pb-1 text-[11px] font-bold tracking-wider text-on-surface-variant opacity-70 uppercase">
+                {group.title}
+              </p>
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.key || item.label}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-md w-full px-md py-sm rounded-lg text-left transition-colors font-semibold text-body-md ${
+                      isActive
+                        ? 'bg-secondary-container text-on-secondary-container'
+                        : 'text-on-surface-variant hover:bg-surface-container-high'
+                    }`
+                  }
+                >
+                  <span className="material-symbols-outlined">{item.icon}</span>
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </div>
 
@@ -201,7 +238,23 @@ export default function MainLayout() {
       </nav>
 
       {/* ─── Main Content Canvas ─── */}
-      <main className="ml-60 flex-1 min-h-screen">
+      <main className="ml-60 flex-1 min-h-screen relative">
+        {/* Banner Alert for SLA Breach */}
+        {activeBanner && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 mt-md z-50 animate-in fade-in slide-in-from-top-4 duration-300 w-full max-w-2xl px-md">
+            <div className={`p-md rounded-lg shadow-2xl border-l-4 flex items-start gap-md ${getNotificationStyle(activeBanner.type).bgClass} ${getNotificationStyle(activeBanner.type).borderClass}`}>
+              <span className="material-symbols-outlined text-[24px]">warning</span>
+              <div className="flex-1">
+                <h4 className="font-headline-sm text-body-md font-bold">{activeBanner.title || 'SLA Warning!'}</h4>
+                <p className="text-body-sm mt-xs">{activeBanner.message}</p>
+              </div>
+              <button onClick={() => setActiveBanner(null)} className="opacity-70 hover:opacity-100">
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Top App Bar */}
         <header className="flex justify-between items-center px-lg w-full sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant h-16">
           <div className="flex items-center gap-lg flex-1">

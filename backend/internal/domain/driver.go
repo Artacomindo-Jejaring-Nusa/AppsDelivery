@@ -9,16 +9,20 @@ import (
 
 // Driver represents a delivery driver / courier.
 type Driver struct {
-	ID           uuid.UUID `json:"id"`
+	ID           uuid.UUID  `json:"id"`
 	UserID       *uuid.UUID `json:"user_id"`
-	FullName     string    `json:"full_name"`
-	Phone        string    `json:"phone"`
-	VehiclePlate string    `json:"vehicle_plate"`
-	VehicleType  string    `json:"vehicle_type"`
-	IsAvailable  bool      `json:"is_available"`
-	IsActive     bool      `json:"is_active"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	FullName     string     `json:"full_name"`
+	Phone        string     `json:"phone"`
+	VehiclePlate string     `json:"vehicle_plate"`
+	VehicleType  string     `json:"vehicle_type"`
+	IsAvailable  bool       `json:"is_available"`
+	IsActive     bool       `json:"is_active"`
+	IsOnline     bool       `json:"is_online"`
+	Latitude     *float64   `json:"latitude,omitempty"`
+	Longitude    *float64   `json:"longitude,omitempty"`
+	LastSeenAt   *time.Time `json:"last_seen_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 // ---- Request DTOs ----

@@ -38,33 +38,69 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text("API Base URL Configuration"),
-          content: TextField(
-            controller: urlController,
-            decoration: const InputDecoration(
-              labelText: "Server Address",
-              hintText: "http://192.168.1.X:8080",
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("CANCEL"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await authProv.apiClient.setBaseUrl(urlController.text.trim());
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Base URL updated to: ${urlController.text.trim()}")),
-                  );
-                }
-              },
-              child: const Text("SAVE"),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Server Base URL"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: urlController,
+                    decoration: const InputDecoration(
+                      labelText: "Server Address",
+                      hintText: "http://127.0.0.1:8080",
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text("Quick Presets:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      ActionChip(
+                        label: const Text("127.0.0.1 (ADB)", style: TextStyle(fontSize: 11)),
+                        onPressed: () {
+                          setDialogState(() {
+                            urlController.text = "http://127.0.0.1:8080";
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        label: const Text("2.2.2.104 (Wi-Fi)", style: TextStyle(fontSize: 11)),
+                        onPressed: () {
+                          setDialogState(() {
+                            urlController.text = "http://2.2.2.104:8080";
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("CANCEL"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final targetUrl = urlController.text.trim();
+                    await authProv.apiClient.setBaseUrl(targetUrl);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Base URL updated to: $targetUrl")),
+                      );
+                    }
+                  },
+                  child: const Text("SAVE"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -178,8 +214,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline, color: StitchColors.secondary),
-            onPressed: () {},
+            icon: const Icon(Icons.settings, color: StitchColors.secondary),
+            tooltip: "Server Configuration",
+            onPressed: _showServerSettings,
           ),
           IconButton(
             icon: const Icon(Icons.language, color: StitchColors.secondary),

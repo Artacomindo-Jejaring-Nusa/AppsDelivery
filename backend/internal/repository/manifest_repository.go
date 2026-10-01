@@ -135,7 +135,7 @@ func (r *manifestRepository) FindAll(ctx context.Context, pagination *domain.Pag
 	}
 	defer rows.Close()
 
-	var manifests []*domain.Manifest
+	manifests := []*domain.Manifest{}
 	for rows.Next() {
 		m := &domain.Manifest{}
 		if err := rows.Scan(
@@ -169,7 +169,7 @@ func (r *manifestRepository) FindItemsByManifestID(ctx context.Context, manifest
 	}
 	defer rows.Close()
 
-	var items []*domain.ManifestItem
+	items := []*domain.ManifestItem{}
 	for rows.Next() {
 		item := &domain.ManifestItem{}
 		do := &domain.DeliveryOrder{}

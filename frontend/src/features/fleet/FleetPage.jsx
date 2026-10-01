@@ -33,7 +33,33 @@ export default function FleetPage() {
     const interval = setInterval(() => {
       fetchDrivers(true);
     }, 5000);
-    return () => clearInterval(interval);
+
+    const handleDriverLocationUpdate = (e) => {
+      const update = e.detail;
+      if (!update) return;
+      setDrivers((prevDrivers) =>
+        prevDrivers.map((d) =>
+          d.id === update.driver_id
+            ? {
+                ...d,
+                latitude: update.latitude,
+                longitude: update.longitude,
+                current_lat: update.latitude,
+                current_lng: update.longitude,
+                is_online: true,
+                is_available: update.status !== 'on_route',
+              }
+            : d
+        )
+      );
+    };
+
+    window.addEventListener('driver-location-updated', handleDriverLocationUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('driver-location-updated', handleDriverLocationUpdate);
+    };
   }, []);
 
   const fetchDrivers = async (isSilent = false) => {
@@ -115,12 +141,15 @@ export default function FleetPage() {
 
   // Status mapping for visual aesthetics
   const getStatusBadge = (driver) => {
-    // Determine status based on driver data or availability
+    // Determine status based on driver data, GPS presence, or availability
     let status = 'idle';
+    const isOnline = driver.is_online || Boolean(driver.latitude || driver.current_lat);
     if (!driver.is_active) {
       status = 'repair';
     } else if (!driver.is_available) {
       status = 'in_transit';
+    } else if (isOnline) {
+      status = 'online';
     }
 
     const config = {
@@ -129,10 +158,15 @@ export default function FleetPage() {
         bg: 'bg-green-100 text-green-800',
         dot: 'bg-green-500',
       },
+      online: {
+        label: 'Online (Siap)',
+        bg: 'bg-blue-100 text-blue-800',
+        dot: 'bg-blue-600',
+      },
       idle: {
-        label: 'Idle',
-        bg: 'bg-amber-100 text-amber-800',
-        dot: 'bg-amber-500',
+        label: 'Standby',
+        bg: 'bg-slate-100 text-slate-700',
+        dot: 'bg-slate-400',
       },
       repair: {
         label: 'Repair',
@@ -141,9 +175,9 @@ export default function FleetPage() {
       },
     };
 
-    const c = config[status];
+    const c = config[status] || config.idle;
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${c.bg}`}>
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${c.bg}`}>
         <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${c.dot}`}></span>
         {c.label}
       </span>
