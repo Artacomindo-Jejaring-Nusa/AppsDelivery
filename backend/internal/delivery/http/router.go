@@ -112,6 +112,9 @@ func (r *Router) Setup(engine *gin.Engine) {
 	v1.GET("/track/:tracking_number", r.trackingHandler.PublicTrack)
 
 	// ---- WebSocket Endpoint (Real-time Notifications) ----
+	engine.GET("/ws", func(c *gin.Context) {
+		wsPkg.HandleWS(c.Writer, c.Request)
+	})
 	v1.GET("/ws", func(c *gin.Context) {
 		wsPkg.HandleWS(c.Writer, c.Request)
 	})
