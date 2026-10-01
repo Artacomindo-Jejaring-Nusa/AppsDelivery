@@ -17,9 +17,16 @@ export default function MainLayout() {
 
   // Construct WebSocket URL dynamically
   const getWsUrl = () => {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
-    const wsProto = base.startsWith('https') ? 'wss' : 'ws';
-    return base.replace(/^https?:\/\//i, `${wsProto}://`) + '/ws';
+    if (import.meta.env.VITE_API_BASE_URL) {
+      const base = import.meta.env.VITE_API_BASE_URL;
+      const wsProto = base.startsWith('https') ? 'wss' : 'ws';
+      return base.replace(/^https?:\/\//i, `${wsProto}://`).replace(/\/api\/v1\/?$/, '') + '/ws';
+    }
+    if (import.meta.env.DEV) {
+      return 'ws://localhost:8080/ws';
+    }
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/ws`;
   };
 
   useEffect(() => {
